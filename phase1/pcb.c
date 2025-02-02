@@ -7,9 +7,10 @@
  *      Modified by Phuong and Oghap on Jan 2025
  */
 #include "../h/pcb.h"
+#define MAXPROC	20
 
-HIDDEN    pcb_PTR *pcbFree_h;
-
+HIDDEN    pcb_PTR *pcbFree_h;    
+static pcb_PTR MAXPROC_pcbs[MAXPROC];
 
 void freePcb (pcb_PTR *p){
     p->p_next = pcbFree_h;
@@ -23,6 +24,7 @@ pcb_PTR *allocPcb (){
     pcb_PTR *allocatedPcb = pcbFree_h;
 
     pcbFree_h = pcbFree_h->p_next;
+    
     allocatedPcb->p_child = NULL;
     allocatedPcb->p_next = NULL;
     allocatedPcb->p_prev = NULL;
@@ -39,12 +41,10 @@ pcb_PTR *allocPcb (){
 }
 
 void initPcbs (){
-    static pcb_PTR MAXPROC_pcbs[20];
-    pcbFree_h = &(MAXPROC_pcbs[0]);
-    pcb_PTR *ptr = pcbFree_h;
+    pcbFree_h = &(MAXPROC_pcbs);
     int i;
-    for (i = 1; i < 20; i = i+1){
-        ptr->p_next = &(MAXPROC_pcbs[i]);
-        ptr = ptr->p_next;
+    for (i = 0; i < MAXPROC - 1; i = i+1){
+       (MAXPROC_pcbs[i]).p_next = &(MAXPROC_pcbs[i+1]);
     }
+    (MAXPROC_pcbs[i]).p_next = NULL;
 }

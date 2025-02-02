@@ -14,7 +14,6 @@ typedef signed int cpu_t;
 
 typedef unsigned int memaddr;
 
-
 /* Device Register */
 typedef struct {
 	unsigned int d_status;
@@ -66,6 +65,26 @@ typedef struct state_t {
 	int	 			s_reg[STATEREGNUM];
 
 } state_t, *state_PTR;
+
+/* process control block type */
+typedef struct pcb_PTR {
+	/* process queue fields */
+	struct pcb_PTR 
+		*p_next, 				/* pointer to next entry */
+		*p_prev, 				/* pointer to prev entry */
+		/* process tree fields */
+		*p_prnt, 				/* pointer to parent */
+		*p_child, 				/* pointer to 1st child */
+		*p_sib; 				/* pointer to sibling */
+	/* process status information */
+	state_t		p_s; 			/* processor state */
+	cpu_t 		p_time; 		/* cpu time used by proc */
+	int 		*p_semAdd; 		/* pointer to sema4 on */
+	/* which process blocked */
+	/* support layer information */
+	/* support_t 	*p_supportStruct; */
+	/* ptr to support struct */
+} pcb_PTR;
 
 #define	s_at	s_reg[0]
 #define	s_v0	s_reg[1]
