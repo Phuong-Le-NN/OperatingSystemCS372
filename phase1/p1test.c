@@ -100,8 +100,7 @@ unsigned int termprint(char * str, unsigned int term) {
 *	causes the string to be written out to terminal0 */
 void addokbuf(char *strp) {
 	char *tstrp = strp;
-	while ((*mp++ = *strp++) != '\0')
-		;
+	while ((*mp++ = *strp++) != '\0');
 	mp--;
 	termprint(tstrp, 0);
 }
@@ -110,8 +109,7 @@ void addokbuf(char *strp) {
 /* This function placess the specified character string in errbuf and
 *	causes the string to be written out to terminal0.  After this is done
 *	the system shuts down with a panic message */
-void adderrbuf(char *strp) {
-	addokbuf(" adderrbuf called  \n");
+void adderrbuf(char *strp) {;
 	char *ep = errbuf;
 	char *tstrp = strp;
 	
@@ -138,15 +136,44 @@ void main() {
 		if ((procp[i] = allocPcb()) == NULL)
 			adderrbuf("allocPcb: unexpected NULL   ");
 	}
+	
+	addokbuf("alloc 20 pcbs  \n");
 	if (allocPcb() != NULL) {
 		adderrbuf("allocPcb: allocated more than MAXPROC entries   ");
 	}
+
 	addokbuf("allocPcb ok   \n");
 
 	/* return the last 10 entries back to free list */
 	for (i = 10; i < MAXPROC; i++)
 		freePcb(procp[i]);
 	addokbuf("freed 10 entries   \n");
+
+	/* create a 10-element process queue */
+	qa = NULL;
+	if (!emptyProcQ(qa)) adderrbuf("emptyProcQ: unexpected FALSE   ");
+	addokbuf("Inserting...   \n");
+	for (i = 0; i < 10; i++) {
+		if ((q = allocPcb()) == NULL)
+			adderrbuf("allocPcb: unexpected NULL while insert   ");
+		switch (i) {
+		case 0:
+			firstproc = q;
+			break;
+		case 5:
+			midproc = q;
+			break;
+		case 9:
+			lastproc = q;
+			break;
+		default:
+			break;
+		}
+		insertProcQ(&qa, q);
+	}
+	addokbuf("inserted 10 elements   \n");
+
+	if (emptyProcQ(qa)) adderrbuf("emptyProcQ: unexpected TRUE"   );
 
 }
 

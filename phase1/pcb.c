@@ -41,10 +41,50 @@ pcb_PTR *allocPcb (){
 }
 
 void initPcbs (){
-    pcbFree_h = &(MAXPROC_pcbs);
+    pcbFree_h = &(MAXPROC_pcbs[0]);
     int i;
     for (i = 0; i < MAXPROC - 1; i = i+1){
        (MAXPROC_pcbs[i]).p_next = &(MAXPROC_pcbs[i+1]);
     }
     (MAXPROC_pcbs[i]).p_next = NULL;
 }
+
+pcb_PTR *mkEmptyProcQ (){
+    static pcb_PTR *queueTail = NULL;
+    return queueTail;
+}
+
+int emptyProcQ (pcb_PTR *tp){
+    return tp == NULL;
+}
+
+void insertProcQ (pcb_PTR **tp, pcb_PTR *p){
+    if (emptyProcQ(*tp)){
+        (*tp) = p;
+        p->p_next = p;
+        p->p_prev = p;
+        return;
+    }
+    p->p_next = (*(*tp)).p_next;
+    p->p_prev = (*tp);
+    (*tp)->p_next = p;
+    (*tp)->p_next->p_prev = p;
+    *tp = p;
+}
+
+pcb_PTR *removeProcQ (pcb_PTR **tp){
+    if (emptyProcQ(*tp) == NULL){
+        return NULL;
+    }
+
+    pcb_PTR *rm = (*tp)-> p_next;
+
+    (*tp)->p_next = rm->p_next;
+    rm->p_next->p_prev = (*tp);
+    return rm;
+
+}
+
+/*
+pcb_PTR *outProcQ (pcb_PTR **tp, pcb_PTR *p);
+pcb_PTR *headProcQ (pcb_PTR *tp);*/
