@@ -80,11 +80,19 @@ typedef struct pcb_PTR {
 	state_t		p_s; 			/* processor state */
 	cpu_t 		p_time; 		/* cpu time used by proc */
 	int 		*p_semAdd; 		/* pointer to sema4 on */
-	/* which process blocked */
+								/* which process blocked */
 	/* support layer information */
 	/* support_t 	*p_supportStruct; */
 	/* ptr to support struct */
 } pcb_PTR;
+
+/* semaphore descriptor type */
+typedef struct semd_t {
+	struct 	semd_t 	*s_next; 	/* next element on the ASL */
+	int 			*s_semAdd; 	/* pointer to the semaphore*/
+	pcb_PTR 		*s_procQ; 	/* tail pointer to a */
+								/* process queue */
+} semd_t;
 
 #define	s_at	s_reg[0]
 #define	s_v0	s_reg[1]

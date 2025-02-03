@@ -130,3 +130,21 @@ pcb_PTR *headProcQ (pcb_PTR *tp){
     return tp->p_next;
 
 }
+
+int emptyChild (pcb_PTR *p){
+    return p->p_child == NULL;
+}
+void insertChild (pcb_PTR *prnt, pcb_PTR *p){
+    insertProcQ(&(prnt->p_child), p);
+    p->p_prnt = prnt;
+}
+pcb_PTR *removeChild (pcb_PTR *p){
+    return removeProcQ(&(p->p_child));
+}
+pcb_PTR *outChild (pcb_PTR *p){
+    pcb_PTR *prnt = p->p_prnt;
+    if (prnt == NULL){
+        return NULL;
+    }
+    return outProcQ(&(prnt->p_child), p);
+}
