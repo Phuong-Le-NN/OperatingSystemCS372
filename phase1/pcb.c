@@ -67,8 +67,8 @@ void insertProcQ (pcb_PTR **tp, pcb_PTR *p){
     }
     p->p_next = (*tp)->p_next;
     p->p_prev = (*tp);
+    ((*tp)->p_next)->p_prev = p;
     (*tp)->p_next = p;
-    (*tp)->p_next->p_prev = p;
     *tp = p;
 }
 
@@ -94,43 +94,29 @@ pcb_PTR *outProcQ (pcb_PTR **tp, pcb_PTR *p){
     if ((*tp) == NULL){
         return NULL;
     }
-    
+
     pcb_PTR *traverse = *tp;
     while ((traverse != p) && (traverse->p_next != (*tp))) {
-        addokbuf("in the loop\n");
         traverse = traverse->p_next;
-        addokbuf("exit loop \n");
     }
-    addokbuf("finsihed loop \n");
     if (traverse != p){
         return NULL;
     }
 
-    addokbuf("found p in queue \n");
     pcb_PTR *next = p->p_next;
     pcb_PTR *prev = p->p_prev;
+
     (next)->p_prev = prev;
     (prev)->p_next = next;
-    addokbuf("removed p \n");
     if ((*tp) == p){
-        addokbuf("removed tail \n");
         (*tp) = p->p_prev;
         if ((*tp) == p){
-            addokbuf("removed only pcb \n");
             (*tp) = NULL;
         }
     }
 
     p->p_prev = NULL;
     p->p_next = NULL;
-
-
-    traverse = *tp;
-    while ((traverse->p_next != (*tp))) {
-        addokbuf("in the loop\n");
-        traverse = traverse->p_next;
-        addokbuf("exit loop \n");
-    }
 
     return p;
 }

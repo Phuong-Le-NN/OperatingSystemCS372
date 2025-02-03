@@ -179,6 +179,8 @@ void main() {
 
 	/* Check outProc and headProc */
 
+	if (headProcQ(qa) != firstproc)
+		adderrbuf("headProcQ failed   ");
 	q = outProcQ(&qa, firstproc);
 	if (q == NULL || q != firstproc)
 		adderrbuf("outProcQ failed on first entry   ");
@@ -188,23 +190,18 @@ void main() {
 	if (q == NULL || q != midproc)
 		adderrbuf("outProcQ failed on middle entry   ");
 	freePcb(q);
-	addokbuf("finishing remiving middle \n");
+	addokbuf("finishing removing middle \n");
 	if (outProcQ(&qa, procp[0]) != NULL)
 		adderrbuf("outProcQ failed on nonexistent entry   ");
 	addokbuf("finish removing nonexistent \n");
 	addokbuf("outProcQ ok   \n");
 	
 
-	if (headProcQ(qa) != firstproc)
-		adderrbuf("headProcQ failed   ");
-
-
-
 	if (emptyProcQ(qa)) adderrbuf("emptyProcQ: unexpected TRUE"   );
 
 		/* Check if removeProc and insertProc remove in the correct order */
 	addokbuf("Removing...   \n");
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 8; i++) {
 		if ((q = removeProcQ(&qa)) == NULL)
 			adderrbuf("removeProcQ: unexpected NULL   ");
 		freePcb(q);
