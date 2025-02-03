@@ -44,7 +44,7 @@ void initPcbs (){
     pcbFree_h = &(MAXPROC_pcbs[0]);
     int i;
     for (i = 0; i < MAXPROC - 1; i = i+1){
-       (MAXPROC_pcbs[i]).p_next = &(MAXPROC_pcbs[i+1]);
+        (MAXPROC_pcbs[i]).p_next = &(MAXPROC_pcbs[i+1]);
     }
     (MAXPROC_pcbs[i]).p_next = NULL;
 }
@@ -65,7 +65,7 @@ void insertProcQ (pcb_PTR **tp, pcb_PTR *p){
         p->p_prev = p;
         return;
     }
-    p->p_next = (*(*tp)).p_next;
+    p->p_next = (*tp)->p_next;
     p->p_prev = (*tp);
     (*tp)->p_next = p;
     (*tp)->p_next->p_prev = p;
@@ -73,7 +73,7 @@ void insertProcQ (pcb_PTR **tp, pcb_PTR *p){
 }
 
 pcb_PTR *removeProcQ (pcb_PTR **tp){
-    if (emptyProcQ(*tp) == NULL){
+    if (emptyProcQ(*tp)){
         return NULL;
     }
 
@@ -81,10 +81,66 @@ pcb_PTR *removeProcQ (pcb_PTR **tp){
 
     (*tp)->p_next = rm->p_next;
     rm->p_next->p_prev = (*tp);
+
+    if (rm == (*tp)){
+        (*tp) = NULL;
+    }
     return rm;
 
 }
 
-/*
-pcb_PTR *outProcQ (pcb_PTR **tp, pcb_PTR *p);
-pcb_PTR *headProcQ (pcb_PTR *tp);*/
+pcb_PTR *outProcQ (pcb_PTR **tp, pcb_PTR *p){
+    
+    if ((*tp) == NULL){
+        return NULL;
+    }
+    
+    pcb_PTR *traverse = *tp;
+    while ((traverse != p) && (traverse->p_next != (*tp))) {
+        addokbuf("in the loop\n");
+        traverse = traverse->p_next;
+        addokbuf("exit loop \n");
+    }
+    addokbuf("finsihed loop \n");
+    if (traverse != p){
+        return NULL;
+    }
+
+    addokbuf("found p in queue \n");
+    pcb_PTR *next = p->p_next;
+    pcb_PTR *prev = p->p_prev;
+    (next)->p_prev = prev;
+    (prev)->p_next = next;
+    addokbuf("removed p \n");
+    if ((*tp) == p){
+        addokbuf("removed tail \n");
+        (*tp) = p->p_prev;
+        if ((*tp) == p){
+            addokbuf("removed only pcb \n");
+            (*tp) = NULL;
+        }
+    }
+
+    p->p_prev = NULL;
+    p->p_next = NULL;
+
+
+    traverse = *tp;
+    while ((traverse->p_next != (*tp))) {
+        addokbuf("in the loop\n");
+        traverse = traverse->p_next;
+        addokbuf("exit loop \n");
+    }
+
+    return p;
+}
+
+pcb_PTR *headProcQ (pcb_PTR *tp){
+    
+    if (tp == NULL){
+        return NULL;
+    }
+
+    return tp->p_next;
+
+}
