@@ -166,7 +166,7 @@ int insertBlocked (int *semAdd, pcb_PTR *p){
 pcb_PTR *removeBlocked (int *semAdd){
     /*look for the predecessor*/
     semd_t *predecessor = traverseASL(semAdd);
-    /*special case where the given sema4 descriptor does not exist in ASL
+    /*special case where the given sema4 descriptor does not exist in ASL*/
     if (predecessor->s_next->s_semAdd != semAdd){
         return NULL;
     }
@@ -228,7 +228,7 @@ pcb_PTR *headBlocked (int *semAdd){
     if (predecessor->s_next->s_semAdd != semAdd || emptyProcQ(predecessor->s_next->s_procQ)){
         return NULL;
     }
-    /*return the head pcb of the queue of the specified sema4*/
+    /*return the head pcb of the queue of the specified*/
     return predecessor->s_next->s_procQ->p_next;
 }
 
