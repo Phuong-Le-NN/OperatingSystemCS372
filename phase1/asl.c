@@ -34,7 +34,9 @@ static semd_t *semd_h = NULL;
  *         
  */
 void freeSemd (semd_t *p){
+    /*set sema4 queue pointer to NULL, assuming there is no pcb inside it*/
     p->s_procQ = NULL;
+    /*adding sema4 to the free sema4 list*/
     p->s_next = semdFree_h;
     semdFree_h = p;
 }
@@ -50,13 +52,16 @@ void freeSemd (semd_t *p){
  *         
  */
 semd_t *allocSemd (int* semAdd){
+    /*special case no free sema4 to allocate*/
     if (semdFree_h == NULL){
         return NULL;
     }
+    /*removing the first sema4 in semdFree_h*/
     semd_t *allocatedSemd = semdFree_h;
 
     semdFree_h = semdFree_h->s_next;
     
+    /*initialize its attributes*/
     allocatedSemd->s_next = NULL;
     allocatedSemd->s_semAdd = semAdd;
     allocatedSemd->s_procQ = mkEmptyProcQ();
@@ -76,13 +81,17 @@ semd_t *allocSemd (int* semAdd){
  *         
  */
 void initASL (){
+    /*adding the first sema4 from semdTable to the semdFree_h list*/
     semdFree_h = &(semdTable[0]);
     int i;
+    /*adding and connecting the rest sema4 from semdTable to the semdFree_h list*/
     for (i = 0; i < MAXPROC + 1; i = i+1){
         (semdTable[i]).s_next = &(semdTable[i+1]);
     }
+    /*making the s_next pointer of the tail node NULL*/
     (semdTable[i]).s_next = NULL;
 
+    /*allocating and adding the two dummy node into the ASL*/
     semd_t *headDummy = allocSemd(0);
     semd_t *tailDummy = allocSemd(&(semdTable[MAXPROC + 1]));
     semd_h = tailDummy;
@@ -104,6 +113,7 @@ void initASL (){
  */
 semd_t *traverseASL (int* semAdd){
     semd_t *traverse = semd_h;
+    /*the loop that move traverse pointer until the the next sema4 no longer has the descriptor smaller than the given sema4 descriptor*/
     while (traverse->s_next->s_semAdd < semAdd){
         traverse = traverse->s_next;
     }
@@ -124,7 +134,9 @@ semd_t *traverseASL (int* semAdd){
  *         
  */
 int insertBlocked (int *semAdd, pcb_PTR *p){
+    /*look for the predecessor*/
     semd_t *predecessor = traverseASL(semAdd);
+    /*special case where the given sema4 descriptor does not exist in ASL*/
     if (predecessor->s_next->s_semAdd != semAdd){
         semd_t *newSem = allocSemd(semAdd);
         if (newSem == NULL){
@@ -133,13 +145,14 @@ int insertBlocked (int *semAdd, pcb_PTR *p){
         newSem->s_next = predecessor->s_next;
         predecessor->s_next = newSem;
     }
+    /*insert into the queue of the found sema4 using insertProcQ from pcb module*/
     insertProcQ(&(predecessor->s_next->s_procQ), p);
     p->p_semAdd = semAdd;
     return FALSE;
 }
 
 /**********************************************************
- *  Removing from head queue of a sema4 in ASL 
+ *  Removing from head queue of a sema4 in ASL and remove sema4 from ASL if no longer active
  * 
  *  Parameters: 
  *         int* semAdd : the sema4 descriptor to look for
@@ -151,15 +164,21 @@ int insertBlocked (int *semAdd, pcb_PTR *p){
  *         
  */
 pcb_PTR *removeBlocked (int *semAdd){
+    /*look for the predecessor*/
     semd_t *predecessor = traverseASL(semAdd);
+    /*special case where the given sema4 descriptor does not exist in ASL
     if (predecessor->s_next->s_semAdd != semAdd){
         return NULL;
     }
+    /*remove the queue of the found sema4 using removeProcQ from pcb module*/
     pcb_PTR *resultPcb = removeProcQ(&(predecessor->s_next->s_procQ));
+    /*special case where the sema4 found but empty*/
     if (resultPcb == NULL){
         return NULL;
     }
+    /*fixing the pointer to the sema4 of pcb to NULL*/
     resultPcb->p_semAdd = NULL;
+    /*removing sema4 from ASL if no longer active*/
     if (emptyProcQ(predecessor->s_next->s_procQ)){
         semd_t *toBeFreeSem = predecessor->s_next;
         predecessor->s_next = predecessor->s_next->s_next;
@@ -182,10 +201,13 @@ pcb_PTR *removeBlocked (int *semAdd){
  */
 pcb_PTR *outBlocked (pcb_PTR *p){
     int *semAdd = p->p_semAdd;
+    /*look for the predecessor*/
     semd_t *predecessor = traverseASL(semAdd);
+    /*special case where the given sema4 descriptor does not exist in ASL or its queue is empty*/
     if (predecessor->s_next->s_semAdd != semAdd || emptyProcQ(predecessor->s_next->s_procQ)){
         return NULL;
     }
+    /*remove pcb from the queue of the found sema4 using outProcQ() from pcb module*/
     return outProcQ(&(predecessor->s_next->s_procQ), p);
 }
 /**********************************************************
@@ -200,10 +222,13 @@ pcb_PTR *outBlocked (pcb_PTR *p){
  *         
  */
 pcb_PTR *headBlocked (int *semAdd){
+    /*look for the predecessor*/
     semd_t *predecessor = traverseASL(semAdd);
+    /*special case where the given sema4 descriptor does not exist in ASL or its queue is empty*/
     if (predecessor->s_next->s_semAdd != semAdd || emptyProcQ(predecessor->s_next->s_procQ)){
         return NULL;
     }
+    /*return the head pcb of the queue of the specified sema4*/
     return predecessor->s_next->s_procQ->p_next;
 }
 
