@@ -1,7 +1,16 @@
 /*********************************PCB.C*******************************
  *
- *	Implementation of the process queue and process tree module.
- *
+ *	This is the implementation of the process queue and process tree module.
+ *  The process queues are implemented as doubly, circular linked lists,
+ *  with p_prev and p_next fields. And the process queues are pointed by
+ *  a tail pointer instead of a head pointer. 
+ * 
+ *  The pcbs are also organized into trees of pcbs, called process trees. 
+ *  The p_prnt, p_child, and p_sib pointers are used for this purpose.
+ *  A parent pcb contains a pointer (p_child) to a single, doubly linearly linked 
+ *  list of its child pcbs. Each child process has a pointer 
+ *  to its parent pcb (p_prnt) and the next child pcb of its parent (p_sib).
+ * 
  *      Modified by Phuong and Oghap on Feb 2025
  */
 #include "../h/pcb.h"
