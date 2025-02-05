@@ -1,16 +1,14 @@
-/*********************************PCBS.C*******************************
+/*********************************PCB.C*******************************
  *
- *	Allocation and Deallocation of Pcbs (phase 1).
- *
- *	Include freePcb, allocPcb, initPcbs
+ *	Implementation of the process queue and process tree module.
  *
  *      Modified by Phuong and Oghap on Jan 2025
  */
 #include "../h/pcb.h"
-#define MAXPROC	20
+#include "../h/types.h"
 
-HIDDEN    pcb_PTR *pcbFree_h;    
-static pcb_PTR MAXPROC_pcbs[MAXPROC];
+HIDDEN    pcb_PTR   *pcbFree_h;    
+static    pcb_PTR    MAXPROC_pcbs[MAXPROC];
 
 void freePcb (pcb_PTR *p){
     p->p_next = pcbFree_h;
@@ -72,6 +70,19 @@ void insertProcQ (pcb_PTR **tp, pcb_PTR *p){
     *tp = p;
 }
 
+/**********************************************************
+ *  Remove the first (i.e. head) element from the process queue whose
+ *  tail-pointer is pointed to by tp. Return NULL if the process queue
+ *  was initially empty; otherwise return the pointer to the removed element.
+ *  Update the process queue’s tail pointer if necessary.
+ * 
+ *  Parameters:
+ *         pcb_PTR **tp - address of the tail pointer of pq
+ * 
+ *  Returns:
+ *         pcb_PTR removed_p 
+ * 
+ */
 pcb_PTR *removeProcQ (pcb_PTR **tp){
     if (emptyProcQ(*tp)){
         return NULL;
