@@ -30,6 +30,8 @@ static    pcb_PTR    MAXPROC_pcbs[MAXPROC];
  *         
  */
 void freePcb (pcb_PTR *p){
+
+    /*adding p to the free pcbFree list*/
     p->p_next = pcbFree_h;
     pcbFree_h = p;
 }
@@ -56,6 +58,7 @@ pcb_PTR *allocPcb (){
     }
 
 
+    /* removing the first p in pcbFree_h */
     pcb_PTR *allocatedPcb = pcbFree_h;
 
     pcbFree_h = pcbFree_h->p_next;
@@ -115,6 +118,8 @@ void initPcbs (){
  *         
  */
 pcb_PTR *mkEmptyProcQ (){
+
+    /* Initializes the pointer of the tail of an empty process queue */
     static pcb_PTR *queueTail = NULL;
     return queueTail;
 }
@@ -131,6 +136,8 @@ pcb_PTR *mkEmptyProcQ (){
  *      boolean value
  */
 int emptyProcQ (pcb_PTR *tp){
+
+    /* sets the tail pointer to NULL */
     return tp == NULL;
 }
 
@@ -232,11 +239,14 @@ pcb_PTR *outProcQ (pcb_PTR **tp, pcb_PTR *p){
         return NULL;
     }
 
+    /* remove pcb from the queue */
     pcb_PTR *next = p->p_next;
     pcb_PTR *prev = p->p_prev;
 
     (next)->p_prev = prev;
     (prev)->p_next = next;
+
+    /* Special case when removed element is the tail */
     if ((*tp) == p){
         (*tp) = p->p_prev;
         if ((*tp) == p){
@@ -244,6 +254,7 @@ pcb_PTR *outProcQ (pcb_PTR **tp, pcb_PTR *p){
         }
     }
 
+    /* setting removed pcb values to NULL */
     p->p_prev = NULL;
     p->p_next = NULL;
 
@@ -281,10 +292,13 @@ pcb_PTR *headProcQ (pcb_PTR *tp){
  *         pcb_PTR *p - element in pq
  * 
  *  Returns:
- *         boolean value to see if there are children
+ *         boolean value - TRUE if the pcb pointed to by p has no children. 
+ *                         Return FALSE otherwise.
  *         
  */
 int emptyChild (pcb_PTR *p){
+
+    /* returning boolean value of whether the pcb pointed to by p has no children */
     return p->p_child == NULL;
 }
 
@@ -300,7 +314,7 @@ int emptyChild (pcb_PTR *p){
  */
 void insertChild (pcb_PTR *prnt, pcb_PTR *p){
 
-    /* Insert child */
+    /* Insert child using insert method from the process queue module */
     insertProcQ(&(prnt->p_child), p);
     p->p_prnt = prnt;
 }
@@ -318,6 +332,8 @@ void insertChild (pcb_PTR *prnt, pcb_PTR *p){
  *         
  */
 pcb_PTR *removeChild (pcb_PTR *p){
+
+    /*remove first child of the pcb from the queue using removeProcQ() from pcb module*/
     return removeProcQ(&(p->p_child));
 }
 
@@ -336,9 +352,14 @@ pcb_PTR *removeChild (pcb_PTR *p){
  *         
  */
 pcb_PTR *outChild (pcb_PTR *p){
+
     pcb_PTR *prnt = p->p_prnt;
+
+    /* special case when the the pcb pointed to by p has no parent */
     if (prnt == NULL){
         return NULL;
     }
+
+    /*return the remove child of the pcb from the queue using outProcQ() from pcb module*/
     return outProcQ(&(prnt->p_child), p);
 }
