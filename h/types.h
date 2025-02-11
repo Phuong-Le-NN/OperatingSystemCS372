@@ -67,30 +67,30 @@ typedef struct state_t {
 } state_t, *state_PTR;
 
 /* process control block type */
-typedef struct pcb_PTR {
-	/* process queue fields */
-	struct pcb_PTR 
-		*p_next, 				/* pointer to next entry */
-		*p_prev, 				/* pointer to prev entry */
-		/* process tree fields */
-		*p_prnt, 				/* pointer to parent */
-		*p_child, 				/* pointer to 1st child */
-		*p_sib; 				/* pointer to sibling */
-	/* process status information */
-	state_t		p_s; 			/* processor state */
-	cpu_t 		p_time; 		/* cpu time used by proc */
-	int 		*p_semAdd; 		/* pointer to sema4 on */
-								/* which process blocked */
-	/* support layer information */
-	/* support_t 	*p_supportStruct; */
-	/* ptr to support struct */
-} pcb_PTR;
+/* process table entry type */
+typedef struct pcb_t {
+/* process queue fields */
+    struct 	pcb_t   	*p_next; 			/* ptr to next entry */
+    struct 	pcb_t   	*p_prev; 			/* ptr to previous entry */
+/* process tree fields */
+	struct 	pcb_t 	*p_prnt, 			/* ptr to parent */
+					*p_child, 			/* ptr to 1st child */
+					*p_next_sib, 		/* ptr to next sibling */
+					*p_prev_sib; 		/* ptr to prev. sibling */
+/* process status information */
+    state_t 		p_s; 						/* processor state */
+    cpu_t 			p_time; 					/* cpu time used by proc */
+    int 			*p_semAdd;					/* ptr to semaphore on */
+/* which proc is blocked */
+/* support layer information */
+    /*support_t *p_supportStruct;*/
+}  pcb_t, *pcb_PTR;
 
 /* semaphore descriptor type */
 typedef struct semd_t {
 	struct 	semd_t 	*s_next; 	/* next element on the ASL */
 	int 			*s_semAdd; 	/* pointer to the semaphore*/
-	pcb_PTR 		*s_procQ; 	/* tail pointer to a */
+	pcb_PTR 		s_procQ; 	/* tail pointer to a */
 								/* process queue */
 } semd_t;
 
