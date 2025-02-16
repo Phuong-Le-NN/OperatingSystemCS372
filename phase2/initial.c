@@ -5,3 +5,8 @@
  */
 
 /* Need initProcQ and initASL*/
+
+#include "../h/pcb.h"
+#include "../h/asl.h"
+#include "../h/types.h"
+
