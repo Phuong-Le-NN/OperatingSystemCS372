@@ -72,6 +72,8 @@ void main() {
     first_pro->p_s.s_reg[1] = 0;
     
     first_pro->p_s.s_pc = (memaddr) test;
+    /*technical reasons, assign same value to both PC and general purpose register t9*/
+    first_pro->p_s.s_reg[24] = (memaddr) test;
 
     passup_pro0->exception_stackPtr = (memaddr)RAMBASEADDR + RAMBASESIZE; 
     
