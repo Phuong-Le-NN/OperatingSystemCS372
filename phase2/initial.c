@@ -22,12 +22,18 @@ pcb_PTR     currentP;
 /* Pseudo Clock */
 semd_t *pseudo_clock_sem;
 
-/* 16 semaphores for 8 devices as there can be up to 8 devices */
-device_t; 
+/* 49 semaphores in an array */
+int device_sem[49]; 
 
 extern void test();
 
 void main() {
+
+    /* intializing semaphores */
+    int i;
+    for (i = 0; i < 49; i++){
+        device_sem[i] = 0;
+    }
 
     /* Nucleus TLB-Refill event Handler */
     passupvector_t *passup_pro0 = (memaddr)0x0FFFF900;
@@ -55,9 +61,19 @@ void main() {
 
     pcb_PTR first_pro = allocPcb();
     insertProcQ(&readyQ, first_pro);
+
+    /* enable interrupt */
+    first_pro->p_s.s_reg[0] = 1;
+
+    /* enable Local Timer (TE) */
+    first_pro->p_s.s_reg[27] = 1;
+
+    /* turn on kernal mode */
+    first_pro->p_s.s_reg[1] = 0;
+    
     first_pro->p_s.s_pc = (memaddr) test;
 
-    passup_pro0->exception_stackPtr = (memaddr)0x0; 
+    passup_pro0->exception_stackPtr = (memaddr)RAMBASEADDR + RAMBASESIZE; 
     
     /* Call Scheduler */
 }
