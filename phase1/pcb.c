@@ -68,6 +68,8 @@ pcb_PTR allocPcb (){
     allocatedPcb->p_next = NULL;
     allocatedPcb->p_prev = NULL;
     allocatedPcb->p_prnt = NULL;
+    allocatedPcb->p_next_sib = NULL;
+    allocatedPcb->p_prev_sib = NULL;
     allocatedPcb->p_s.s_entryHI = 0;
     allocatedPcb->p_s.s_cause = 0;
     allocatedPcb->p_s.s_status = 0;

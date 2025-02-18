@@ -51,7 +51,7 @@ typedef struct {
 typedef struct passupvector {
     unsigned int tlb_refll_handler;
     unsigned int tlb_refll_stackPtr;
-    unsigned int execption_handler;
+    unsigned int exception_handler;
     unsigned int exception_stackPtr;
 } passupvector_t;
 
@@ -65,6 +65,25 @@ typedef struct state_t {
 	int	 			s_reg[STATEREGNUM];
 
 } state_t, *state_PTR;
+
+/* process context */
+typedef struct context_t {
+	/* process context fields */
+	unsigned int c_stackPtr,		/* stack pointer value */
+				 c_status,			/* status reg value */
+				 c_pc;				/* PC address*/							
+} context_t;
+
+typedef struct support_t {
+	int 		sup_asid;				/* Process Id (asid) */
+	state_t		sup_exceptState[2];		/* stored excpt states */
+	context_t	sup_exceptContext[2]; 	/* pass up contexts */
+	/*... other fields to be added later*/
+} support_t;
+
+/* Exceptions related constants */
+#define PGFAULTEXCEPT 0
+#define GENERALEXCEPT 1
 
 /* process control block type */
 /* process table entry type */
@@ -83,7 +102,7 @@ typedef struct pcb_t {
     int 			*p_semAdd;					/* ptr to semaphore on */
 /* which proc is blocked */
 /* support layer information */
-    /*support_t *p_supportStruct;*/
+    support_t *p_supportStruct; 
 }  pcb_t, *pcb_PTR;
 
 /* semaphore descriptor type */
