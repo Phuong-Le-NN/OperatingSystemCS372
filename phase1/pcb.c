@@ -77,6 +77,8 @@ pcb_PTR allocPcb (){
     allocatedPcb->p_s.s_reg[STATEREGNUM] = 0;
     allocatedPcb->p_time = 0;
     allocatedPcb->p_semAdd = NULL;
+    allocatedPcb->p_supportStruct = NULL;
+
 
     return allocatedPcb;
 }

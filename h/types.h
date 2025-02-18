@@ -62,7 +62,7 @@ typedef struct state_t {
 	unsigned int	s_cause;
 	unsigned int	s_status;
 	unsigned int 	s_pc;
-	int	 			s_reg[STATEREGNUM];
+	int	 			s_reg[STATEREGNUM];		/* Status Register with KE/IU */
 
 } state_t, *state_PTR;
 
