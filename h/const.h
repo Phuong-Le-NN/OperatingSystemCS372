@@ -83,6 +83,21 @@
 /* Macro to load the Interval Timer */
 #define LDIT(T)	((* ((cpu_t *) INTERVALTMR)) = (T) * (* ((cpu_t *) TIMESCALEADDR))) 
 
+/* Macro to enable interrupt on current enable bit*/
+#define enable_IEc(current_status) (current_status | 0x0001)
+
+/* Macro to disable PLT bit*/
+#define disable_TE(current_status) (current_status & 0xf7ff)
+
+/* Macro to enable PLT bit*/
+#define enable_TE(current_status) (current_status | 0x0800)
+
+/* Macro to enable previous setting of the status.IEc bit*/
+#define enable_IEp(current_status) (current_status | 0x0004)
+
+/* Macro to enable previous setting of the status.KUc bit*/
+#define kernel(current_status) (current_status & 0xfff7)
+
 /* Macro to read the TOD clock */
 #define STCK(T) ((T) = ((* ((cpu_t *) TODLOADDR)) / (* ((cpu_t *) TIMESCALEADDR))))
 

@@ -11,6 +11,9 @@
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "exceptions.c"
+#include "/usr/include/umps3/umps/libumps.h"
+
+extern void test();
 
 /* Global Variables*/
 int         process_count;           /* Number of started processes*/
@@ -24,8 +27,6 @@ semd_t *pseudo_clock_sem;
 
 /* 49 semaphores in an array */
 int device_sem[49]; 
-
-extern void test();
 
 void main() {
 
@@ -62,21 +63,31 @@ void main() {
     pcb_PTR first_pro = allocPcb();
     insertProcQ(&readyQ, first_pro);
 
-    /* enable interrupt */
-    first_pro->p_s.s_reg[0] = 1;
+    /* enable interrupt 
+     enable Local Timer (TE) 
+     turn on kernal mode  */
 
-    /* enable Local Timer (TE) */
-    first_pro->p_s.s_reg[27] = 1;
+    /* If we did it incorrectly, this would be the one we do to CP0.
+    */
+    /* enable IEp and KUp in the status reg */
+    first_pro->p_s.s_status = enable_IEp(first_pro->p_s.s_status);
+    first_pro->p_s.s_status = kernel(first_pro->p_s.s_status);
+    first_pro->p_s.s_status = enable_TE(first_pro->p_s.s_status);
 
-    /* turn on kernal mode */
-    first_pro->p_s.s_reg[1] = 0;
-    
+
+    setSTATUS(0);
+    int current_status_register = getSTATUS();
+
+    /* after getting the current status register, to set in the IEp & KUp
+    to desired assignment through bit-wise operation and then load it? */
+
+
     first_pro->p_s.s_pc = (memaddr) test;
     /*technical reasons, assign same value to both PC and general purpose register t9*/
     first_pro->p_s.s_reg[24] = (memaddr) test;
 
     passup_pro0->exception_stackPtr = (memaddr)RAMBASEADDR + RAMBASESIZE; 
     
-    /* Call Scheduler */
+    /* Call a function in Scheduler */
 }
 

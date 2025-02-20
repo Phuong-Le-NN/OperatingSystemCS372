@@ -20,18 +20,28 @@ In scheduler:
 */
 
 void scheduler (){
+
     /*if the ready Q is empty*/
     if (emptyProcQ(readyQ)){
         if (process_count == 0) {
             HALT();
         }
         if (process_count > 0 && softBlock_count > 0){
-            setSTATUS();
+            unsigned int current_status_reg = getSTATUS();
+            current_status_reg = enable_IEc(current_status_reg);
+            current_status_reg = disable_TE(current_status_reg);
+            setSTATUS(current_status_reg);
             WAIT();
+        }
+        if (process_count > 0 && softBlock_count == 0){
+            PANIC();
         }
     }
     
     currentP = removeBlocked(readyQ);
-    LDIT(5); /*Load 5 milisec on the PLT*/
-    LDST(&(currentP->p_s)); /*pass in the address of current process processor state*/
+    LDIT(5);                            /*Load 5 milisec on the PLT*/
+    LDST(&(currentP->p_s));             /*pass in the address of current process processor state*/
+
+
+
 }
