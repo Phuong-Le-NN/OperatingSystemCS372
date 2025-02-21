@@ -10,7 +10,6 @@
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
-#include "exceptions.c"
 #include "/usr/include/umps3/umps/libumps.h"
 
 extern void test();
@@ -28,6 +27,17 @@ semd_t *pseudo_clock_sem;
 /* 49 semaphores in an array */
 int device_sem[49]; 
 
+void uTLB_RefillHandler () {
+    setENTRYHI(0x80000000);
+    setENTRYLO(0x00000000);
+    TLBWR();
+    LDST ((state_PTR) 0x0FFFF000);
+}
+
+void fooBar(){
+    
+}
+
 void main() {
 
     /* intializing semaphores */
@@ -40,8 +50,6 @@ void main() {
     passupvector_t *passup_pro0 = (memaddr)0x0FFFF900;
     passup_pro0->tlb_refll_handler = (memaddr) uTLB_RefillHandler;  /*uTLB RefillHandler replaced later*/
     passup_pro0->tlb_refll_stackPtr = (memaddr)0x20001000;
-
-    currentP
 
     /* fooBar is the exception handler function in exceptions.c */
     passup_pro0->exception_handler = (memaddr)fooBar;

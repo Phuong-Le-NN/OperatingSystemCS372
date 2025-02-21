@@ -9,17 +9,7 @@
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "initial.c"
-
-void uTLB_RefillHandler () {
-    setENTRYHI(0x80000000);
-    setENTRYLO(0x00000000);
-    TLBWR();
-    LDST ((state_PTR) 0x0FFFF000);
-}
-
-void fooBar(){
-    
-}
+#include "scheduler.c"
 
 /*
 
@@ -64,48 +54,61 @@ int CREATEPROCESS(){
     */
 
     pcb_PTR newProcess = allocPcb();
-    newProcess->p_s = currentP->p_s.s_reg[a1];
-
+    if (newProcess == NULL) {
+        currentP->p_s.s_v0 = -1;
+        return -1;
+    }
+    newProcess->p_s = *((state_PTR) (currentP->p_s.s_a1));
+    newProcess->p_supportStruct = ((state_PTR) (currentP->p_s.s_a2));
+    insertProcQ(readyQ, newProcess);
+    insertChild(currentP, newProcess);
+    newProcess->p_time = 0;
+    newProcess->p_semAdd = NULL;
 
     /* how can we check if there is no parameter provided */
-    newProcess->p_supportStruct = supportp;
-
-    insertProcQ();
-    insertChild();
-
-    return;
+    currentP->p_s.s_v0 = 0;
+    return 0;
 }
 
-int TERMINATEPROCESS(){
+int TERMINATEPROCESS(pcb_PTR toBeTerminate){
+    /*are we terminating the current process, then where are we supposed to put the return value in - a2 of currentP ???*/
 
     /* recursively, all progeny of this process are terminated as well. */
-
+    while (!emptyChild(toBeTerminate)) {
+        pcb_PTR childToBeTerminate = removeChild(currentP);
+        TERMINATEPROCESS(childToBeTerminate);
+    }
+    outChild(toBeTerminate);
+    freePcb(toBeTerminate);
     return;
 }
 
-int PASSEREN(){
-
+int PASSEREN(semd_t *sema4){
     /*  
         Depending on the value of the semaphore, control is either returned to the
         Current Process, or this process is blocked on the ASL (transitions from “running”
         to “blocked”) and the Scheduler is called.
     */
 
-   /* 
-   
-    
-
-
-   */
-
+    sema4->s_semAdd --;
+    if (sema4->s_semAdd < 0){
+        insertBlocked(sema4->s_semAdd, currentP);
+        scheduler();
+    }
+    LDST(currentP);
+    /*what to return here*/
     return;
 }
 
-int VERHOGEN(){
-
-
-
-    return;
+int VERHOGEN(semd_t *sema4){
+    sema4->s_semAdd ++;
+    if (sema4->s_semAdd <= 0){
+        pcb_PTR temp = removeBlocked(sema4->s_semAdd);
+        insertProcQ(readyQ, temp);
+    }
+    LDST(currentP);
+    /*what to return here*/
+    return ;
 }
 
 int WAITIO(){
@@ -129,7 +132,7 @@ int GETSUPPORTPTR(){
 }
 
 
-int SYSCALL(int syscall,state_t *statep, support_t * supportp, 0) {
+int SYSCALL(int syscall,state_t *statep, support_t * supportp, int arg3) {
 
     return;
 
