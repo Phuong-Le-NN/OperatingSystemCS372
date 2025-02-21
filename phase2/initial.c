@@ -41,6 +41,8 @@ void main() {
     passup_pro0->tlb_refll_handler = (memaddr) uTLB_RefillHandler;  /*uTLB RefillHandler replaced later*/
     passup_pro0->tlb_refll_stackPtr = (memaddr)0x20001000;
 
+    currentP
+
     /* fooBar is the exception handler function in exceptions.c */
     passup_pro0->exception_handler = (memaddr)fooBar;
 
