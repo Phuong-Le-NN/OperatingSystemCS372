@@ -22,7 +22,7 @@ In scheduler:
 void scheduler (){
 
     /*if the ready Q is empty*/
-    if (emptyProcQ(readyQ)){
+    if (emptyProcQ(readyQ)){ //remove uneccessary conditions bad coiding styles
         if (process_count == 0) {
             HALT();
         }
@@ -38,8 +38,8 @@ void scheduler (){
         }
     }
     
-    currentP = removeBlocked(readyQ);
-    LDIT(5);                            /*Load 5 milisec on the PLT*/
+    currentP = removeProcQ(readyQ);
+    LDIT(5000);                         /*Load 5 milisec on the PLT*/
     LDST(&(currentP->p_s));             /*pass in the address of current process processor state*/
 
 

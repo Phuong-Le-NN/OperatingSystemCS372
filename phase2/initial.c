@@ -42,14 +42,15 @@ void main() {
 
     /* intializing semaphores */
     int i;
-    for (i = 0; i < 49; i++){
+    int numberOfSemaphores = DEVINTNUM*DEVPERINT + DEVPERINT + 1;
+    for (i = 0; i < numberOfSemaphores; i++){
         device_sem[i] = 0;
     }
 
     /* Nucleus TLB-Refill event Handler */
-    passupvector_t *passup_pro0 = (memaddr)0x0FFFF900;
+    passupvector_t *passup_pro0 = (memaddr) PASSUPVECTOR;
     passup_pro0->tlb_refll_handler = (memaddr) uTLB_RefillHandler;  /*uTLB RefillHandler replaced later*/
-    passup_pro0->tlb_refll_stackPtr = (memaddr)0x20001000;
+    passup_pro0->tlb_refll_stackPtr = (memaddr) (RAMSTART + PAGESIZE);
 
     /* fooBar is the exception handler function in exceptions.c */
     passup_pro0->exception_handler = (memaddr)fooBar;
@@ -68,7 +69,7 @@ void main() {
     /* the other devices semaphores as well */
 
     /* LDIT(T)	((* ((cpu_t *) INTERVALTMR)) = (T) * (* ((cpu_t *) TIMESCALEADDR))) */
-    LDIT(100);
+    LDIT(100000);
 
     pcb_PTR first_pro = allocPcb();
     insertProcQ(&readyQ, first_pro);
@@ -83,6 +84,9 @@ void main() {
     first_pro->p_s.s_status = enable_IEp(first_pro->p_s.s_status);
     first_pro->p_s.s_status = kernel(first_pro->p_s.s_status);
     first_pro->p_s.s_status = enable_TE(first_pro->p_s.s_status);
+    first_pro->p_s.s_pc = (memaddr) test;
+    /*technical reasons, assign same value to both PC and general purpose register t9*/
+    first_pro->p_s.s_t9 = (memaddr) test;
 
 
     setSTATUS(0);
@@ -90,11 +94,6 @@ void main() {
 
     /* after getting the current status register, to set in the IEp & KUp
     to desired assignment through bit-wise operation and then load it? */
-
-
-    first_pro->p_s.s_pc = (memaddr) test;
-    /*technical reasons, assign same value to both PC and general purpose register t9*/
-    first_pro->p_s.s_reg[24] = (memaddr) test;
 
     passup_pro0->exception_stackPtr = (memaddr)RAMBASEADDR + RAMBASESIZE; 
     

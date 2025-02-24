@@ -83,7 +83,7 @@ int TERMINATEPROCESS(pcb_PTR toBeTerminate){
     return;
 }
 
-int PASSEREN(semd_t *sema4){
+int PASSEREN(semd_t *sema4){ //use and update a1
     /*  
         Depending on the value of the semaphore, control is either returned to the
         Current Process, or this process is blocked on the ASL (transitions from “running”

@@ -74,7 +74,7 @@ pcb_PTR allocPcb (){
     allocatedPcb->p_s.s_cause = 0;
     allocatedPcb->p_s.s_status = 0;
     allocatedPcb->p_s.s_pc = 0; 
-    allocatedPcb->p_s.s_reg[STATEREGNUM] = 0;
+    allocatedPcb->p_s.s_reg[STATEREGNUM] = NULL; /* are we doing right? need to verify!*/
     allocatedPcb->p_time = 0;
     allocatedPcb->p_semAdd = NULL;
     allocatedPcb->p_supportStruct = NULL;
