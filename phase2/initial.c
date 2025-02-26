@@ -35,8 +35,23 @@ void uTLB_RefillHandler () {
     LDST ((state_PTR) 0x0FFFF000);
 }
 
-void fooBar(){
-    
+void exception_handler(){
+    pcb_PTR callerProc = BIOSDATAPAGE; 
+    /*
+    The cause of this exception is encoded in the .ExcCode field of the Cause register
+    (Cause.ExcCode) in the saved exception state. [Section 3.3-pops]
+    • For exception code 0 (Interrupts), processing should be passed along to your
+    Nucleus’s device interrupt handler. [Section 3.6]
+    • For exception codes 1-3 (TLB exceptions), processing should be passed
+    along to your Nucleus’s TLB exception handler. [Section 3.7.3]
+    • For exception codes 4-7, 9-12 (Program Traps), processing should be passed
+    along to your Nucleus’s Program Trap exception handler. [Section 3.7.2]
+    • For exception code 8 (SYSCALL), processing should be passed along to
+    your Nucleus’s SYSCALL exception handler. [Section 3.5]
+    Hence, the entry point for the Nucleus’s exception handling is in essence a
+    case statement that performs a multi-way branch depending on the cause of the
+    exception.
+    */
 }
 
 void main() {
@@ -53,8 +68,8 @@ void main() {
     passup_pro0->tlb_refll_handler = (memaddr) uTLB_RefillHandler;  /*uTLB RefillHandler replaced later*/
     passup_pro0->tlb_refll_stackPtr = (memaddr) (RAMSTART + PAGESIZE);
 
-    /* fooBar is the exception handler function in exceptions.c */
-    passup_pro0->exception_handler = (memaddr)fooBar;
+    /* exception_handler is the exception handler function */
+    passup_pro0->exception_handler = (memaddr)exception_handler;
 
     /* Initialize pcbs and initASL*/
     initASL();
