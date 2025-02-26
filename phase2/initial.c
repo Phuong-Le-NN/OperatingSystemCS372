@@ -21,12 +21,13 @@ pcb_PTR     readyQ;                  /* Tail ptr to a queue of pcbs that are rea
 pcb_PTR     currentP;   
 /* Device Semaphores */
 
-/* Pseudo Clock */
+/* Pseudo Clock */ /*remember to delete this*/
 semd_t *pseudo_clock_sem;
 
 /* 49 semaphores in an array */
 int device_sem[49]; 
 
+/* replace this with const !!!!*/
 void uTLB_RefillHandler () {
     setENTRYHI(0x80000000);
     setENTRYLO(0x00000000);
@@ -64,8 +65,8 @@ void main() {
     readyQ = mkEmptyProcQ();              
     currentP = NULL;
 
-    /* Initialize all device semaphores to 0 */
-    pseudo_clock_sem = allocSemd(0);
+    /* Initialize all device semaphores to 0 */ /*Actually no need to do it here right? cause it is supposed to be in the*/
+    pseudo_clock_sem = 0;
     /* the other devices semaphores as well */
 
     /* LDIT(T)	((* ((cpu_t *) INTERVALTMR)) = (T) * (* ((cpu_t *) TIMESCALEADDR))) */
