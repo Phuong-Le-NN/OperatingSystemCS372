@@ -35,7 +35,7 @@
     pcb’s), an error code of -1 is placed/returned in the caller’s v0, otherwise, return
     the value 0 in the caller’s v0.
 */
-int CREATEPROCESS(){
+void CREATEPROCESS(){
 
     /*
     initializes:
@@ -70,7 +70,7 @@ int CREATEPROCESS(){
     return 0;
 }
 
-int TERMINATEPROCESS(pcb_PTR toBeTerminate){
+void TERMINATEPROCESS(pcb_PTR toBeTerminate){
     /*are we terminating the current process, then where are we supposed to put the return value in - a2 of currentP ???*/
 
     /* recursively, all progeny of this process are terminated as well. */
@@ -83,7 +83,7 @@ int TERMINATEPROCESS(pcb_PTR toBeTerminate){
     return;
 }
 
-int PASSEREN(semd_t *sema4){ //use and update a1
+void PASSEREN(semd_t *sema4){ //use and update a1
     /*  
         Depending on the value of the semaphore, control is either returned to the
         Current Process, or this process is blocked on the ASL (transitions from “running”
@@ -100,7 +100,7 @@ int PASSEREN(semd_t *sema4){ //use and update a1
     return;
 }
 
-int VERHOGEN(semd_t *sema4){
+void VERHOGEN(semd_t *sema4){
     sema4->s_semAdd ++;
     if (sema4->s_semAdd <= 0){
         pcb_PTR temp = removeBlocked(sema4->s_semAdd);
@@ -111,29 +111,44 @@ int VERHOGEN(semd_t *sema4){
     return ;
 }
 
-int WAITIO(){
+void WAITIO(){
+    /*
+    current process from running to blocked
+    P operation on the semaphore of that device -- found by a1: interrupt line number + a2: device number + a3: TRUE/FALSE if waiting for a terminal read operation
+    block the current process on the asl
+    V operation on the semaphore when device generate interupt
+    process resume => place device status code in v0 (char received or transmitted?)
+    */
+    /*
+    must also update the Cause.IP field bits to show which interrupt lines are pending
+    */
+    int device_idx = (currentP->p_s.s_a1 - 3) * 8 + currentP->p_s.s_a3 * 8 + currentP->p_s.s_a2; /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
 
     return;
 }
 
-int GETCPUTIME(){
+void GETCPUTIME(){
 
     return;
 }
 
-int WAITCLOCK(){
+void WAITCLOCK(){
 
     return;
 }
 
-int GETSUPPORTPTR(){
+void GETSUPPORTPTR(){
 
     return;
 }
 
 
-int SYSCALL(int syscall,state_t *statep, support_t * supportp, int arg3) {
-
+void SYSCALL() {
+    /*int syscall,state_t *statep, support_t * supportp, int arg3*/
+    /*
+    Cause.Exc code set to 8
+    set Cause.IP ? there are 8 lines, line 3 to 7 is for peripheral devices -- should we set this in this function or should we set this in SYSCALL5?
+    */
     return;
 
 }
