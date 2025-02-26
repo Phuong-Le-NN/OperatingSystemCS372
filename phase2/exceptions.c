@@ -90,7 +90,7 @@ int PASSEREN(semd_t *sema4){ //use and update a1
         to “blocked”) and the Scheduler is called.
     */
 
-    sema4->s_semAdd --;
+    sema4->s_semAdd --; /*what is supposed to be this sema4*/
     if (sema4->s_semAdd < 0){
         insertBlocked(sema4->s_semAdd, currentP);
         scheduler();
@@ -112,17 +112,25 @@ int VERHOGEN(semd_t *sema4){
 }
 
 int WAITIO(){
+    /*value 5 in a0
+    the interrupt line number in a1 ([3. . .7])
+    the device number in a2 ([0. . .7])
+    TRUE or FALSE in a3 to indicate if waiting for a terminal read operation */
+
 
     return;
 }
 
 int GETCPUTIME(){
-
-    return;
+    /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
+    currentP->p_s.s_v0 = currentP->p_time + getTIMER();
 }
 
 int WAITCLOCK(){
-
+    /*
+    This service performs a P operation on the Pseudo-clock semaphore.
+    This semaphore is V’ed every 100 milliseconds by the Nucleus.
+    block the Current Process on the ASL then Scheduler is called.*/
     return;
 }
 
