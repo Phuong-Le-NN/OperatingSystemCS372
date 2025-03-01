@@ -104,6 +104,8 @@
 /* Macro to calculate device base address*/
 #define devAddrBase(IntlineNo, DevNo) 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10);
 
+/* Macro to get the ExcCode given the Code register*/
+#define CauseExcCode(Cause) 0x0000007C & Cause;
 
 /* Maximum number of semaphore and pcb that can be allocated*/
 #define MAXPROC	20

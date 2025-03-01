@@ -19,24 +19,16 @@ int         process_count;           /* Number of started processes*/
 int         softBlock_count;         /* Number of started that are in blocked*/
 pcb_PTR     readyQ;                  /* Tail ptr to a queue of pcbs that are ready*/
 pcb_PTR     currentP;   
-/* Device Semaphores */
 
-/* Pseudo Clock */ /*remember to delete this*/
-semd_t *pseudo_clock_sem;
-
-/* 49 semaphores in an array */
-int device_sem[49]; 
+/* Device Semaphores 49 semaphores in an array */
+int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1]; 
 
 /* replace this with const !!!!*/
 void uTLB_RefillHandler () {
-    setENTRYHI(0x80000000);
-    setENTRYLO(0x00000000);
-    TLBWR();
-    LDST ((state_PTR) 0x0FFFF000);
 }
 
 void exception_handler(){
-    pcb_PTR callerProc = BIOSDATAPAGE; 
+    pcb_PTR callerProc = (pcb_PTR) BIOSDATAPAGE; 
     /*
     The cause of this exception is encoded in the .ExcCode field of the Cause register
     (Cause.ExcCode) in the saved exception state. [Section 3.3-pops]
@@ -52,6 +44,23 @@ void exception_handler(){
     case statement that performs a multi-way branch depending on the cause of the
     exception.
     */
+    /*Get the Cause registers from the saved exception state and use AND bitwise operation to get the .ExcCode field*/
+    int ExcCode = CauseExcCode(getCAUSE());
+    if (ExcCode == 0){
+        /*call the interrupt handler*/
+    }
+    else if (ExcCode <= 3)
+    {
+        /*TLB exception handler*/
+    }
+    else if (ExcCode <= 7 || ExcCode >= 9)
+    {
+        program_trap_exception_handler();
+    }
+    else
+    {
+        SYSCALL_handler(ExcCode);
+    }
 }
 
 void main() {
@@ -80,10 +89,6 @@ void main() {
     readyQ = mkEmptyProcQ();              
     currentP = NULL;
 
-    /* Initialize all device semaphores to 0 */ /*Actually no need to do it here right? cause it is supposed to be in the*/
-    pseudo_clock_sem = 0;
-    /* the other devices semaphores as well */
-
     /* LDIT(T)	((* ((cpu_t *) INTERVALTMR)) = (T) * (* ((cpu_t *) TIMESCALEADDR))) */
     LDIT(100000);
 
@@ -104,15 +109,8 @@ void main() {
     /*technical reasons, assign same value to both PC and general purpose register t9*/
     first_pro->p_s.s_t9 = (memaddr) test;
 
-
-    setSTATUS(0);
-    int current_status_register = getSTATUS();
-
-    /* after getting the current status register, to set in the IEp & KUp
-    to desired assignment through bit-wise operation and then load it? */
-
     passup_pro0->exception_stackPtr = (memaddr)RAMBASEADDR + RAMBASESIZE; 
     
-    /* Call a function in Scheduler */
+    scheduler();
 }
 

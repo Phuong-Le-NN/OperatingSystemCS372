@@ -11,18 +11,16 @@
 #include "/usr/include/umps3/umps/libumps.h"
 
 /*
-
 In scheduler:
     - get pcb from the readyque
     - check if queue empty or not
     - then, LDST(runningProcQ -> p_state)
-
 */
 
 void scheduler (){
 
     /*if the ready Q is empty*/
-    if (emptyProcQ(readyQ)){ //remove uneccessary conditions bad coiding styles
+    if (emptyProcQ(readyQ)){ /*remove unnecessary conditions -- bad coding styles*/
         if (process_count == 0) {
             HALT();
         }
@@ -41,7 +39,4 @@ void scheduler (){
     currentP = removeProcQ(readyQ);
     LDIT(5000);                         /*Load 5 milisec on the PLT*/
     LDST(&(currentP->p_s));             /*pass in the address of current process processor state*/
-
-
-
 }

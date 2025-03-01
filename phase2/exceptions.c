@@ -29,9 +29,6 @@
 
 #define pseudo_clock_idx    48
 
-/*is declaring this a global bad?*/
-HIDDEN pcb_PTR callerProc = BIOSDATAPAGE;                    
-
 /*
     The process requesting the SYS1 service continues to exist and to execute.
     If the new process cannot be created due to lack of resources (e.g. no more free
@@ -55,26 +52,27 @@ void CREATEPROCESS(){
         the Current Process. Process Count is incremented by one, and control is returned
         to the Current Process.
     */
-
     pcb_PTR newProcess = allocPcb();
     if (newProcess == NULL) {
-        callerProc->p_s.s_v0 = -1;
+        currentP->p_s.s_v0 = -1;
         return -1;
     }
-    newProcess->p_s = *((state_PTR) (callerProc->p_s.s_a1));
-    newProcess->p_supportStruct = ((state_PTR) (callerProc->p_s.s_a2));
+    /*deep copy the process state*/
+    deep_copy_state_t(&newProcess->p_s, &currentP->p_s.s_a1);
+    /*deep copy the support struct*/
+    deep_copy_support_t(&newProcess->p_supportStruct, &currentP->p_s.s_a2);
     insertProcQ(readyQ, newProcess);
-    insertChild(callerProc, newProcess);
+    insertChild(currentP, newProcess);
     newProcess->p_time = 0;
     newProcess->p_semAdd = NULL;
 
     /* how can we check if there is no parameter provided */
-    callerProc->p_s.s_v0 = 0;
+    currentP->p_s.s_v0 = 0;
     return 0;
 }
 
 void TERMINATEPROCESS(){
-    helper_terminate_process(callerProc);
+    helper_terminate_process(currentP);
 }
 
 void PASSEREN(){ //use and update a1
@@ -84,28 +82,28 @@ void PASSEREN(){ //use and update a1
         to “blocked”) and the Scheduler is called.
     */    
     /*getting the sema4 address from register a1*/
-    semd_t *sema4 = callerProc->p_s.s_a1;
+    semd_t *sema4 = currentP->p_s.s_a1;
 
     sema4->s_semAdd --;
     if (sema4->s_semAdd < 0){
-        insertBlocked(sema4->s_semAdd, callerProc);
+        insertBlocked(sema4->s_semAdd, currentP);
         scheduler();
     }
-    LDST(callerProc);
+    LDST(&currentP->p_s);
     /*what to return here*/
     return;
 }
 
 void VERHOGEN(){
     /*getting the sema4 address from register a1*/
-    semd_t *sema4 = callerProc->p_s.s_a1;
+    semd_t *sema4 = currentP->p_s.s_a1;
 
     sema4->s_semAdd ++;
     if (sema4->s_semAdd <= 0){
         pcb_PTR temp = removeBlocked(sema4->s_semAdd);
         insertProcQ(readyQ, temp);
     }
-    LDST(callerProc);
+    LDST(&currentP->p_s);
     /*what to return here*/
     return ;
 }
@@ -126,13 +124,13 @@ void WAITIO(){
     /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this?*/
 
     /*terminal transmission higher priority than terminal receipt*/
-    int device_idx = (callerProc->p_s.s_a1 - 3) * 8 + callerProc->p_s.s_a3 * 8 + callerProc->p_s.s_a2; /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
+    int device_idx = (currentP->p_s.s_a1 - 3) * 8 + currentP->p_s.s_a3 * 8 + currentP->p_s.s_a2; /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
     
     /*is it correct to put the address of sema4 into a1 like this?*/
-    helper_block_callerProc(&device_sem[device_idx]);
+    helper_block_currentP(&device_sem[device_idx]);
     
     /*put the device sema4 address into register a1 to call P*/
-    callerProc->p_s.s_a1 = device_sem[device_idx];
+    currentP->p_s.s_a1 = device_sem[device_idx];
     PASSEREN();
     
     scheduler();
@@ -141,14 +139,14 @@ void WAITIO(){
     VERHOGEN();
     
     /*returning the device status word*/
-    callerProc->p_s.s_v0 = devAddrBase(callerProc->p_s.s_a1, callerProc->p_s.s_a2);
+    currentP->p_s.s_v0 = devAddrBase(currentP->p_s.s_a1, currentP->p_s.s_a2);
     return;
 }
 
 void GETCPUTIME(){
     /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
 
-    callerProc->p_s.s_v0 = callerProc->p_time + (5000 - getTIMER()); /*because we load 5000 to PLT when using scheduler to let the process run*/
+    currentP->p_s.s_v0 = currentP->p_time + (5000 - getTIMER()); /*because we load 5000 to PLT when using scheduler to let the process run*/
 }
 
 void WAITCLOCK(){
@@ -157,10 +155,10 @@ void WAITCLOCK(){
     This semaphore is V’ed every 100 milliseconds by the Nucleus.
     block the Current Process on the ASL then Scheduler is called.*/
 
-    helper_block_callerProc(device_sem[pseudo_clock_idx]);
+    helper_block_currentP(device_sem[pseudo_clock_idx]);
 
     /*put the pseudoclock sema4 into the register a1 to do P operation*/
-    callerProc->p_s.s_a1 = device_sem[pseudo_clock_idx];
+    currentP->p_s.s_a1 = device_sem[pseudo_clock_idx];
     PASSEREN();
 
     scheduler();
@@ -172,10 +170,10 @@ void GETSUPPORTPTR(){
     /*
     returns the value of p supportStruct from the Current Process’s pcb
     */
-    callerProc->p_s.s_v0 = callerProc->p_supportStruct;
+    currentP->p_s.s_v0 = currentP->p_supportStruct;
 }
 
-void helper_block_callerProc(int *semdAdd){
+void helper_block_currentP(int *semdAdd){
     /* 
     Helper function that block the current process and place on the ASL
     parameter: the (device) sema4
@@ -183,15 +181,15 @@ void helper_block_callerProc(int *semdAdd){
     softBlock_count += 1; /*which status bit of the pcb to set if any?*/
 
     /*insert the process into ASL*/
-    insertBlocked(semdAdd, callerProc);
+    insertBlocked(semdAdd, currentP);
 }
 
 void helper_terminate_process(pcb_PTR toBeTerminate){
-    /*are we terminating the current process, then where are we supposed to put the return value in - a2 of callerProc ???*/
+    /*are we terminating the current process, then where are we supposed to put the return value in - a2 of currentP ???*/
 
     /* recursively, all progeny of this process are terminated as well. */
     while (!emptyChild(toBeTerminate)) {
-        pcb_PTR childToBeTerminate = removeChild(callerProc);
+        pcb_PTR childToBeTerminate = removeChild(currentP);
         TERMINATEPROCESS(childToBeTerminate);
     }
     outChild(toBeTerminate);
@@ -199,7 +197,7 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
     return;
 }
 
-void program_trap_exception_handler(){
+void program_trap_exception_handler() {
 
 }
 
@@ -209,8 +207,42 @@ int check_KU_mode_bit() {
     */
 }
 
+void deep_copy_state_t(state_PTR dest, state_PTR orig) {
+    /*
+    the funtion that takes in pointer to 2 state_t and deep copy the value orig to dest
+    */
+    dest->s_cause = orig->s_cause;
+    dest->s_entryHI = orig->s_entryHI;
+    dest->s_pc = orig->s_pc;
+    int i;
+    for (i = 0; i < STATEREGNUM; i ++){
+        dest->s_reg[i] = orig->s_reg[i];
+    }
+    dest->s_status = orig->s_status;
+}
 
-unsigned int SYSCALL(unsigned int number, unsigned int arg1, unsigned int arg2, unsigned int arg3) {
+void deep_copy_support_t(support_t *dest,support_t *orig) {
+    /*
+    the funtion that takes in pointer to 2 support_t and deep copy the value orig to dest
+    */
+    dest->sup_asid = orig->sup_asid;
+    deep_copy_context_t(dest->sup_exceptContext, &orig->sup_exceptContext);
+    int i;
+    for (i = 0; i < STATEREGNUM; i ++){
+        deep_copy_state_t(&dest->sup_exceptState[i], &orig->sup_exceptState[i]);
+    }
+}
+
+void deep_copy_context_t(context_t *dest,context_t *orig) {
+    /*
+    the funtion that takes in pointer to 2 support_t and deep copy the value orig to dest
+    */
+    dest->c_pc = orig->c_pc;
+    dest->c_stackPtr = orig->c_stackPtr;
+    dest->c_status = orig->c_status;
+}
+
+unsigned int SYSCALL_handler(unsigned int number) {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*
     Cause.Exc code set to 8
@@ -223,10 +255,8 @@ unsigned int SYSCALL(unsigned int number, unsigned int arg1, unsigned int arg2, 
         return 1;
     }
 
-    /*Load arguments into registers*/
-    callerProc->p_s.s_a1 = arg1;
-    callerProc->p_s.s_a2 = arg2;
-    callerProc->p_s.s_a3 = arg3;
+    /*load the right state into the current Process*/
+    deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
 
    switch (number) {
     case 1:
@@ -256,7 +286,4 @@ unsigned int SYSCALL(unsigned int number, unsigned int arg1, unsigned int arg2, 
     default:
         /* Syscall Exception Error ? Program trap handler?*/
     }
-
-    return callerProc->p_s.s_v0;
-
 }
