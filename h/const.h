@@ -28,6 +28,12 @@
 
 #define NULL 			    ((void *)0xFFFFFFFF)
 
+/* high precedence interrupts */
+#define INTERPROCESSORINT       0
+#define PLTINT                  1
+#define INTERVALTIMERINT        2
+
+
 /* device interrupts */
 #define DISKINT			  3
 #define FLASHINT 		  4
@@ -68,12 +74,19 @@
 #define KUSEG           0x80000000
 #define RAMSTART        0x20000000
 #define BIOSDATAPAGE    0x0FFFF000
-#define	PASSUPVECTOR	  0x0FFFF900
+#define	PASSUPVECTOR	0x0FFFF900
 
 /* Exceptions related constants */
 #define	PGFAULTEXCEPT	  0
 #define GENERALEXCEPT	  1
 
+/* Cause register bit fields */
+#define EXECCODEBITS        0x0000007C
+#define IPBITS              0x00110000
+
+/* Device register related addresses*/
+#define INSTALLED_DEV_REG   0x1000002C
+#define INT_DEV_REG         0x10000040
 
 /* operations */
 #define	MIN(A,B)		((A) < (B) ? A : B)
@@ -101,11 +114,20 @@
 /* Macro to enable previous setting of the status.KUc bit*/
 #define kernel(current_status) (current_status & 0xfffffff7)
 
-/* Macro to calculate device base address*/
-#define devAddrBase(IntlineNo, DevNo) 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10);
+/* Macro to calculate starting address of the device’s device register*/
+#define devAddrBase(intLineNo, devNo) 0x10000054 + ((intLineNo - 3) * 0x80) + (devNo * 0x10);
 
 /* Macro to get the ExcCode given the Code register*/
-#define CauseExcCode(Cause) 0x0000007C & Cause;
+#define CauseExcCode(Cause) EXECCODEBITS & Cause;
+
+/* Macro to calculate address of Interrupt Device Bit Map of Interrupt line */
+#define intDevBitMap(intLine) INT_DEV_REG + (0x04*intLine);
+
+/* Macro to calculate address of Installed Device Bit Map of Interrupt line */
+#define installedDevBitMap(intLine) INSTALLED_DEV_REG + (0x04*intLine);
+
+/* Macro to calculate the device sema4 idx in the device sema4 array*/
+#define devSemIdx(intLineNo, devNo, temRead) (intLineNo - 3) * 8 + temRead* 8 + devNo;
 
 /* Maximum number of semaphore and pcb that can be allocated*/
 #define MAXPROC	20

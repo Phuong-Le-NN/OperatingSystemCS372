@@ -11,6 +11,7 @@
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "/usr/include/umps3/umps/libumps.h"
+#include "exceptions.h"
 
 extern void test();
 
@@ -22,10 +23,6 @@ pcb_PTR     currentP;
 
 /* Device Semaphores 49 semaphores in an array */
 int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1]; 
-
-/* replace this with const !!!!*/
-void uTLB_RefillHandler () {
-}
 
 void exception_handler(){
     pcb_PTR callerProc = (pcb_PTR) BIOSDATAPAGE; 
@@ -48,6 +45,7 @@ void exception_handler(){
     int ExcCode = CauseExcCode(getCAUSE());
     if (ExcCode == 0){
         /*call the interrupt handler*/
+        interupt_exception_handler();
     }
     else if (ExcCode <= 3)
     {

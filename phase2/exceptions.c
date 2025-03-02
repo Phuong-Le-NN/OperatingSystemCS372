@@ -10,6 +10,7 @@
 #include "../h/types.h"
 #include "initial.c"
 #include "scheduler.c"
+#include "exceptions.h"
 
 /*
 
@@ -87,6 +88,7 @@ void PASSEREN(){ //use and update a1
     sema4->s_semAdd --;
     if (sema4->s_semAdd < 0){
         insertBlocked(sema4->s_semAdd, currentP);
+        /*should or should not call scheudler here? if call scheduelr here, also need to increament pc here?*/
         scheduler();
     }
     LDST(&currentP->p_s);
@@ -121,22 +123,18 @@ void WAITIO(){
     V operation on the semaphore when device generate interupt
     process resume => place device status code in v0 (char received or transmitted?)
     */
-    /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this?*/
+    /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this*/
 
     /*terminal transmission higher priority than terminal receipt*/
-    int device_idx = (currentP->p_s.s_a1 - 3) * 8 + currentP->p_s.s_a3 * 8 + currentP->p_s.s_a2; /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
+    int device_idx = devSemIdx(currentP->p_s.s_a1, currentP->p_s.s_a2,  currentP->p_s.s_a2); /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
     
     /*is it correct to put the address of sema4 into a1 like this?*/
-    helper_block_currentP(&device_sem[device_idx]);
+    helper_block_currentP(&(device_sem[device_idx]));
     
     /*put the device sema4 address into register a1 to call P*/
-    currentP->p_s.s_a1 = device_sem[device_idx];
+    currentP->p_s.s_a1 = &(device_sem[device_idx]);
     PASSEREN();
     
-    scheduler();
-    
-    /*once the interrupt received <= the device finish, call V on the same device sema4 address*/
-    VERHOGEN();
     
     /*returning the device status word*/
     currentP->p_s.s_v0 = devAddrBase(currentP->p_s.s_a1, currentP->p_s.s_a2);
@@ -147,6 +145,7 @@ void GETCPUTIME(){
     /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
 
     currentP->p_s.s_v0 = currentP->p_time + (5000 - getTIMER()); /*because we load 5000 to PLT when using scheduler to let the process run*/
+    return;
 }
 
 void WAITCLOCK(){
@@ -161,8 +160,7 @@ void WAITCLOCK(){
     currentP->p_s.s_a1 = device_sem[pseudo_clock_idx];
     PASSEREN();
 
-    scheduler();
-
+    /*scheuler is called in SYSCALL handler*/
     return;
 }
 
@@ -198,48 +196,50 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
 }
 
 void program_trap_exception_handler() {
-
+    
 }
 
 int check_KU_mode_bit() {
     /*
     Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
     */
+    int KUp = currentP->p_s.s_status & 0x00000008;
+    return 0;
 }
 
-void deep_copy_state_t(state_PTR dest, state_PTR orig) {
+void deep_copy_state_t(state_PTR dest, state_PTR src) {
     /*
-    the funtion that takes in pointer to 2 state_t and deep copy the value orig to dest
+    the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
     */
-    dest->s_cause = orig->s_cause;
-    dest->s_entryHI = orig->s_entryHI;
-    dest->s_pc = orig->s_pc;
+    dest->s_cause = src->s_cause;
+    dest->s_entryHI = src->s_entryHI;
+    dest->s_pc = src->s_pc;
     int i;
     for (i = 0; i < STATEREGNUM; i ++){
-        dest->s_reg[i] = orig->s_reg[i];
+        dest->s_reg[i] = src->s_reg[i];
     }
-    dest->s_status = orig->s_status;
+    dest->s_status = src->s_status;
 }
 
-void deep_copy_support_t(support_t *dest,support_t *orig) {
+void deep_copy_support_t(support_t *dest,support_t *src) {
     /*
-    the funtion that takes in pointer to 2 support_t and deep copy the value orig to dest
+    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
     */
-    dest->sup_asid = orig->sup_asid;
-    deep_copy_context_t(dest->sup_exceptContext, &orig->sup_exceptContext);
+    dest->sup_asid = src->sup_asid;
+    deep_copy_context_t(dest->sup_exceptContext, &src->sup_exceptContext);
     int i;
     for (i = 0; i < STATEREGNUM; i ++){
-        deep_copy_state_t(&dest->sup_exceptState[i], &orig->sup_exceptState[i]);
+        deep_copy_state_t(&dest->sup_exceptState[i], &src->sup_exceptState[i]);
     }
 }
 
-void deep_copy_context_t(context_t *dest,context_t *orig) {
+void deep_copy_context_t(context_t *dest,context_t *src) {
     /*
-    the funtion that takes in pointer to 2 support_t and deep copy the value orig to dest
+    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
     */
-    dest->c_pc = orig->c_pc;
-    dest->c_stackPtr = orig->c_stackPtr;
-    dest->c_status = orig->c_status;
+    dest->c_pc = src->c_pc;
+    dest->c_stackPtr = src->c_stackPtr;
+    dest->c_status = src->c_status;
 }
 
 unsigned int SYSCALL_handler(unsigned int number) {
@@ -249,8 +249,15 @@ unsigned int SYSCALL_handler(unsigned int number) {
     set Cause.IP ? there are 8 lines, line 3 to 7 is for peripheral devices -- should we set this in this function or should we set this in SYSCALL5?
     */
 
-    /*check if in kernel mode -- if not call program trap exception*/
-    if (check_KU_mode() == 1){
+    /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
+    if (check_KU_mode() != 0){
+        const RI = 10;
+        /* clear out current exec code bit field in cause registers*/
+        currentP->p_s.s_cause = currentP->p_s.s_cause & (~EXECCODEBITS);
+        /* put RI value into the exec code bit field which is from 2 to 6 so we shift RI by 2 and do OR operation*/
+        currentP->p_s.s_cause = currentP->p_s.s_cause | (RI << 2);
+        /* save the new cause register*/
+        ((state_t *) BIOSDATAPAGE)->s_cause = currentP->p_s.s_cause;
         program_trap_exception_handler();
         return 1;
     }
@@ -286,4 +293,17 @@ unsigned int SYSCALL_handler(unsigned int number) {
     default:
         /* Syscall Exception Error ? Program trap handler?*/
     }
+
+    /*increment PC by 4*/
+    currentP->p_s.s_pc += 0x4;
+    /*save processor state into the "well known" location t=for return*/
+    ((state_t *) BIOSDATAPAGE)->s_cause = currentP->p_s.s_cause;
+    /*if the syscall was blocking*/
+    if (number == 3 | number == 5 | number == 7){
+        currentP->p_time += (5000 - getTIMER());
+        /*process was already added to ASL in the syscall =>already blocked*/
+        scheduler();
+    }
+    LDST(&(currentP->p_s));
+
 }
