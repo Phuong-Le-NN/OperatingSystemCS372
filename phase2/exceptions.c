@@ -31,31 +31,52 @@ user-mode? */
         the Current Process. Process Count is incremented by one, and control is returned
         to the Current Process.
 */
-
 void CREATEPROCESS(){
 
     pcb_PTR newProcess = allocPcb();
+
+    /* If no more free pcb’s, then ... */
     if (newProcess == NULL) {
+        /* return an error code of -1 is placed/returned in the caller’s v0 */
         currentP->p_s.s_v0 = -1;
-        return -1;
     }
 
-    /*deep copy the process state*/
-    deep_copy_state_t(&newProcess->p_s, &currentP->p_s.s_a1);
-    /*deep copy the support struct*/
-    deep_copy_support_t(&newProcess->p_supportStruct, &currentP->p_s.s_a2);
+    /* deep copy the process state where a1 contain a pointer to a processor state (state t) */
+    deep_copy_state_t(&newProcess->p_s, &currentP->p_s.s_a1);    
+
+    /* deep copy the support struct */
+    /* If no parameter is provided, this field is set to NULL. */
+    if (currentP->p_s.s_a2 != NULL){
+        deep_copy_support_t(&newProcess->p_supportStruct, &currentP->p_s.s_a2);
+    }else{
+        newProcess->p_supportStruct = NULL;
+    }
+
+    /* • The process queue fields (e.g. p next) by the call to insertProcQ
+•   The process tree fields (e.g. p child) by the call to insertChild. */
     insertProcQ(readyQ, newProcess);
     insertChild(currentP, newProcess);
+
+    /* p_time is set to zero; the new process has yet to accumulate any cpu time. */
     newProcess->p_time = 0;
+
+    /* p_semAdd is set to NULL */
     newProcess->p_semAdd = NULL;
 
-    /* how can we check if there is no parameter provided */
+    /* return the value 0 in the caller’s v0 */
     currentP->p_s.s_v0 = 0;
-    return 0;
+
+    /* check if we do actually increase the process count */
+    process_count++;
 }
 
 void TERMINATEPROCESS(){
+
+    /* recursively terminate child and free pcb */
     helper_terminate_process(currentP);
+
+    /* Check if this is correct */
+    process_count--;
 }
 
 void PASSEREN(){ //use and update a1
@@ -63,7 +84,8 @@ void PASSEREN(){ //use and update a1
         Depending on the value of the semaphore, control is either returned to the
         Current Process, or this process is blocked on the ASL (transitions from “running”
         to “blocked”) and the Scheduler is called.
-    */    
+    */
+       
     /*getting the sema4 address from register a1*/
     semd_t *sema4 = currentP->p_s.s_a1;
 
