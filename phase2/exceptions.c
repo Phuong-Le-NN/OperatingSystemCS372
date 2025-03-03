@@ -91,22 +91,19 @@ void PASSEREN(){ //use and update a1
         /*should or should not call scheudler here? if call scheduelr here, also need to increament pc here?*/
         scheduler();
     }
-    LDST(&currentP->p_s);
-    /*what to return here*/
     return;
 }
 
 void VERHOGEN(){
     /*getting the sema4 address from register a1*/
     semd_t *sema4 = currentP->p_s.s_a1;
-
+    pcb_PTR temp;
     sema4->s_semAdd ++;
     if (sema4->s_semAdd <= 0){
-        pcb_PTR temp = removeBlocked(sema4->s_semAdd);
+        temp = removeBlocked(sema4->s_semAdd);
         insertProcQ(readyQ, temp);
     }
-    LDST(&currentP->p_s);
-    /*what to return here*/
+    currentP->p_s.s_v0 = temp;
     return ;
 }
 
@@ -262,7 +259,7 @@ unsigned int SYSCALL_handler(unsigned int number) {
         return 1;
     }
 
-    /*load the right state into the current Process*/
+    /*load the saved state into the current Process*/
     deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
 
    switch (number) {
@@ -305,5 +302,4 @@ unsigned int SYSCALL_handler(unsigned int number) {
         scheduler();
     }
     LDST(&(currentP->p_s));
-
 }
