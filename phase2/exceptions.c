@@ -4,7 +4,6 @@
  *      Modified by Phuong and Oghap on Feb 2025
  */
 
-
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
@@ -14,15 +13,10 @@
 
 #define pseudo_clock_idx    48
 
-/*
-    The process requesting the SYS1 service continues to exist and to execute.
-    If the new process cannot be created due to lack of resources (e.g. no more free
-    pcb’s), an error code of -1 is placed/returned in the caller’s v0, otherwise, return
-    the value 0 in the caller’s v0.
-*/
-void CREATEPROCESS(){
+/* Is there a time when we need to determine whether the current process is executing in kernel mode or 
+user-mode? */
 
-    /*
+/*
     initializes:
         p s from a1.
         p supportStruct from a2. If no parameter is provided, this field is set
@@ -36,12 +30,16 @@ void CREATEPROCESS(){
         The newly populated pcb is placed on the Ready Queue and is made a child of
         the Current Process. Process Count is incremented by one, and control is returned
         to the Current Process.
-    */
+*/
+
+void CREATEPROCESS(){
+
     pcb_PTR newProcess = allocPcb();
     if (newProcess == NULL) {
         currentP->p_s.s_v0 = -1;
         return -1;
     }
+
     /*deep copy the process state*/
     deep_copy_state_t(&newProcess->p_s, &currentP->p_s.s_a1);
     /*deep copy the support struct*/
