@@ -124,8 +124,9 @@ void WAITIO(){
 
 void GETCPUTIME(){
     /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
-
-    currentP->p_s.s_v0 = currentP->p_time + (5000 - getTIMER()); /*because we load 5000 to PLT when using scheduler to let the process run*/
+    int interval_current;
+    STCK(interval_current);
+    currentP->p_s.s_v0 = currentP->p_time + (interval_current - interval_start); /*because we load 5000 to PLT when using scheduler to let the process run*/
     return;
 }
 

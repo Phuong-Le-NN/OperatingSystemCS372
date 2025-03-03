@@ -25,6 +25,8 @@ In scheduler:
         of the Current Process (p_s).
 */
 
+int interval_start;
+
 void scheduler (){
 
     /* if the ready Q is empty */
@@ -54,6 +56,7 @@ void scheduler (){
     
     currentP = removeProcQ(readyQ);
 
+    STCK(interval_start);
     /*Load 5 milisec on the PLT*/ 
     setTIMER(5000);
 
