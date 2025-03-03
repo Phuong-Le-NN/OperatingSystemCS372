@@ -69,8 +69,8 @@ void PASSEREN(){ //use and update a1
     /*getting the sema4 address from register a1*/
     semd_t *sema4 = currentP->p_s.s_a1;
 
-    sema4->s_semAdd --;
-    if (sema4->s_semAdd < 0){
+    *(sema4->s_semAdd) = *(sema4->s_semAdd) --;
+    if (*(sema4->s_semAdd) < 0){
         insertBlocked(sema4->s_semAdd, currentP);
         /*should or should not call scheudler here? if call scheduelr here, also need to increament pc here?*/
         scheduler();
@@ -82,13 +82,13 @@ void VERHOGEN(){
     /*getting the sema4 address from register a1*/
     semd_t *sema4 = currentP->p_s.s_a1;
     pcb_PTR temp;
-    sema4->s_semAdd ++;
-    if (sema4->s_semAdd <= 0){
-        temp = removeBlocked(sema4->s_semAdd);
+    *(sema4->s_semAdd) = *(sema4->s_semAdd) ++;
+    if (*(sema4->s_semAdd) <= 0){
+        temp = helper_unblock_process(sema4->s_semAdd);
         insertProcQ(readyQ, temp);
     }
     currentP->p_s.s_v0 = temp;
-    return ;
+    return;
 }
 
 void WAITIO(){
@@ -126,7 +126,7 @@ void GETCPUTIME(){
     /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
     int interval_current;
     STCK(interval_current);
-    currentP->p_s.s_v0 = currentP->p_time + (interval_current - interval_start); /*because we load 5000 to PLT when using scheduler to let the process run*/
+    currentP->p_s.s_v0 = currentP->p_time + (interval_current - interval_start);
     return;
 }
 
@@ -155,13 +155,27 @@ void GETSUPPORTPTR(){
 
 void helper_block_currentP(int *semdAdd){
     /* 
-    Helper function that block the current process and place on the ASL
+    Helper function that block the current process and place on the ASL and increase softblock count
     parameter: the (device) sema4
     */
-    softBlock_count += 1; /*which status bit of the pcb to set if any?*/
+    softBlock_count += 1;
 
     /*insert the process into ASL*/
     insertBlocked(semdAdd, currentP);
+}
+
+
+pcb_PTR helper_unblock_process(int *semdAdd){
+    /*
+    Helper function that unblock 1 process and decrease softblock count
+    */
+    /* remove the process from ASL*/
+    pcb_PTR unblocked_pcb = removeBlocked(semdAdd);
+
+    if (unblocked_pcb != NULL){
+        softBlock_count -= 1;
+    }
+    return unblocked_pcb;
 }
 
 void helper_terminate_process(pcb_PTR toBeTerminate){

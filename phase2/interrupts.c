@@ -26,6 +26,8 @@ void non_timer_interrupts(int intLineNo){
    
     /* address of register of device with interrupt pending*/
     device_t *intDevRegAdd;
+
+    /* a variable to deep copy the device register to*/
     device_t *savedDevRegAdd;
     int devIdx;
     pcb_PTR unblocked_pcb;
@@ -33,7 +35,9 @@ void non_timer_interrupts(int intLineNo){
     for (devNo = 0; devNo < DEVPERINT; devNo ++){
         devIntBool = check_interrupt_device(devNo, devRegAdd);
         if (devIntBool == TRUE){
+            /* calculate the address of the device register*/
             intDevRegAdd = devAddrBase(intLineNo, devNo);
+            /* save the register device */
             deep_copy_device_t(savedDevRegAdd, intDevRegAdd);
             /* putting the ACK into the device register?*/
             intDevRegAdd->d_command = ACK;
@@ -72,10 +76,36 @@ void non_timer_interrupts(int intLineNo){
 void process_local_timer_interrupts(){
     /* load new time into timer for PLT*/
     setTIMER(5000); 
+    /* copy the processor state at the time of the exception into current process*/
     deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
-    currentP->p_time += 
+    /* update accumulated CPU time for the current process*/
+    int interval_current;
+    STCK(interval_current);
+    currentP->p_time += interval_current - interval_start;
+    /* place current process on ready queue*/
+    insertProcQ(&readyQ, currentP);
+    scheduler();
 }
 
+void pseudo_clock_interrupts(){
+    /* load interval timer with 100 miliseconds*/
+    LDIT(100000);
+    pcb_PTR unblocked_pcb;
+    semd_t *pseudo_clock_sem = &(device_sem[pseudo_clock_idx]);
+    /*unblock all pcb blocked on the Pseudo-clock*/
+    while (headBlocked(pseudo_clock_sem) != NULL){
+        unblocked_pcb = removeBlocked(pseudo_clock_sem);
+        insertProcQ(readyQ, unblocked_pcb);
+    }
+    /* reset pseudo-clock semaphore to 0*/
+    *(pseudo_clock_sem->s_semAdd) = 0;
+    state_PTR caller_process_state = (state_t*) BIOSDATAPAGE;
+    if (currentP == NULL){
+        scheduler();
+    }
+    /* return contorl to the current process*/
+    LDST(BIOSDATAPAGE);
+}
 
 /* interupt exception handler function */
 void interrupt_exception_handler(){
@@ -112,7 +142,6 @@ void interrupt_exception_handler(){
             }
         }
     }
-
 }
 
 int check_interrupt_line(int idx){
