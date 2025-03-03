@@ -325,5 +325,8 @@ unsigned int SYSCALL_handler(unsigned int number) {
         /*process was already added to ASL in the syscall =>already blocked*/
         scheduler();
     }
+
+    /* the saved exception state (located at the start of the BIOS Data Page)
+    since we copied from the beginning of the handler */
     LDST(&(currentP->p_s));
 }
