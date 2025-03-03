@@ -31,13 +31,12 @@ that performs a multi-way branch depending on the cause of the
 exception.
 */
 void exception_handler(){
-
     /* state that was saved in the BIOS */
-    pcb_PTR callerProc = (pcb_PTR) BIOSDATAPAGE; 
+    state_PTR callerProc = (state_PTR) BIOSDATAPAGE; 
 
     /* Get the Cause registers from the saved exception state and 
     use AND bitwise operation to get the .ExcCode field */
-    int ExcCode = CauseExcCode(getCAUSE());
+    int ExcCode = CauseExcCode(callerProc->s_cause);
 
     if (ExcCode == 0){
 
@@ -47,7 +46,7 @@ void exception_handler(){
     else if (ExcCode <= 3)
     {
         /* Nucleus’s TLB exception handler */
-        uTLB_RefillHandler();
+        TLB_exception_Handler();
     }
     else if (ExcCode <= 7 || ExcCode >= 9)
     {
@@ -71,6 +70,7 @@ void main() {
     passup_pro0->tlb_refll_stackPtr = (memaddr) (RAMSTART + PAGESIZE);
     /* exception_handler is the exception handler function */
     passup_pro0->exception_handler = (memaddr)exception_handler;
+    passup_pro0->exception_stackPtr = (memaddr) (RAMSTART + PAGESIZE);
 
     /* Initialize pcbs and initASL*/
     initASL();
@@ -111,8 +111,8 @@ void main() {
     first_pro->p_s.s_pc = (memaddr) test;
     /*technical reasons, assign same value to both PC and general purpose register t9*/
     first_pro->p_s.s_t9 = (memaddr) test;
+    first_pro->p_s.s_sp = (memaddr) (RAMSTART + PAGESIZE);
 
-    passup_pro0->exception_stackPtr = (memaddr)RAMBASEADDR + RAMBASESIZE; 
 
     /* Set all the Process Tree fields to NULL.
     Set the accumulated time field (p time) to zero.

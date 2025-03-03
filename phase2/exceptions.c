@@ -104,7 +104,7 @@ void VERHOGEN(){
     pcb_PTR temp;
     *(sema4->s_semAdd) = *(sema4->s_semAdd) ++;
     if (*(sema4->s_semAdd) <= 0){
-        temp = helper_unblock_process(sema4->s_semAdd);
+        temp = removeBlocked(sema4->s_semAdd);
         insertProcQ(readyQ, temp);
     }
     currentP->p_s.s_v0 = temp;
@@ -260,6 +260,10 @@ void deep_copy_context_t(context_t *dest,context_t *src) {
 }
 
 unsigned int SYSCALL_handler(unsigned int number) {
+
+    /*load the saved state into the current Process*/
+    deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
+
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*
     Cause.Exc code set to 8
@@ -279,8 +283,7 @@ unsigned int SYSCALL_handler(unsigned int number) {
         return 1;
     }
 
-    /*load the saved state into the current Process*/
-    deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
+
 
    switch (number) {
     case 1:

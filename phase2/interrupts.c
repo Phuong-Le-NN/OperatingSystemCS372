@@ -94,7 +94,7 @@ void pseudo_clock_interrupts(){
     semd_t *pseudo_clock_sem = &(device_sem[pseudo_clock_idx]);
     /*unblock all pcb blocked on the Pseudo-clock*/
     while (headBlocked(pseudo_clock_sem) != NULL){
-        unblocked_pcb = removeBlocked(pseudo_clock_sem);
+        unblocked_pcb = helper_unblock_process(pseudo_clock_sem);
         insertProcQ(readyQ, unblocked_pcb);
     }
     /* reset pseudo-clock semaphore to 0*/
