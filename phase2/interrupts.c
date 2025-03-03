@@ -73,7 +73,7 @@ void process_local_timer_interrupts(){
     /* load new time into timer for PLT*/
     setTIMER(5000); 
     deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
-
+    currentP->p_time += 
 }
 
 
