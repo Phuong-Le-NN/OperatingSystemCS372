@@ -46,6 +46,7 @@ void exception_handler(){
     else if (ExcCode <= 3)
     {
         /* Nucleus’s TLB exception handler */
+        /* NEED TO CHECK */
         TLB_exception_Handler();
     }
     else if (ExcCode <= 7 || ExcCode >= 9)
@@ -70,6 +71,7 @@ void main() {
     passup_pro0->tlb_refll_stackPtr = (memaddr) (RAMSTART + PAGESIZE);
     /* exception_handler is the exception handler function */
     passup_pro0->exception_handler = (memaddr)exception_handler;
+    /* Stack pointer for the Nucleus exception handler to the top of the Nucleus stack page: 0x2000.1000. */
     passup_pro0->exception_stackPtr = (memaddr) (RAMSTART + PAGESIZE);
 
     /* Initialize pcbs and initASL*/
