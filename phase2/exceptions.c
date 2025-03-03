@@ -12,22 +12,6 @@
 #include "scheduler.c"
 #include "exceptions.h"
 
-/*
-
-    - For exception code 0 (Interrupts), processing should be passed along to your 
-        Nucleus’s device interrupt handler. [Section 3.6]
-
-    - For exception codes 1-3 (TLB exceptions), processing should be passed
-        along to your Nucleus’s TLB exception handler. [Section 3.7.3]
-
-    - For exception codes 4-7, 9-12 (Program Traps), processing should be passed 
-        along to your Nucleus’s Program Trap exception handler. [Section 3.7.2]
-
-    - For exception code 8 (SYSCALL), processing should be passed along to
-        your Nucleus’s SYSCALL exception handler. [Section 3.5]
-
-*/
-
 #define pseudo_clock_idx    48
 
 /*
@@ -295,6 +279,7 @@ unsigned int SYSCALL_handler(unsigned int number) {
     currentP->p_s.s_pc += 0x4;
     /*save processor state into the "well known" location t=for return*/
     ((state_t *) BIOSDATAPAGE)->s_cause = currentP->p_s.s_cause;
+    
     /*if the syscall was blocking*/
     if (number == 3 | number == 5 | number == 7){
         currentP->p_time += (5000 - getTIMER());

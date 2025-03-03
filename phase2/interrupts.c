@@ -19,9 +19,11 @@
 void non_timer_interrupts(int intLineNo){
     /* after knowing which line specifically, this is how get the devices that have pending interrupt on that line*/
     int *devRegAdd = intDevBitMap(intLineNo);
+    
     /* devRegAdd is address to the Interrupt Device Bit Map, value at that address as a hex has a bit as 1 if that device has interrupt pending*/
     int devNo;
     int devIntBool;
+   
     /* address of register of device with interrupt pending*/
     device_t *intDevRegAdd;
     device_t *savedDevRegAdd;
@@ -71,12 +73,11 @@ void process_local_timer_interrupts(){
     /* load new time into timer for PLT*/
     setTIMER(5000); 
     deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
-    currentP->p_time += 
 
 }
 
 
-/*interupt exception handler function*/
+/* interupt exception handler function */
 void interrupt_exception_handler(){
     int i;
     int j;
