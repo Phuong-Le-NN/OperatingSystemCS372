@@ -57,7 +57,7 @@ void exception_handler(){
     else
     {
         /*  SYSCALL exception handler */
-        SYSCALL_handler(ExcCode);
+        SYSCALL_handler();
     }
 }
 

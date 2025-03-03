@@ -42,41 +42,31 @@ void CREATEPROCESS(){
     }
 
     /* deep copy the process state where a1 contain a pointer to a processor state (state t) */
-    deep_copy_state_t(&newProcess->p_s, &currentP->p_s.s_a1);    
+    deep_copy_state_t(&newProcess->p_s, currentP->p_s.s_a1);    
 
     /* deep copy the support struct */
     /* If no parameter is provided, this field is set to NULL. */
-    if (currentP->p_s.s_a2 != NULL){
-        deep_copy_support_t(&newProcess->p_supportStruct, &currentP->p_s.s_a2);
+    if (currentP->p_s.s_a2 != NULL | currentP->p_s.s_a2 == 0){
+        newProcess->p_supportStruct = currentP->p_s.s_a2;
     }else{
         newProcess->p_supportStruct = NULL;
     }
 
-    /* • The process queue fields (e.g. p next) by the call to insertProcQ
-•   The process tree fields (e.g. p child) by the call to insertChild. */
+    /*  
+    The process queue fields (e.g. p next) by the call to insertProcQ
+•   The process tree fields (e.g. p child) by the call to insertChild. 
+    */
     insertProcQ(readyQ, newProcess);
     insertChild(currentP, newProcess);
 
-    /* p_time is set to zero; the new process has yet to accumulate any cpu time. */
-    newProcess->p_time = 0;
-
-    /* p_semAdd is set to NULL */
-    newProcess->p_semAdd = NULL;
-
     /* return the value 0 in the caller’s v0 */
     currentP->p_s.s_v0 = 0;
-
-    /* check if we do actually increase the process count */
     process_count++;
 }
 
 void TERMINATEPROCESS(){
-
     /* recursively terminate child and free pcb */
     helper_terminate_process(currentP);
-
-    /* Check if this is correct */
-    process_count--;
 }
 
 void PASSEREN(){ //use and update a1
@@ -92,13 +82,15 @@ void PASSEREN(){ //use and update a1
     *(sema4->s_semAdd) = *(sema4->s_semAdd) --;
     if (*(sema4->s_semAdd) < 0){
         insertBlocked(sema4->s_semAdd, currentP);
-        /*should or should not call scheudler here? if call scheduelr here, also need to increament pc here?*/
-        scheduler();
+        /*should or should not call scheudler here? if call scheduler here, also need to increament pc here?*/
+        /*
+        blocking_syscall_handler();
+        */
     }
     return;
 }
 
-void VERHOGEN(){
+pcb_PTR VERHOGEN(){
     /*getting the sema4 address from register a1*/
     semd_t *sema4 = currentP->p_s.s_a1;
     pcb_PTR temp;
@@ -107,8 +99,7 @@ void VERHOGEN(){
         temp = removeBlocked(sema4->s_semAdd);
         insertProcQ(readyQ, temp);
     }
-    currentP->p_s.s_v0 = temp;
-    return;
+    return temp;
 }
 
 void WAITIO(){
@@ -135,11 +126,16 @@ void WAITIO(){
     
     /*put the device sema4 address into register a1 to call P*/
     currentP->p_s.s_a1 = &(device_sem[device_idx]);
+    /* 
     PASSEREN();
+    */
     
     
     /*returning the device status word*/
     currentP->p_s.s_v0 = devAddrBase(currentP->p_s.s_a1, currentP->p_s.s_a2);
+    /* 
+    blocking_syscall_handler();
+    */
     return;
 }
 
@@ -161,9 +157,10 @@ void WAITCLOCK(){
 
     /*put the pseudoclock sema4 into the register a1 to do P operation*/
     currentP->p_s.s_a1 = device_sem[pseudo_clock_idx];
-    PASSEREN();
+    /* PASSEREN(); */
 
     /*scheuler is called in SYSCALL handler*/
+    blocking_syscall_handler();
     return;
 }
 
@@ -209,6 +206,7 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
     }
     outChild(toBeTerminate);
     freePcb(toBeTerminate);
+    process_count--;
     return;
 }
 
@@ -259,17 +257,10 @@ void deep_copy_context_t(context_t *dest,context_t *src) {
     dest->c_status = src->c_status;
 }
 
-unsigned int SYSCALL_handler(unsigned int number) {
-
+unsigned int SYSCALL_handler() {
+    /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*load the saved state into the current Process*/
     deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
-
-    /*int syscall,state_t *statep, support_t * supportp, int arg3*/
-    /*
-    Cause.Exc code set to 8
-    set Cause.IP ? there are 8 lines, line 3 to 7 is for peripheral devices -- should we set this in this function or should we set this in SYSCALL5?
-    */
-
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode() != 0){
         const RI = 10;
@@ -285,7 +276,7 @@ unsigned int SYSCALL_handler(unsigned int number) {
 
 
 
-   switch (number) {
+   switch (currentP->p_s.s_a0) {
     case 1:
         CREATEPROCESS();
         break;
@@ -316,17 +307,39 @@ unsigned int SYSCALL_handler(unsigned int number) {
 
     /*increment PC by 4*/
     currentP->p_s.s_pc += 0x4;
-    /*save processor state into the "well known" location t=for return*/
-    ((state_t *) BIOSDATAPAGE)->s_cause = currentP->p_s.s_cause;
+    /* update the cpu_time*/
+    currentP->p_time += (5000 - getTIMER());
     
     /*if the syscall was blocking*/
-    if (number == 3 | number == 5 | number == 7){
-        currentP->p_time += (5000 - getTIMER());
+    if (currentP->p_s.s_a0 == 3 | currentP->p_s.s_a0 == 5 | currentP->p_s.s_a0 == 7){
         /*process was already added to ASL in the syscall =>already blocked*/
         scheduler();
     }
+    
+    /*save processor state into the "well known" location for nonblocking syscall*/
+    deep_copy_state_t(BIOSDATAPAGE, &currentP->p_s);
+    LDST(&(currentP->p_s));
 
-    /* the saved exception state (located at the start of the BIOS Data Page)
-    since we copied from the beginning of the handler */
+}
+
+void blocking_syscall_handler (){
+    /*
+    This function handle the steps after a blocking handler including:
+    */
+    currentP->p_s.s_pc += 0x4;
+    /*already copied the saved processor state into the current process pcb at the beginning of SYSCALL_handler as that what we have been using*/
+    /*update the cpu time for the current process*/
+    currentP->p_time += (5000 - getTIMER());
+    /*process was already added to ASL in the syscall =>already blocked*/
+    scheduler();
+}
+
+void non_blocking_syscall_handler (){
+    /*increment PC by 4*/
+    currentP->p_s.s_pc += 0x4;
+    /* update the cpu_time*/
+    currentP->p_time += (5000 - getTIMER());
+    /*save processor state into the "well known" location for return*/
+    deep_copy_state_t(BIOSDATAPAGE, &currentP->p_s);
     LDST(&(currentP->p_s));
 }
