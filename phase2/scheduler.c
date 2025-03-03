@@ -37,6 +37,6 @@ void scheduler (){
     }
     
     currentP = removeProcQ(readyQ);
-    LDIT(5000);                         /*Load 5 milisec on the PLT*/
+    setTIMER(5000);                         /*Load 5 milisec on the PLT*/ /* need to check again -- LDIT is load the interval timer not PLT? -- is setTIMER the right one?*/
     LDST(&(currentP->p_s));             /*pass in the address of current process processor state*/
 }
