@@ -9,6 +9,7 @@
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "initial.c"
+#include "exceptions.c"
 #include "/usr/include/umps3/umps/libumps.h"
 
 #define IPBITSPOS       8
@@ -48,16 +49,29 @@ void non_timer_interrupts(int intLineNo){
             intDevRegAdd->d_command = ACK;
             devIdx = devSemIdx(intLineNo, devNo, 0);
             ((state_t*) BIOSDATAPAGE)->s_a1 = &device_sem[devIdx];
+            VERHOGEN();
+            /* putting the process returned by V operation to unblocked_pcb */
+            unblocked_pcb = ((state_t*) BIOSDATAPAGE)->s_v0;
+            /* if V operation failed to remove a pcb then return control to the current process*/
+            if (unblocked_pcb == NULL){
+                /* if there is no current process to return to either, call scheduler*/
+                if (currentP == NULL){
+                    scheduler();
+                }
+                LDST(currentP);
+            }
+            LDST(BIOSDATAPAGE);
         }
     }
-
-    
-    /* so that is about 3rd instruction of Non timer interrupts on page 32*/
-
-    /* Voperation on the smeaphore of this (sub) Device i]*/
+}
 
 
-
+/*Process Local Timer (PLT) Interrupt*/
+void process_local_timer_interrupts(){
+    /* load new time into timer for PLT*/
+    setTIMER(5000); 
+    deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
+    currentP->p_time += 
 
 }
 
