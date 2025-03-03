@@ -4,7 +4,6 @@
  *      Modified by Phuong and Oghap on Feb 2025
  */
 
-
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
@@ -14,15 +13,10 @@
 
 #define pseudo_clock_idx    48
 
-/*
-    The process requesting the SYS1 service continues to exist and to execute.
-    If the new process cannot be created due to lack of resources (e.g. no more free
-    pcb’s), an error code of -1 is placed/returned in the caller’s v0, otherwise, return
-    the value 0 in the caller’s v0.
-*/
-void CREATEPROCESS(){
+/* Is there a time when we need to determine whether the current process is executing in kernel mode or 
+user-mode? */
 
-    /*
+/*
     initializes:
         p s from a1.
         p supportStruct from a2. If no parameter is provided, this field is set
@@ -36,28 +30,53 @@ void CREATEPROCESS(){
         The newly populated pcb is placed on the Ready Queue and is made a child of
         the Current Process. Process Count is incremented by one, and control is returned
         to the Current Process.
-    */
+*/
+void CREATEPROCESS(){
+
     pcb_PTR newProcess = allocPcb();
+
+    /* If no more free pcb’s, then ... */
     if (newProcess == NULL) {
+        /* return an error code of -1 is placed/returned in the caller’s v0 */
         currentP->p_s.s_v0 = -1;
-        return -1;
     }
-    /*deep copy the process state*/
-    deep_copy_state_t(&newProcess->p_s, &currentP->p_s.s_a1);
-    /*deep copy the support struct*/
-    deep_copy_support_t(&newProcess->p_supportStruct, &currentP->p_s.s_a2);
+
+    /* deep copy the process state where a1 contain a pointer to a processor state (state t) */
+    deep_copy_state_t(&newProcess->p_s, &currentP->p_s.s_a1);    
+
+    /* deep copy the support struct */
+    /* If no parameter is provided, this field is set to NULL. */
+    if (currentP->p_s.s_a2 != NULL){
+        deep_copy_support_t(&newProcess->p_supportStruct, &currentP->p_s.s_a2);
+    }else{
+        newProcess->p_supportStruct = NULL;
+    }
+
+    /* • The process queue fields (e.g. p next) by the call to insertProcQ
+•   The process tree fields (e.g. p child) by the call to insertChild. */
     insertProcQ(readyQ, newProcess);
     insertChild(currentP, newProcess);
+
+    /* p_time is set to zero; the new process has yet to accumulate any cpu time. */
     newProcess->p_time = 0;
+
+    /* p_semAdd is set to NULL */
     newProcess->p_semAdd = NULL;
 
-    /* how can we check if there is no parameter provided */
+    /* return the value 0 in the caller’s v0 */
     currentP->p_s.s_v0 = 0;
-    return 0;
+
+    /* check if we do actually increase the process count */
+    process_count++;
 }
 
 void TERMINATEPROCESS(){
+
+    /* recursively terminate child and free pcb */
     helper_terminate_process(currentP);
+
+    /* Check if this is correct */
+    process_count--;
 }
 
 void PASSEREN(){ //use and update a1
@@ -65,8 +84,9 @@ void PASSEREN(){ //use and update a1
         Depending on the value of the semaphore, control is either returned to the
         Current Process, or this process is blocked on the ASL (transitions from “running”
         to “blocked”) and the Scheduler is called.
-    */    
-    /*getting the sema4 address from register a1*/
+    */
+
+    /* getting the sema4 address from register a1 */
     semd_t *sema4 = currentP->p_s.s_a1;
 
     *(sema4->s_semAdd) = *(sema4->s_semAdd) --;
@@ -104,6 +124,7 @@ void WAITIO(){
     V operation on the semaphore when device generate interupt
     process resume => place device status code in v0 (char received or transmitted?)
     */
+   
     /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this*/
 
     /*terminal transmission higher priority than terminal receipt*/
