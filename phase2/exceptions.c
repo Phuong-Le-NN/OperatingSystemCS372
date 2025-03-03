@@ -85,8 +85,8 @@ void PASSEREN(){ //use and update a1
         Current Process, or this process is blocked on the ASL (transitions from “running”
         to “blocked”) and the Scheduler is called.
     */
-       
-    /*getting the sema4 address from register a1*/
+
+    /* getting the sema4 address from register a1 */
     semd_t *sema4 = currentP->p_s.s_a1;
 
     sema4->s_semAdd --;
@@ -102,13 +102,14 @@ void VERHOGEN(){
     /*getting the sema4 address from register a1*/
     semd_t *sema4 = currentP->p_s.s_a1;
     pcb_PTR temp;
+    
     sema4->s_semAdd ++;
     if (sema4->s_semAdd <= 0){
         temp = removeBlocked(sema4->s_semAdd);
         insertProcQ(readyQ, temp);
     }
     currentP->p_s.s_v0 = temp;
-    return ;
+    return;
 }
 
 void WAITIO(){
@@ -124,6 +125,7 @@ void WAITIO(){
     V operation on the semaphore when device generate interupt
     process resume => place device status code in v0 (char received or transmitted?)
     */
+   
     /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this*/
 
     /*terminal transmission higher priority than terminal receipt*/
