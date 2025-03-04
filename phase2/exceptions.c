@@ -281,7 +281,6 @@ unsigned int SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode() != 0){
-        const RI = 10;
         /* clear out current exec code bit field in cause registers*/
         currentP->p_s.s_cause = currentP->p_s.s_cause & (~EXECCODEBITS);
         /* put RI value into the exec code bit field which is from 2 to 6 so we shift RI by 2 and do OR operation*/

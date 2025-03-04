@@ -127,7 +127,7 @@ void interrupt_exception_handler(){
             switch (i)
             {
             case INTERPROCESSORINT:
-                /*processor interrupt*/
+                /*processor interrupt -- pandos is only for uniprocessor -- this case will not happen -- can safely ignore -- delete later*/
                 break;
             case PLTINT:
                 /*processor local timer (PLT) interrupt*/
