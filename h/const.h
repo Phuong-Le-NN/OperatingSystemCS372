@@ -41,10 +41,10 @@
 #define PRNTINT 		  6
 #define TERMINT			  7
 
-#define DEVINTNUM		  5		  /* interrupt lines used by devices */
-#define DEVPERINT		  8		  /* devices per interrupt line */
-#define DEVREGLEN		  4		  /* device register field length in bytes, and regs per dev */	
-#define DEVREGSIZE	  16 		/* device register size in bytes */
+#define DEVINTNUM		  5		    /* interrupt lines used by devices */
+#define DEVPERINT		  8		    /* devices per interrupt line */
+#define DEVREGLEN		  4		    /* device register field length in bytes, and regs per dev */	
+#define DEVREGSIZE	  16 		    /* device register size in bytes */
 
 /* device register field number for non-terminal devices */
 #define STATUS			  0
@@ -77,8 +77,22 @@
 #define	PASSUPVECTOR	0x0FFFF900
 
 /* Exceptions related constants */
-#define	PGFAULTEXCEPT	  0
-#define GENERALEXCEPT	  1
+#define	PGFAULTEXCEPT	    0
+#define GENERALEXCEPT	    1
+
+#define INT                 0       /* External Device Interrupt*/
+#define MOD                 1       /* TLB-Modification Exception*/
+#define TLBL                2       /* TLB Invalid Exception: on a Load instr. or instruction fetch*/
+#define TLBS                3       /* TLB Invalid Exception: on a Store instr.*/
+#define ADEL                4       /* Address Error Exception: on a Load or instruction fetch*/
+#define ADES                5       /* Address Error Exception: on a Store instr.*/
+#define IBE                 6       /* Bus Error Exception: on an instruction fetch*/
+#define DEB                 7       /* Bus Error Exception: on a Load/Store data access*/
+#define SYS                 8       /* Syscall Exception*/
+#define BP                  9       /* Breakpoint Exception*/
+#define RI                  10      /* Reserved Instruction Exception*/
+#define CPU                 11      /* Coprocessor Unusable Exception*/
+#define OV                  12      /* Arithmetic Overflow Exception*/
 
 /* Cause register bit fields */
 #define EXECCODEBITS        0x0000007C
