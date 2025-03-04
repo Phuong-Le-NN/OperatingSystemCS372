@@ -48,12 +48,12 @@ void exception_handler(){
     {
         /* Nucleus’s TLB exception handler */
         /* NEED TO CHECK */
-        TLB_exception_Handler();
+        pass_up_or_die(PGFAULTEXCEPT);
     }
     else if (ExcCode <= 7 || ExcCode >= 9)
     {
         /* Nucleus’s Program Trap exception handler */
-        program_trap_exception_handler();
+        pass_up_or_die(GENERALEXCEPT);
     }
     else
     {
