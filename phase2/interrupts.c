@@ -19,6 +19,8 @@
 
 /* Non-Timer Interrupts */
 void non_timer_interrupts(int intLineNo){
+
+    /* Calculate the address for this device’s device register. */
     /* after knowing which line specifically, this is how get the devices that have pending interrupt on that line*/
     int *devRegAdd = intDevBitMap(intLineNo);
     
