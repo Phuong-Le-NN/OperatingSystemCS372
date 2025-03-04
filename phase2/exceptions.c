@@ -210,8 +210,35 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
     return;
 }
 
+/* The Nucleus Program Trap exception handler performs a standard Pass Up or Die operation 
+using the GENERALEXCEPT index value. */
 void program_trap_exception_handler() {
+
+    /* 
+    If the Current Process’s p supportStruct is NULL, 
+    then the exception should be handled as a SYS2: the Current Process and all its progeny are terminated. 
+    This is the “die” portion of Pass Up or Die.
     
+    If the Current Process’s p supportStruct is non-NULL. 
+    The handling of the exception is “passed up.”
+    */
+
+    /*
+    To pass up the handling of an exception:
+    Copy the saved exception state from the BIOS Data Page to the correct sup exceptState field of the Current Process. 
+    The Current Process’s pcb should point to a non-null support t.
+    Perform a LDCXT using the fields from the correct sup exceptContextfield of the Current Process.
+    */
+
+    /* GENERAL PASS UP OR DIE OPERATION
+    1. copy the saved exception state into a location accessible to the Support Level, 
+    2. and pass control to a routine specified by the Support Level.
+    */
+    if (currentP -> p_supportStruct == NULL){
+        TERMINATEPROCESS();
+    }else{
+        
+    } 
 }
 
 int check_KU_mode_bit() {
@@ -261,6 +288,7 @@ unsigned int SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*load the saved state into the current Process*/
     deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
+
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode() != 0){
         const RI = 10;
@@ -273,8 +301,6 @@ unsigned int SYSCALL_handler() {
         program_trap_exception_handler();
         return 1;
     }
-
-
 
    switch (currentP->p_s.s_a0) {
     case 1:
