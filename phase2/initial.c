@@ -6,7 +6,7 @@
  */
 
 #include "../h/pcb.h"
-#include "../phase1/asl.c"
+#include "../h/asl.h"
 #include "../h/types.h"
 #include "/usr/include/umps3/umps/libumps.h"
 #include "exceptions.h"

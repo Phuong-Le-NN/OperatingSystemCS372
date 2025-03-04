@@ -10,6 +10,7 @@
 #include "../h/const.h"
 #include "scheduler.h"
 #include "exceptions.h"
+#include "interrupts.h"
 #include "initial.c"
 
 #define pseudo_clock_idx    48
@@ -93,10 +94,10 @@ void helper_block_currentP(int *semdAdd){
 
 void helper_terminate_process(pcb_PTR toBeTerminate){
     /*are we terminating the current process, then where are we supposed to put the return value in - a2 of currentP ???*/
-
+    pcb_PTR childToBeTerminate;
     /* recursively, all progeny of this process are terminated as well. */
     while (!emptyChild(toBeTerminate)) {
-        pcb_PTR childToBeTerminate = removeChild(currentP);
+        childToBeTerminate = removeChild(currentP);
         TERMINATEPROCESS(childToBeTerminate);
     }
     outChild(toBeTerminate);
@@ -291,7 +292,7 @@ void pass_up_or_die(int exception_constant) {
 unsigned int SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
-    if (check_KU_mode() != 0){
+    if (check_KU_mode_bit() != 0){
         /* clear out current exec code bit field in cause registers*/
         currentP->p_s.s_cause = currentP->p_s.s_cause & (~EXECCODEBITS);
         /* put RI value into the exec code bit field which is from 2 to 6 so we shift RI by 2 and do OR operation*/

@@ -41,7 +41,7 @@ void pseudo_clock_interrupts(){
     /*unblock all pcb blocked on the Pseudo-clock*/
     while (headBlocked(pseudo_clock_sem) != NULL){
         unblocked_pcb = helper_unblock_process(pseudo_clock_sem);
-        insertProcQ(readyQ, unblocked_pcb);
+        insertProcQ(&readyQ, unblocked_pcb);
     }
     /* reset pseudo-clock semaphore to 0*/
     *(pseudo_clock_sem->s_semAdd) = 0;
@@ -166,7 +166,6 @@ void non_timer_interrupts(int intLineNo){
 /* interupt exception handler function */
 void interrupt_exception_handler(){
     int i;
-    int j;
     int lineIntBool;
     /* loop through the interrupt line for devices*/
     for (i = 0; i <= INTLINESCOUNT; i ++){
