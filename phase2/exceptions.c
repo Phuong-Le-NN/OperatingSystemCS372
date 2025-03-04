@@ -213,33 +213,25 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
 
 /* The Nucleus Program Trap exception handler performs a standard Pass Up or Die operation 
 using the GENERALEXCEPT index value. */
-void program_trap_exception_handler() {
+/* 
+1. copy the saved exception state into a location accessible to the Support Level, 
+2. and pass control to a routine specified by the Support Level.
+*/
+void pass_up_or_die(int exception_constant) {
 
-    /* 
-    If the Current Process’s p supportStruct is NULL, 
-    then the exception should be handled as a SYS2: the Current Process and all its progeny are terminated. 
-    This is the “die” portion of Pass Up or Die.
-    
-    If the Current Process’s p supportStruct is non-NULL. 
-    The handling of the exception is “passed up.”
-    */
-
-    /*
-    To pass up the handling of an exception:
-    Copy the saved exception state from the BIOS Data Page to the correct sup exceptState field of the Current Process. 
-    The Current Process’s pcb should point to a non-null support t.
-    Perform a LDCXT using the fields from the correct sup exceptContextfield of the Current Process.
-    */
-
-    /* GENERAL PASS UP OR DIE OPERATION
-    1. copy the saved exception state into a location accessible to the Support Level, 
-    2. and pass control to a routine specified by the Support Level.
-    */
+   /* If the Current Process’s p supportStruct is NULL, 
+    then the exception should be handled as a SYS2: the Current Process and all its progeny are terminated. */
     if (currentP -> p_supportStruct == NULL){
         TERMINATEPROCESS();
     }else{
-        
-    } 
+        /* Copy the saved exception state from the BIOS Data Page to the correct sup exceptState field of the Current Process. 
+        Perform a LDCXT using the fields from the correct sup exceptContextfield of the Current Process. */
+        deep_copy_state_t(&currentP -> p_supportStruct->sup_exceptState[exception_constant], BIOSDATAPAGE);
+        LDCXT(currentP -> p_supportStruct -> sup_exceptContext->c_stackPtr,
+            currentP -> p_supportStruct -> sup_exceptContext->c_status, 
+            currentP -> p_supportStruct -> sup_exceptContext->c_pc);
+    }
+    /* NOTE: How did we have the context in the sup_exceptContext in the supportStruct of the current process? */
 }
 
 int check_KU_mode_bit() {
@@ -296,7 +288,9 @@ unsigned int SYSCALL_handler() {
         currentP->p_s.s_cause = currentP->p_s.s_cause | (RI << 2);
         /* save the new cause register*/
         ((state_t *) BIOSDATAPAGE)->s_cause = currentP->p_s.s_cause;
-        program_trap_exception_handler();
+
+        /* Program Traps */
+        pass_up_or_die(GENERALEXCEPT);
         return 1;
     }
 
@@ -327,6 +321,7 @@ unsigned int SYSCALL_handler() {
         break;
     default:
         /* Syscall Exception Error ? Program trap handler?*/
+        pass_up_or_die(GENERALEXCEPT);
     }
 
     /*increment PC by 4*/
