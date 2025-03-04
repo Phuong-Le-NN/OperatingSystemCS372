@@ -4,24 +4,16 @@
  * 
  *      Modified by Phuong and Oghap on Feb 2025
  */
+#include "/usr/include/umps3/umps/libumps.h"
 
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
-#include "/usr/include/umps3/umps/libumps.h"
+
 #include "exceptions.h"
 #include "scheduler.h"
 
-
-extern void test();
-
-/* Global Variables*/
-int         process_count;           /* Number of started processes */
-int         softBlock_count;         /* Number of started that are in blocked */
-pcb_PTR     readyQ;                  /* Tail ptr to a queue of pcbs that are ready */
-pcb_PTR     currentP;                /* Current Process */
-int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphores 49 semaphores in an array */
-
+#include "initial.h"
 
 
 /*

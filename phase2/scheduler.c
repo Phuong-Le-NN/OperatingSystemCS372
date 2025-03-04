@@ -3,13 +3,16 @@
  * 
  *      Modified by Phuong and Oghap on Feb 2025
  */
+#include "/usr/include/umps3/umps/libumps.h"
 
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "../h/const.h"
-#include "initial.c"
-#include "/usr/include/umps3/umps/libumps.h"
+
+#include "initial.h"
+
+#include "scheduler.h"
 
 /*
 In scheduler:

@@ -4,55 +4,38 @@
  *      Modified by Phuong and Oghap on Feb 2025
  */
 
+#include "/usr/include/umps3/umps/libumps.h"
+
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "../h/const.h"
-#include "initial.c"
+
+#include "scheduler.h"
 #include "exceptions.h"
+#include "initial.h"
+
 #include "interrupts.h"
-#include "/usr/include/umps3/umps/libumps.h"
 
 #define pseudo_clock_idx    48
 #define IPBITSPOS       8
 #define INTLINESCOUNT   8
 
 /* Helper Functions */
-/*Process Local Timer (PLT) Interrupt*/
-void process_local_timer_interrupts(){
-    /* load new time into timer for PLT*/
-    setTIMER(5000); 
-    /* copy the processor state at the time of the exception into current process*/
-    deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
-    /* update accumulated CPU time for the current process*/
-    int interval_current;
-    STCK(interval_current);
-    currentP->p_time += 5000 - getTIMER();
-    /* place current process on ready queue*/
-    insertProcQ(&readyQ, currentP);
-    scheduler();
-}
 
-void pseudo_clock_interrupts(){
-    /* load interval timer with 100 miliseconds*/
-    LDIT(100000);
-    pcb_PTR unblocked_pcb;
-    semd_t *pseudo_clock_sem = &(device_sem[pseudo_clock_idx]);
-    /*unblock all pcb blocked on the Pseudo-clock*/
-    while (headBlocked(pseudo_clock_sem) != NULL){
-        unblocked_pcb = helper_unblock_process(pseudo_clock_sem);
-        insertProcQ(&readyQ, unblocked_pcb);
+HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
+    /*
+    the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
+    */
+    dest->s_cause = src->s_cause;
+    dest->s_entryHI = src->s_entryHI;
+    dest->s_pc = src->s_pc;
+    int i;
+    for (i = 0; i < STATEREGNUM; i ++){
+        dest->s_reg[i] = src->s_reg[i];
     }
-    /* reset pseudo-clock semaphore to 0*/
-    *(pseudo_clock_sem->s_semAdd) = 0;
-    state_PTR caller_process_state = (state_t*) BIOSDATAPAGE;
-    if (currentP == NULL){
-        scheduler();
-    }
-    /* return contorl to the current process*/
-    LDST(BIOSDATAPAGE);
+    dest->s_status = src->s_status;
 }
-
 
 int check_interrupt_line(int idx){
     /*
@@ -103,12 +86,47 @@ pcb_PTR helper_unblock_process(int *semdAdd){
     return unblocked_pcb;
 }
 
+/*Process Local Timer (PLT) Interrupt*/
+void process_local_timer_interrupts(){
+    /* load new time into timer for PLT*/
+    setTIMER(5000); 
+    /* copy the processor state at the time of the exception into current process*/
+    deep_copy_state_t(&(currentP->p_s), (state_PTR) BIOSDATAPAGE);
+    /* update accumulated CPU time for the current process*/
+    int interval_current;
+    STCK(interval_current);
+    currentP->p_time += 5000 - getTIMER();
+    /* place current process on ready queue*/
+    insertProcQ(&readyQ, currentP);
+    scheduler();
+}
+
+void pseudo_clock_interrupts(){
+    /* load interval timer with 100 miliseconds*/
+    LDIT(100000);
+    pcb_PTR unblocked_pcb;
+    int *pseudo_clock_sem = &(device_sem[pseudo_clock_idx]);
+    /*unblock all pcb blocked on the Pseudo-clock*/
+    while (headBlocked(pseudo_clock_sem) != NULL){
+        unblocked_pcb = helper_unblock_process(pseudo_clock_sem);
+        insertProcQ(&readyQ, unblocked_pcb);
+    }
+    /* reset pseudo-clock semaphore to 0*/
+    *(pseudo_clock_sem) = 0;
+    state_PTR caller_process_state = (state_t*) BIOSDATAPAGE;
+    if (currentP == NULL){
+        scheduler();
+    }
+    /* return contorl to the current process*/
+    LDST((void *) BIOSDATAPAGE);
+}
+
 /* Non-Timer Interrupts */
 void non_timer_interrupts(int intLineNo){
 
     /* Calculate the address for this device’s device register. */
     /* after knowing which line specifically, this is how get the devices that have pending interrupt on that line*/
-    int *devRegAdd = intDevBitMap(intLineNo);
+    int *devRegAdd = (int*) intDevBitMap(intLineNo);
     
     /* devRegAdd is address to the Interrupt Device Bit Map, value at that address as a hex has a bit as 1 if that device has interrupt pending*/
     int devNo;
@@ -126,7 +144,7 @@ void non_timer_interrupts(int intLineNo){
         devIntBool = check_interrupt_device(devNo, devRegAdd);
         if (devIntBool == TRUE){
             /* calculate the address of the device register*/
-            intDevRegAdd = devAddrBase(intLineNo, devNo);
+            intDevRegAdd = (device_t*) devAddrBase(intLineNo, devNo);
             /* save the register device */
             deep_copy_device_t(savedDevRegAdd, intDevRegAdd);
             /* putting the ACK into the device register?*/
@@ -136,18 +154,18 @@ void non_timer_interrupts(int intLineNo){
                 if (savedDevRegAdd->d_data0 == 5){
                     intDevRegAdd->d_data1 = ACK;
                     devIdx = devSemIdx(intLineNo, devNo, 1);
-                    unblocked_pcb = removeBlocked(device_sem[devIdx]);
+                    unblocked_pcb = removeBlocked(&(device_sem[devIdx]));
                     insertProcQ(&readyQ, unblocked_pcb);
-                    LDST(BIOSDATAPAGE);
+                    LDST((void *) BIOSDATAPAGE);
                 }
                 /* for terminal reciever sub device, handling like other device?*/
             }
             intDevRegAdd->d_command = ACK;
             devIdx = devSemIdx(intLineNo, devNo, 0);
-            ((state_t*) BIOSDATAPAGE)->s_a1 = &device_sem[devIdx];
+            ((state_t*) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
             VERHOGEN();
             /* putting the process returned by V operation to unblocked_pcb */
-            unblocked_pcb = ((state_t*) BIOSDATAPAGE)->s_v0;
+            unblocked_pcb = (pcb_PTR) ((state_t*) BIOSDATAPAGE)->s_v0;
             /* if V operation failed to remove a pcb then return control to the current process*/
             if (unblocked_pcb == NULL){
                 /* if there is no current process to return to either, call scheduler*/
@@ -156,7 +174,7 @@ void non_timer_interrupts(int intLineNo){
                 }
                 LDST(currentP);
             }
-            LDST(BIOSDATAPAGE);
+            LDST((void *) BIOSDATAPAGE);
         }
     }
 }

@@ -3,19 +3,22 @@
  * 
  *      Modified by Phuong and Oghap on Feb 2025
  */
+#include "/usr/include/umps3/umps/libumps.h"
 
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "../h/const.h"
+
 #include "scheduler.h"
-#include "exceptions.h"
 #include "interrupts.h"
-#include "initial.c"
+#include "initial.h"
+
+#include "exceptions.h"
 
 #define pseudo_clock_idx    48
 
-void deep_copy_state_t(state_PTR dest, state_PTR src) {
+HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
     /*
     the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
     */
