@@ -14,6 +14,97 @@
 
 #define pseudo_clock_idx    48
 
+void blocking_syscall_handler (){
+    /*
+    This function handle the steps after a blocking handler including:
+    */
+    currentP->p_s.s_pc += 0x4;
+    /*already copied the saved processor state into the current process pcb at the beginning of SYSCALL_handler as that what we have been using*/
+    /*update the cpu time for the current process*/
+    currentP->p_time += (5000 - getTIMER());
+    /*process was already added to ASL in the syscall =>already blocked*/
+    scheduler();
+}
+
+void non_blocking_syscall_handler (){
+    /*increment PC by 4*/
+    currentP->p_s.s_pc += 0x4;
+    /* update the cpu_time*/
+    currentP->p_time += (5000 - getTIMER());
+    /*save processor state into the "well known" location for return*/
+    deep_copy_state_t(BIOSDATAPAGE, &currentP->p_s);
+    LDST(&(currentP->p_s));
+}
+
+
+int check_KU_mode_bit() {
+    /*
+    Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
+    */
+    int KUp = currentP->p_s.s_status & 0x00000008;
+    return 0;
+}
+
+void deep_copy_state_t(state_PTR dest, state_PTR src) {
+    /*
+    the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
+    */
+    dest->s_cause = src->s_cause;
+    dest->s_entryHI = src->s_entryHI;
+    dest->s_pc = src->s_pc;
+    int i;
+    for (i = 0; i < STATEREGNUM; i ++){
+        dest->s_reg[i] = src->s_reg[i];
+    }
+    dest->s_status = src->s_status;
+}
+
+void deep_copy_support_t(support_t *dest,support_t *src) {
+    /*
+    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
+    */
+    dest->sup_asid = src->sup_asid;
+    deep_copy_context_t(dest->sup_exceptContext, &src->sup_exceptContext);
+    int i;
+    for (i = 0; i < STATEREGNUM; i ++){
+        deep_copy_state_t(&dest->sup_exceptState[i], &src->sup_exceptState[i]);
+    }
+}
+
+void deep_copy_context_t(context_t *dest,context_t *src) {
+    /*
+    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
+    */
+    dest->c_pc = src->c_pc;
+    dest->c_stackPtr = src->c_stackPtr;
+    dest->c_status = src->c_status;
+}
+
+void helper_block_currentP(int *semdAdd){
+    /* 
+    Helper function that block the current process and place on the ASL and increase softblock count
+    parameter: the (device) sema4
+    */
+    softBlock_count += 1;
+
+    /*insert the process into ASL*/
+    insertBlocked(semdAdd, currentP);
+}
+
+void helper_terminate_process(pcb_PTR toBeTerminate){
+    /*are we terminating the current process, then where are we supposed to put the return value in - a2 of currentP ???*/
+
+    /* recursively, all progeny of this process are terminated as well. */
+    while (!emptyChild(toBeTerminate)) {
+        pcb_PTR childToBeTerminate = removeChild(currentP);
+        TERMINATEPROCESS(childToBeTerminate);
+    }
+    outChild(toBeTerminate);
+    freePcb(toBeTerminate);
+    process_count--;
+    return;
+}
+
 /* Is there a time when we need to determine whether the current process is executing in kernel mode or 
 user-mode? */
 
@@ -292,93 +383,3 @@ void exception_handler(){
     }
 }
 
-void blocking_syscall_handler (){
-    /*
-    This function handle the steps after a blocking handler including:
-    */
-    currentP->p_s.s_pc += 0x4;
-    /*already copied the saved processor state into the current process pcb at the beginning of SYSCALL_handler as that what we have been using*/
-    /*update the cpu time for the current process*/
-    currentP->p_time += (5000 - getTIMER());
-    /*process was already added to ASL in the syscall =>already blocked*/
-    scheduler();
-}
-
-void non_blocking_syscall_handler (){
-    /*increment PC by 4*/
-    currentP->p_s.s_pc += 0x4;
-    /* update the cpu_time*/
-    currentP->p_time += (5000 - getTIMER());
-    /*save processor state into the "well known" location for return*/
-    deep_copy_state_t(BIOSDATAPAGE, &currentP->p_s);
-    LDST(&(currentP->p_s));
-}
-
-
-int check_KU_mode_bit() {
-    /*
-    Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
-    */
-    int KUp = currentP->p_s.s_status & 0x00000008;
-    return 0;
-}
-
-void deep_copy_state_t(state_PTR dest, state_PTR src) {
-    /*
-    the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
-    */
-    dest->s_cause = src->s_cause;
-    dest->s_entryHI = src->s_entryHI;
-    dest->s_pc = src->s_pc;
-    int i;
-    for (i = 0; i < STATEREGNUM; i ++){
-        dest->s_reg[i] = src->s_reg[i];
-    }
-    dest->s_status = src->s_status;
-}
-
-void deep_copy_support_t(support_t *dest,support_t *src) {
-    /*
-    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
-    */
-    dest->sup_asid = src->sup_asid;
-    deep_copy_context_t(dest->sup_exceptContext, &src->sup_exceptContext);
-    int i;
-    for (i = 0; i < STATEREGNUM; i ++){
-        deep_copy_state_t(&dest->sup_exceptState[i], &src->sup_exceptState[i]);
-    }
-}
-
-void deep_copy_context_t(context_t *dest,context_t *src) {
-    /*
-    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
-    */
-    dest->c_pc = src->c_pc;
-    dest->c_stackPtr = src->c_stackPtr;
-    dest->c_status = src->c_status;
-}
-
-void helper_block_currentP(int *semdAdd){
-    /* 
-    Helper function that block the current process and place on the ASL and increase softblock count
-    parameter: the (device) sema4
-    */
-    softBlock_count += 1;
-
-    /*insert the process into ASL*/
-    insertBlocked(semdAdd, currentP);
-}
-
-void helper_terminate_process(pcb_PTR toBeTerminate){
-    /*are we terminating the current process, then where are we supposed to put the return value in - a2 of currentP ???*/
-
-    /* recursively, all progeny of this process are terminated as well. */
-    while (!emptyChild(toBeTerminate)) {
-        pcb_PTR childToBeTerminate = removeChild(currentP);
-        TERMINATEPROCESS(childToBeTerminate);
-    }
-    outChild(toBeTerminate);
-    freePcb(toBeTerminate);
-    process_count--;
-    return;
-}
