@@ -4,14 +4,16 @@
  *      Modified by Phuong and Oghap on Feb 2025
  */
 
-#include "interrupts.h"
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
+#include "../h/const.h"
 #include "initial.c"
-#include "exceptions.c"
+#include "exceptions.h"
+#include "interrupts.h"
 #include "/usr/include/umps3/umps/libumps.h"
 
+#define pseudo_clock_idx    48
 #define IPBITSPOS       8
 #define INTLINESCOUNT   8
 
@@ -81,7 +83,7 @@ void process_local_timer_interrupts(){
     /* update accumulated CPU time for the current process*/
     int interval_current;
     STCK(interval_current);
-    currentP->p_time += interval_current - interval_start;
+    currentP->p_time += 5000 - getTIMER();
     /* place current process on ready queue*/
     insertProcQ(&readyQ, currentP);
     scheduler();
@@ -178,4 +180,17 @@ void deep_copy_device_t(device_t *dest, device_t *src){
     dest->d_data0 = src->d_data0;
     dest->d_data1 = src->d_data1;
     dest->d_status = src->d_status;
+}
+
+pcb_PTR helper_unblock_process(int *semdAdd){
+    /*
+    Helper function that unblock 1 process and decrease softblock count
+    */
+    /* remove the process from ASL*/
+    pcb_PTR unblocked_pcb = removeBlocked(semdAdd);
+
+    if (unblocked_pcb != NULL){
+        softBlock_count -= 1;
+    }
+    return unblocked_pcb;
 }

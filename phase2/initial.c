@@ -6,10 +6,11 @@
  */
 
 #include "../h/pcb.h"
-#include "../h/asl.h"
+#include "../phase1/asl.c"
 #include "../h/types.h"
 #include "/usr/include/umps3/umps/libumps.h"
 #include "exceptions.h"
+#include "scheduler.h"
 
 
 extern void test();
@@ -31,36 +32,7 @@ Hence, the entry point for the Nucleus’s exception handling
 that performs a multi-way branch depending on the cause of the
 exception.
 */
-void exception_handler(){
-    /*load the saved state into the current Process*/
-    deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
 
-    /* Get the Cause registers from the saved exception state and 
-    use AND bitwise operation to get the .ExcCode field */
-    int ExcCode = CauseExcCode(currentP->p_s.s_cause);
-
-    if (ExcCode == 0){
-
-        /* Call Nucleus’s device interrupt handler */
-        interrupt_exception_handler();
-    }
-    else if (ExcCode <= 3)
-    {
-        /* Nucleus’s TLB exception handler */
-        /* NEED TO CHECK */
-        pass_up_or_die(PGFAULTEXCEPT);
-    }
-    else if (ExcCode <= 7 || ExcCode >= 9)
-    {
-        /* Nucleus’s Program Trap exception handler */
-        pass_up_or_die(GENERALEXCEPT);
-    }
-    else
-    {
-        /*  SYSCALL exception handler */
-        SYSCALL_handler();
-    }
-}
 
 void main() {
 

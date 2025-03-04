@@ -7,6 +7,7 @@
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
+#include "../h/const.h"
 #include "initial.c"
 #include "/usr/include/umps3/umps/libumps.h"
 
@@ -24,8 +25,6 @@ In scheduler:
     3. Perform a Load Processor State (LDST) on the processor state stored in pcb
         of the Current Process (p_s).
 */
-
-int interval_start;
 
 void scheduler (){
 
@@ -54,9 +53,8 @@ void scheduler (){
         }
     }
     
-    currentP = removeProcQ(readyQ);
+    currentP = removeProcQ(&readyQ);
 
-    STCK(interval_start);
     /*Load 5 milisec on the PLT*/ 
     setTIMER(5000);
 

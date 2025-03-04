@@ -7,9 +7,10 @@
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
-#include "initial.c"
-#include "scheduler.c"
+#include "../h/const.h"
+#include "scheduler.h"
 #include "exceptions.h"
+#include "initial.c"
 
 #define pseudo_clock_idx    48
 
@@ -69,7 +70,7 @@ void TERMINATEPROCESS(){
     helper_terminate_process(currentP);
 }
 
-void PASSEREN(){ //use and update a1
+void PASSEREN(){
     /*  
         Depending on the value of the semaphore, control is either returned to the
         Current Process, or this process is blocked on the ASL (transitions from “running”
@@ -143,7 +144,7 @@ void GETCPUTIME(){
     /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
     int interval_current;
     STCK(interval_current);
-    currentP->p_s.s_v0 = currentP->p_time + (interval_current - interval_start);
+    currentP->p_s.s_v0 = currentP->p_time + 5000 - getTIMER();
     return;
 }
 
@@ -172,45 +173,6 @@ void GETSUPPORTPTR(){
     currentP->p_s.s_v0 = currentP->p_supportStruct;
 }
 
-void helper_block_currentP(int *semdAdd){
-    /* 
-    Helper function that block the current process and place on the ASL and increase softblock count
-    parameter: the (device) sema4
-    */
-    softBlock_count += 1;
-
-    /*insert the process into ASL*/
-    insertBlocked(semdAdd, currentP);
-}
-
-
-pcb_PTR helper_unblock_process(int *semdAdd){
-    /*
-    Helper function that unblock 1 process and decrease softblock count
-    */
-    /* remove the process from ASL*/
-    pcb_PTR unblocked_pcb = removeBlocked(semdAdd);
-
-    if (unblocked_pcb != NULL){
-        softBlock_count -= 1;
-    }
-    return unblocked_pcb;
-}
-
-void helper_terminate_process(pcb_PTR toBeTerminate){
-    /*are we terminating the current process, then where are we supposed to put the return value in - a2 of currentP ???*/
-
-    /* recursively, all progeny of this process are terminated as well. */
-    while (!emptyChild(toBeTerminate)) {
-        pcb_PTR childToBeTerminate = removeChild(currentP);
-        TERMINATEPROCESS(childToBeTerminate);
-    }
-    outChild(toBeTerminate);
-    freePcb(toBeTerminate);
-    process_count--;
-    return;
-}
-
 /* The Nucleus Program Trap exception handler performs a standard Pass Up or Die operation 
 using the GENERALEXCEPT index value. */
 /* 
@@ -234,48 +196,6 @@ void pass_up_or_die(int exception_constant) {
     /* NOTE: How did we have the context in the sup_exceptContext in the supportStruct of the current process? */
 }
 
-int check_KU_mode_bit() {
-    /*
-    Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
-    */
-    int KUp = currentP->p_s.s_status & 0x00000008;
-    return 0;
-}
-
-void deep_copy_state_t(state_PTR dest, state_PTR src) {
-    /*
-    the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
-    */
-    dest->s_cause = src->s_cause;
-    dest->s_entryHI = src->s_entryHI;
-    dest->s_pc = src->s_pc;
-    int i;
-    for (i = 0; i < STATEREGNUM; i ++){
-        dest->s_reg[i] = src->s_reg[i];
-    }
-    dest->s_status = src->s_status;
-}
-
-void deep_copy_support_t(support_t *dest,support_t *src) {
-    /*
-    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
-    */
-    dest->sup_asid = src->sup_asid;
-    deep_copy_context_t(dest->sup_exceptContext, &src->sup_exceptContext);
-    int i;
-    for (i = 0; i < STATEREGNUM; i ++){
-        deep_copy_state_t(&dest->sup_exceptState[i], &src->sup_exceptState[i]);
-    }
-}
-
-void deep_copy_context_t(context_t *dest,context_t *src) {
-    /*
-    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
-    */
-    dest->c_pc = src->c_pc;
-    dest->c_stackPtr = src->c_stackPtr;
-    dest->c_status = src->c_status;
-}
 
 unsigned int SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
@@ -340,6 +260,38 @@ unsigned int SYSCALL_handler() {
 
 }
 
+void exception_handler(){
+    /*load the saved state into the current Process*/
+    deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
+
+    /* Get the Cause registers from the saved exception state and 
+    use AND bitwise operation to get the .ExcCode field */
+    int ExcCode = CauseExcCode(currentP->p_s.s_cause);
+
+    switch (ExcCode)
+    {
+    case INT:
+        interrupt_exception_handler();
+    case MOD:
+    case TLBL:
+    case TLBS:
+        pass_up_or_die(PGFAULTEXCEPT);
+    case ADEL:
+    case ADES:
+    case IBE:
+    case DEB:
+    case BP:
+    case RI:
+    case CPU:
+    case OV:
+        pass_up_or_die(GENERALEXCEPT);
+    case SYS:
+        SYSCALL_handler();
+    default:
+        break;
+    }
+}
+
 void blocking_syscall_handler (){
     /*
     This function handle the steps after a blocking handler including:
@@ -360,4 +312,73 @@ void non_blocking_syscall_handler (){
     /*save processor state into the "well known" location for return*/
     deep_copy_state_t(BIOSDATAPAGE, &currentP->p_s);
     LDST(&(currentP->p_s));
+}
+
+
+int check_KU_mode_bit() {
+    /*
+    Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
+    */
+    int KUp = currentP->p_s.s_status & 0x00000008;
+    return 0;
+}
+
+void deep_copy_state_t(state_PTR dest, state_PTR src) {
+    /*
+    the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
+    */
+    dest->s_cause = src->s_cause;
+    dest->s_entryHI = src->s_entryHI;
+    dest->s_pc = src->s_pc;
+    int i;
+    for (i = 0; i < STATEREGNUM; i ++){
+        dest->s_reg[i] = src->s_reg[i];
+    }
+    dest->s_status = src->s_status;
+}
+
+void deep_copy_support_t(support_t *dest,support_t *src) {
+    /*
+    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
+    */
+    dest->sup_asid = src->sup_asid;
+    deep_copy_context_t(dest->sup_exceptContext, &src->sup_exceptContext);
+    int i;
+    for (i = 0; i < STATEREGNUM; i ++){
+        deep_copy_state_t(&dest->sup_exceptState[i], &src->sup_exceptState[i]);
+    }
+}
+
+void deep_copy_context_t(context_t *dest,context_t *src) {
+    /*
+    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
+    */
+    dest->c_pc = src->c_pc;
+    dest->c_stackPtr = src->c_stackPtr;
+    dest->c_status = src->c_status;
+}
+
+void helper_block_currentP(int *semdAdd){
+    /* 
+    Helper function that block the current process and place on the ASL and increase softblock count
+    parameter: the (device) sema4
+    */
+    softBlock_count += 1;
+
+    /*insert the process into ASL*/
+    insertBlocked(semdAdd, currentP);
+}
+
+void helper_terminate_process(pcb_PTR toBeTerminate){
+    /*are we terminating the current process, then where are we supposed to put the return value in - a2 of currentP ???*/
+
+    /* recursively, all progeny of this process are terminated as well. */
+    while (!emptyChild(toBeTerminate)) {
+        pcb_PTR childToBeTerminate = removeChild(currentP);
+        TERMINATEPROCESS(childToBeTerminate);
+    }
+    outChild(toBeTerminate);
+    freePcb(toBeTerminate);
+    process_count--;
+    return;
 }
