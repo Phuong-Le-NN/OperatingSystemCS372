@@ -15,37 +15,6 @@
 
 #define pseudo_clock_idx    48
 
-void blocking_syscall_handler (){
-    /*
-    This function handle the steps after a blocking handler including:
-    */
-    currentP->p_s.s_pc += 0x4;
-    /*already copied the saved processor state into the current process pcb at the beginning of SYSCALL_handler as that what we have been using*/
-    /*update the cpu time for the current process*/
-    currentP->p_time += (5000 - getTIMER());
-    /*process was already added to ASL in the syscall =>already blocked*/
-    scheduler();
-}
-
-void non_blocking_syscall_handler (){
-    /*increment PC by 4*/
-    currentP->p_s.s_pc += 0x4;
-    /* update the cpu_time*/
-    currentP->p_time += (5000 - getTIMER());
-    /*save processor state into the "well known" location for return*/
-    deep_copy_state_t(BIOSDATAPAGE, &currentP->p_s);
-    LDST(&(currentP->p_s));
-}
-
-
-int check_KU_mode_bit() {
-    /*
-    Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
-    */
-    int KUp = currentP->p_s.s_status & 0x00000008;
-    return 0;
-}
-
 void deep_copy_state_t(state_PTR dest, state_PTR src) {
     /*
     the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
@@ -80,6 +49,39 @@ void deep_copy_context_t(context_t *dest,context_t *src) {
     dest->c_stackPtr = src->c_stackPtr;
     dest->c_status = src->c_status;
 }
+
+void blocking_syscall_handler (){
+    /*
+    This function handle the steps after a blocking handler including:
+    */
+    currentP->p_s.s_pc += 0x4;
+    /*already copied the saved processor state into the current process pcb at the beginning of SYSCALL_handler as that what we have been using*/
+    /*update the cpu time for the current process*/
+    currentP->p_time += (5000 - getTIMER());
+    /*process was already added to ASL in the syscall =>already blocked*/
+    scheduler();
+}
+
+void non_blocking_syscall_handler (){
+    /*increment PC by 4*/
+    currentP->p_s.s_pc += 0x4;
+    /* update the cpu_time*/
+    currentP->p_time += (5000 - getTIMER());
+    /*save processor state into the "well known" location for return*/
+    deep_copy_state_t(BIOSDATAPAGE, &currentP->p_s);
+    LDST(&(currentP->p_s));
+}
+
+
+int check_KU_mode_bit() {
+    /*
+    Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
+    */
+    int KUp = currentP->p_s.s_status & 0x00000008;
+    return 0;
+}
+
+
 
 void helper_block_currentP(int *semdAdd){
     /* 
@@ -149,7 +151,7 @@ void CREATEPROCESS(){
     The process queue fields (e.g. p next) by the call to insertProcQ
 •   The process tree fields (e.g. p child) by the call to insertChild. 
     */
-    insertProcQ(readyQ, newProcess);
+    insertProcQ(&readyQ, newProcess);
     insertChild(currentP, newProcess);
 
     /* return the value 0 in the caller’s v0 */
@@ -190,7 +192,7 @@ pcb_PTR VERHOGEN(){
     *(sema4->s_semAdd) = *(sema4->s_semAdd) ++;
     if (*(sema4->s_semAdd) <= 0){
         temp = removeBlocked(sema4->s_semAdd);
-        insertProcQ(readyQ, temp);
+        insertProcQ(&readyQ, temp);
     }
     return temp;
 }

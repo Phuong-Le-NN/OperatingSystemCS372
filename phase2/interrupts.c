@@ -61,7 +61,7 @@ int check_interrupt_line(int idx){
     */
     /* get the IP bit from cause registers then shift right to get the interrupt line which*/
     /* as a hex, on bits indicate line with interrupt pending -- this is Cause.IP*/
-    int IPLines = (getCause()&IPBITS) >> IPBITSPOS;
+    int IPLines = (getCAUSE()&IPBITS) >> IPBITSPOS;
     /* 31 as the size of int is 32 bits (4 bytes)*/
     if ((IPLines << (31 - idx)) >> (31) == 0) {
         return FALSE;
