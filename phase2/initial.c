@@ -11,6 +11,7 @@
 #include "/usr/include/umps3/umps/libumps.h"
 #include "exceptions.h"
 
+
 extern void test();
 
 /* Global Variables*/
@@ -31,12 +32,12 @@ that performs a multi-way branch depending on the cause of the
 exception.
 */
 void exception_handler(){
-    /* state that was saved in the BIOS */
-    state_PTR callerProc = (state_PTR) BIOSDATAPAGE; 
+    /*load the saved state into the current Process*/
+    deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
 
     /* Get the Cause registers from the saved exception state and 
     use AND bitwise operation to get the .ExcCode field */
-    int ExcCode = CauseExcCode(callerProc->s_cause);
+    int ExcCode = CauseExcCode(currentP->p_s.s_cause);
 
     if (ExcCode == 0){
 
