@@ -184,14 +184,17 @@ void interrupt_exception_handler(){
                 break;
             case PLTINT:
                 /*processor local timer (PLT) interrupt*/
+                process_local_timer_interrupts();
             case INTERVALTIMERINT:
                 /*interval timer interrupt*/
+                pseudo_clock_interrupts();
             case DISKINT:
             case FLASHINT:
             case NETWINT:
             case PRNTINT:
             case TERMINT:
                 /*device interrupt*/
+                non_timer_interrupts(TERMINT);
             default:
                 break;
             }
