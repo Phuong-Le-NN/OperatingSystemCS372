@@ -82,7 +82,7 @@ void PASSEREN(){ //use and update a1
     *(sema4->s_semAdd) = *(sema4->s_semAdd) --;
     if (*(sema4->s_semAdd) < 0){
         insertBlocked(sema4->s_semAdd, currentP);
-        /*should or should not call scheudler here? if call scheduler here, also need to increament pc here?*/
+        /*should or should not call scheudler here? if call scheduler here, also need to increament pc here?-- decided to do it in syscall hander at the end may change later by uncomment calling blocking_syscall_handler right below and comment and comment things at in syscall handler way below*/
         /*
         blocking_syscall_handler();
         */
@@ -126,9 +126,9 @@ void WAITIO(){
     
     /*put the device sema4 address into register a1 to call P*/
     currentP->p_s.s_a1 = &(device_sem[device_idx]);
-    /* 
+
     PASSEREN();
-    */
+
     
     
     /*returning the device status word*/
@@ -157,7 +157,8 @@ void WAITCLOCK(){
 
     /*put the pseudoclock sema4 into the register a1 to do P operation*/
     currentP->p_s.s_a1 = device_sem[pseudo_clock_idx];
-    /* PASSEREN(); */
+    
+    PASSEREN();
 
     /*scheuler is called in SYSCALL handler*/
     blocking_syscall_handler();
@@ -286,9 +287,6 @@ void deep_copy_context_t(context_t *dest,context_t *src) {
 
 unsigned int SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
-    /*load the saved state into the current Process*/
-    deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
-
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode() != 0){
         const RI = 10;
