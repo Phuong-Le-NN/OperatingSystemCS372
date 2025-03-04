@@ -53,42 +53,6 @@ void pseudo_clock_interrupts(){
     LDST(BIOSDATAPAGE);
 }
 
-/* interupt exception handler function */
-void interrupt_exception_handler(){
-    int i;
-    int j;
-    int lineIntBool;
-    /* loop through the interrupt line for devices*/
-    for (i = 0; i <= INTLINESCOUNT; i ++){
-        lineIntBool = check_interrupt_line(i);
-        /*
-        Interrupt line 0 is reserved for inter-processor interrupts.
-        Line 1 is reserved for the processor Local Timer interrupts.
-        Line 2 is reserved for system-wide Interval Timer interrupts.
-        Interrupt lines 3–7 are for monitoring interrupts from peripheral devices
-        */
-        if (lineIntBool == TRUE) {
-            switch (i)
-            {
-            case INTERPROCESSORINT:
-                /*processor interrupt -- pandos is only for uniprocessor -- this case will not happen -- can safely ignore -- delete later*/
-                break;
-            case PLTINT:
-                /*processor local timer (PLT) interrupt*/
-            case INTERVALTIMERINT:
-                /*interval timer interrupt*/
-            case DISKINT:
-            case FLASHINT:
-            case NETWINT:
-            case PRNTINT:
-            case TERMINT:
-                /*device interrupt*/
-            default:
-                break;
-            }
-        }
-    }
-}
 
 int check_interrupt_line(int idx){
     /*
@@ -193,6 +157,45 @@ void non_timer_interrupts(int intLineNo){
                 LDST(currentP);
             }
             LDST(BIOSDATAPAGE);
+        }
+    }
+}
+
+
+
+/* interupt exception handler function */
+void interrupt_exception_handler(){
+    int i;
+    int j;
+    int lineIntBool;
+    /* loop through the interrupt line for devices*/
+    for (i = 0; i <= INTLINESCOUNT; i ++){
+        lineIntBool = check_interrupt_line(i);
+        /*
+        Interrupt line 0 is reserved for inter-processor interrupts.
+        Line 1 is reserved for the processor Local Timer interrupts.
+        Line 2 is reserved for system-wide Interval Timer interrupts.
+        Interrupt lines 3–7 are for monitoring interrupts from peripheral devices
+        */
+        if (lineIntBool == TRUE) {
+            switch (i)
+            {
+            case INTERPROCESSORINT:
+                /*processor interrupt -- pandos is only for uniprocessor -- this case will not happen -- can safely ignore -- delete later*/
+                break;
+            case PLTINT:
+                /*processor local timer (PLT) interrupt*/
+            case INTERVALTIMERINT:
+                /*interval timer interrupt*/
+            case DISKINT:
+            case FLASHINT:
+            case NETWINT:
+            case PRNTINT:
+            case TERMINT:
+                /*device interrupt*/
+            default:
+                break;
+            }
         }
     }
 }
