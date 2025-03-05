@@ -32,13 +32,7 @@ pcb_PTR     currentP;                /* Current Process */
 int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphores 49 semaphores in an array */
 
 
-void debug(int a0, int a1, int a2, int a3){
-    WAIT();
-}
-
 void main() {
-
-    debug(4, 2, 5, 6);
 
     /* Nucleus TLB-Refill event Handler */
     /* Populate the pass up vector */
@@ -50,6 +44,7 @@ void main() {
     passup_pro0->exception_handler = (memaddr)exception_handler;
     /* Stack pointer for the Nucleus exception handler to the top of the Nucleus stack page: 0x2000.1000. */
     passup_pro0->exception_stackPtr = (memaddr) (RAMSTART + PAGESIZE);
+    
 
     /* Initialize pcbs and initASL*/
     initASL();
@@ -91,7 +86,6 @@ void main() {
     /*technical reasons, assign same value to both PC and general purpose register t9*/
     first_pro->p_s.s_t9 = (memaddr) test;
     first_pro->p_s.s_sp = (memaddr) (RAMSTART + PAGESIZE);
-
 
     /* Set all the Process Tree fields to NULL.
     Set the accumulated time field (p time) to zero.
