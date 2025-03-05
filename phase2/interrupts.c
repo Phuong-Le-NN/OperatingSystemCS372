@@ -201,7 +201,7 @@ void pseudo_clock_interrupts(){
         scheduler();
     }
     /* return contorl to the current process*/
-    LDST((void *) BIOSDATAPAGE);
+    LDST((state_t *) BIOSDATAPAGE);
 }
 
 /* Non-Timer Interrupts */

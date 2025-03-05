@@ -25,8 +25,20 @@ that performs a multi-way branch depending on the cause of the
 exception.
 */
 
+int         process_count;           /* Number of started processes */
+int         softBlock_count;         /* Number of started that are in blocked */
+pcb_PTR     readyQ;                  /* Tail ptr to a queue of pcbs that are ready */
+pcb_PTR     currentP;                /* Current Process */
+int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphores 49 semaphores in an array */
+
+
+void debug(int a0, int a1, int a2, int a3){
+    WAIT();
+}
 
 void main() {
+
+    debug(4, 2, 5, 6);
 
     /* Nucleus TLB-Refill event Handler */
     /* Populate the pass up vector */
