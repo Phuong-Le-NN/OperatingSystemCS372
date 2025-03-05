@@ -118,7 +118,7 @@ void pseudo_clock_interrupts(){
         scheduler();
     }
     /* return contorl to the current process*/
-    LDST((void *) BIOSDATAPAGE);
+    LDST((state_t *) BIOSDATAPAGE);
 }
 
 /* Non-Timer Interrupts */
@@ -148,7 +148,6 @@ void non_timer_interrupts(int intLineNo){
             /* save the register device */
             deep_copy_device_t(savedDevRegAdd, intDevRegAdd);
             /* putting the ACK into the device register?*/
-            intDevRegAdd->d_command = ACK;
             if (intLineNo == 7){ /* if device interupt is transmitted*/
                 /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status*/
                 if (savedDevRegAdd->d_data0 == 5){
@@ -156,9 +155,12 @@ void non_timer_interrupts(int intLineNo){
                     devIdx = devSemIdx(intLineNo, devNo, 1);
                     unblocked_pcb = removeBlocked(&(device_sem[devIdx]));
                     insertProcQ(&readyQ, unblocked_pcb);
-                    LDST((void *) BIOSDATAPAGE);
+                    LDST((state_t *) BIOSDATAPAGE);
                 }
-                /* for terminal reciever sub device, handling like other device?*/
+                /* for terminal receiver sub device, handling like other device?*/
+            }
+            else {
+                intDevRegAdd->d_command = ACK;
             }
             intDevRegAdd->d_command = ACK;
             devIdx = devSemIdx(intLineNo, devNo, 0);
@@ -174,7 +176,7 @@ void non_timer_interrupts(int intLineNo){
                 }
                 LDST(currentP);
             }
-            LDST((void *) BIOSDATAPAGE);
+            LDST((state_t *) BIOSDATAPAGE);
         }
     }
 }

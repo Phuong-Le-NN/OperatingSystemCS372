@@ -7,6 +7,8 @@
 #ifndef INTERRUPTS_H
 #define INTERRUPTS_H
 
+#include "../h/pcb.h"
+
 extern int         process_count;           /* Number of started processes */
 extern int         softBlock_count;         /* Number of started that are in blocked */
 extern pcb_PTR     readyQ;                  /* Tail ptr to a queue of pcbs that are ready */
