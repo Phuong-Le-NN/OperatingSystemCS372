@@ -57,7 +57,7 @@ void blocking_syscall_handler (){
     /*
     This function handle the steps after a blocking handler including:
     */
-    currentP->p_s.s_pc += 0x4;
+    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
     /*already copied the saved processor state into the current process pcb at the beginning of SYSCALL_handler as that what we have been using*/
     /*update the cpu time for the current process*/
     currentP->p_time += (5000 - getTIMER());
@@ -67,12 +67,11 @@ void blocking_syscall_handler (){
 
 void non_blocking_syscall_handler (){
     /*increment PC by 4*/
-    currentP->p_s.s_pc += 0x4;
+    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
     /* update the cpu_time*/
     currentP->p_time += (5000 - getTIMER());
     /*save processor state into the "well known" location for return*/
-    deep_copy_state_t(BIOSDATAPAGE, &currentP->p_s);
-    LDST(&(currentP->p_s));
+    LDST((state_PTR) BIOSDATAPAGE);
 }
 
 
@@ -80,7 +79,7 @@ int check_KU_mode_bit() {
     /*
     Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
     */
-    int KUp = currentP->p_s.s_status & 0x00000008;
+    int KUp = ((state_PTR) BIOSDATAPAGE)->s_status & 0x00000008;
     return 0;
 }
 
@@ -136,16 +135,16 @@ void CREATEPROCESS(){
     /* If no more free pcb’s, then ... */
     if (newProcess == NULL) {
         /* return an error code of -1 is placed/returned in the caller’s v0 */
-        currentP->p_s.s_v0 = -1;
+        ((state_PTR) BIOSDATAPAGE)->s_v0 = -1;
     }
 
     /* deep copy the process state where a1 contain a pointer to a processor state (state t) */
-    deep_copy_state_t(&newProcess->p_s, currentP->p_s.s_a1);    
+    deep_copy_state_t(&newProcess->p_s, ((state_PTR) BIOSDATAPAGE)->s_a1);    
 
     /* deep copy the support struct */
     /* If no parameter is provided, this field is set to NULL. */
-    if (currentP->p_s.s_a2 != NULL | currentP->p_s.s_a2 == 0){
-        newProcess->p_supportStruct = currentP->p_s.s_a2;
+    if (((state_PTR) BIOSDATAPAGE)->s_a2 != NULL | ((state_PTR) BIOSDATAPAGE)->s_a2 == 0){
+        newProcess->p_supportStruct = ((state_PTR) BIOSDATAPAGE)->s_a2;
     }else{
         newProcess->p_supportStruct = NULL;
     }
@@ -158,7 +157,7 @@ void CREATEPROCESS(){
     insertChild(currentP, newProcess);
 
     /* return the value 0 in the caller’s v0 */
-    currentP->p_s.s_v0 = 0;
+    ((state_PTR) BIOSDATAPAGE)->s_v0 = 0;
     process_count++;
 }
 
@@ -175,7 +174,7 @@ void PASSEREN(){
     */
 
     /* getting the sema4 address from register a1 */
-    semd_t *sema4 = currentP->p_s.s_a1;
+    semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
     *(sema4->s_semAdd) = *(sema4->s_semAdd) --;
     if (*(sema4->s_semAdd) < 0){
@@ -190,7 +189,7 @@ void PASSEREN(){
 
 pcb_PTR VERHOGEN(){
     /*getting the sema4 address from register a1*/
-    semd_t *sema4 = currentP->p_s.s_a1;
+    semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
     pcb_PTR temp;
     *(sema4->s_semAdd) = *(sema4->s_semAdd) ++;
     if (*(sema4->s_semAdd) <= 0){
@@ -216,21 +215,20 @@ void WAITIO(){
    
     /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this*/
 
-    /*terminal transmission higher priority than terminal receipt*/
-    int device_idx = devSemIdx(currentP->p_s.s_a1, currentP->p_s.s_a2,  currentP->p_s.s_a2); /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
+    int device_idx = devSemIdx(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2,  ((state_PTR) BIOSDATAPAGE)->s_a2); /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
     
     /*is it correct to put the address of sema4 into a1 like this?*/
     helper_block_currentP(&(device_sem[device_idx]));
     
     /*put the device sema4 address into register a1 to call P*/
-    currentP->p_s.s_a1 = &(device_sem[device_idx]);
+    ((state_PTR) BIOSDATAPAGE)->s_a1 = &(device_sem[device_idx]);
 
     PASSEREN();
 
     
     
     /*returning the device status word*/
-    currentP->p_s.s_v0 = devAddrBase(currentP->p_s.s_a1, currentP->p_s.s_a2);
+    ((state_PTR) BIOSDATAPAGE)->s_v0 = devAddrBase(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2);
     /* 
     blocking_syscall_handler();
     */
@@ -241,7 +239,7 @@ void GETCPUTIME(){
     /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
     int interval_current;
     STCK(interval_current);
-    currentP->p_s.s_v0 = currentP->p_time + 5000 - getTIMER();
+    ((state_PTR) BIOSDATAPAGE)->s_v0 = currentP->p_time + 5000 - getTIMER();
     return;
 }
 
@@ -254,7 +252,7 @@ void WAITCLOCK(){
     helper_block_currentP(device_sem[pseudo_clock_idx]);
 
     /*put the pseudoclock sema4 into the register a1 to do P operation*/
-    currentP->p_s.s_a1 = device_sem[pseudo_clock_idx];
+    ((state_PTR) BIOSDATAPAGE)->s_a1 = device_sem[pseudo_clock_idx];
     
     PASSEREN();
 
@@ -267,7 +265,7 @@ void GETSUPPORTPTR(){
     /*
     returns the value of p supportStruct from the Current Process’s pcb
     */
-    currentP->p_s.s_v0 = currentP->p_supportStruct;
+    ((state_PTR) BIOSDATAPAGE)->s_v0 = currentP->p_supportStruct;
 }
 
 /* The Nucleus Program Trap exception handler performs a standard Pass Up or Die operation 
@@ -289,8 +287,8 @@ void pass_up_or_die(int exception_constant) {
         LDCXT(currentP -> p_supportStruct -> sup_exceptContext->c_stackPtr,
             currentP -> p_supportStruct -> sup_exceptContext->c_status, 
             currentP -> p_supportStruct -> sup_exceptContext->c_pc);
+        /* NOTE: How did we have the context in the sup_exceptContext in the supportStruct of the current process? */
     }
-    /* NOTE: How did we have the context in the sup_exceptContext in the supportStruct of the current process? */
 }
 
 
@@ -299,18 +297,18 @@ unsigned int SYSCALL_handler() {
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode_bit() != 0){
         /* clear out current exec code bit field in cause registers*/
-        currentP->p_s.s_cause = currentP->p_s.s_cause & (~EXECCODEBITS);
+        ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause & (~EXECCODEBITS);
         /* put RI value into the exec code bit field which is from 2 to 6 so we shift RI by 2 and do OR operation*/
-        currentP->p_s.s_cause = currentP->p_s.s_cause | (RI << 2);
+        ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause | (RI << 2);
         /* save the new cause register*/
-        ((state_t *) BIOSDATAPAGE)->s_cause = currentP->p_s.s_cause;
+        ((state_t *) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause;
 
         /* Program Traps */
         pass_up_or_die(GENERALEXCEPT);
         return 1;
     }
 
-   switch (currentP->p_s.s_a0) {
+   switch (((state_PTR) BIOSDATAPAGE)->s_a0) {
     case 1:
         CREATEPROCESS();
         break;
@@ -336,34 +334,31 @@ unsigned int SYSCALL_handler() {
         GETSUPPORTPTR();
         break;
     default:
-        /* Syscall Exception Error ? Program trap handler?*/
+        /* Syscall Exception Error - Program trap handler */
         pass_up_or_die(GENERALEXCEPT);
     }
 
     /*increment PC by 4*/
-    currentP->p_s.s_pc += 0x4;
+    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
     /* update the cpu_time*/
     currentP->p_time += (5000 - getTIMER());
     
     /*if the syscall was blocking*/
-    if (currentP->p_s.s_a0 == 3 | currentP->p_s.s_a0 == 5 | currentP->p_s.s_a0 == 7){
+    if (((state_PTR) BIOSDATAPAGE)->s_a0 == 3 | ((state_PTR) BIOSDATAPAGE)->s_a0 == 5 | ((state_PTR) BIOSDATAPAGE)->s_a0 == 7){
         /*process was already added to ASL in the syscall =>already blocked*/
         scheduler();
     }
     
     /*save processor state into the "well known" location for nonblocking syscall*/
-    deep_copy_state_t(BIOSDATAPAGE, &currentP->p_s);
-    LDST(&(currentP->p_s));
+    LDST((state_PTR) BIOSDATAPAGE);
 
 }
 
 void exception_handler(){
-    /*load the saved state into the current Process*/
-    deep_copy_state_t(&currentP->p_s, BIOSDATAPAGE);
 
     /* Get the Cause registers from the saved exception state and 
     use AND bitwise operation to get the .ExcCode field */
-    int ExcCode = CauseExcCode(currentP->p_s.s_cause);
+    int ExcCode = CauseExcCode(((state_PTR) BIOSDATAPAGE)->s_cause);
 
     switch (ExcCode)
     {

@@ -86,6 +86,89 @@ pcb_PTR helper_unblock_process(int *semdAdd){
     return unblocked_pcb;
 }
 
+void helper_terminal_read(int intLineNo, int devNo){
+    /*
+    Helper function to acknowledge interrupts from terminal read sub-device
+    for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status
+    */
+
+    /* Calculate the address for this device’s device register */
+    device_t *intDevRegAdd = (device_t*) devAddrBase(intLineNo, devNo);
+
+    /* Save off the status code from the device’s device register*/
+    int savedDevRegStatus = intDevRegAdd->d_data0;
+        
+    /* Acknowledge the outstanding interrupt */
+    intDevRegAdd->d_data1 = ACK;
+
+    /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
+    int devIdx = devSemIdx(intLineNo, devNo, 1);
+    /* put semdAdd into currentP state register a1 to call VERHOGEN -- VERHOGEN use the state in currentP*/
+    ((state_PTR) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
+    VERHOGEN();
+    /* putting the process returned by V operation to unblocked_pcb */
+    pcb_PTR unblocked_pcb = (pcb_PTR) ((state_PTR) BIOSDATAPAGE)->s_v0;
+
+    /* if V operation failed to remove a pcb then return control to the current process*/
+    if (unblocked_pcb == NULL){
+        /* if there is no current process to return to either, call scheduler*/
+        if (currentP == NULL){
+            scheduler();
+        }
+        LDST((void *) BIOSDATAPAGE);
+    }
+
+    /* Place the stored off status code in the newly unblocked pcb’s v0 register.*/
+    unblocked_pcb->p_s.s_v0 = savedDevRegStatus;
+
+    /* Insert the newly unblocked pcb on the Ready Queue*/
+    /* Done in VERHOGEN()*/
+
+    /* Perform a LDST on the saved exception state*/
+    LDST((void *) BIOSDATAPAGE);
+}
+
+void helper_terminal_write_other_device(int intLineNo, int devNo){
+    /*
+    Helper function to acknowledge interrupts from terminal write sub-device and other devices
+    */
+
+    /* Calculate the address for this device’s device register */
+    device_t *intDevRegAdd = (device_t*) devAddrBase(intLineNo, devNo);
+
+    /* Save off the status code from the device’s device register*/
+    int savedDevRegStatus = intDevRegAdd->d_status;
+        
+    /* Acknowledge the outstanding interrupt */
+    intDevRegAdd->d_command = ACK;
+
+    /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
+    int devIdx = devSemIdx(intLineNo, devNo, 0);
+    /* put semdAdd into currentP state register a1 to call VERHOGEN -- VERHOGEN use the semdAdd in reg a1 of the state saved*/
+    ((state_PTR) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
+    VERHOGEN();
+    /* putting the process returned by V operation to unblocked_pcb */
+    pcb_PTR unblocked_pcb = (pcb_PTR) ((state_PTR) BIOSDATAPAGE)->s_v0;
+
+    /* if V operation failed to remove a pcb then return control to the current process*/
+    if (unblocked_pcb == NULL){
+        /* if there is no current process to return to either, call scheduler*/
+        if (currentP == NULL){
+            scheduler();
+        }
+        LDST((void *) BIOSDATAPAGE);
+    }
+
+    /* Place the stored off status code in the newly unblocked pcb’s v0 register.*/
+    unblocked_pcb->p_s.s_v0 = savedDevRegStatus;
+
+    /* Insert the newly unblocked pcb on the Ready Queue*/
+    /* Done in VERHOGEN()*/
+
+    /* Perform a LDST on the saved exception state*/
+    LDST((void *) BIOSDATAPAGE);  
+}
+
 /*Process Local Timer (PLT) Interrupt*/
 void process_local_timer_interrupts(){
     /* load new time into timer for PLT*/
@@ -113,7 +196,7 @@ void pseudo_clock_interrupts(){
     }
     /* reset pseudo-clock semaphore to 0*/
     *(pseudo_clock_sem) = 0;
-    state_PTR caller_process_state = (state_t*) BIOSDATAPAGE;
+    state_PTR caller_process_state = (state_PTR) BIOSDATAPAGE;
     if (currentP == NULL){
         scheduler();
     }
@@ -124,57 +207,31 @@ void pseudo_clock_interrupts(){
 /* Non-Timer Interrupts */
 void non_timer_interrupts(int intLineNo){
 
-    /* Calculate the address for this device’s device register. */
-    /* after knowing which line specifically, this is how get the devices that have pending interrupt on that line*/
-    int *devRegAdd = (int*) intDevBitMap(intLineNo);
+    /*  Calculate the address for Interrupting Devices Bit Map of that Line. */
+    /*  After knowing which line specifically, this is how get the devices that have pending interrupt on that line
+        Value at intLineDevBitMap as a hex has a bit as 1 if that device has interrupt pending */
+    int *intLineDevBitMap = (int*) intDevBitMap(intLineNo);
     
-    /* devRegAdd is address to the Interrupt Device Bit Map, value at that address as a hex has a bit as 1 if that device has interrupt pending*/
-    int devNo;
+    /* Boolean to later store whether the device has interrupt*/
     int devIntBool;
    
     /* address of register of device with interrupt pending*/
     device_t *intDevRegAdd;
 
-    /* a variable to deep copy the device register to*/
-    device_t *savedDevRegAdd;
-    int devIdx;
-    pcb_PTR unblocked_pcb;
-
+    /* looping through every bit to see if the device has interrupt*/
+    int devNo;
     for (devNo = 0; devNo < DEVPERINT; devNo ++){
-        devIntBool = check_interrupt_device(devNo, devRegAdd);
+        /* check in Interrupting Devices Bit Map to see if the device has interrupt */
+        devIntBool = check_interrupt_device(devNo, intLineDevBitMap);
+
         if (devIntBool == TRUE){
-            /* calculate the address of the device register*/
+            /* calculate address of register of device with interrupt pending to look into device status to check if read or write terminal*/
             intDevRegAdd = (device_t*) devAddrBase(intLineNo, devNo);
-            /* save the register device */
-            deep_copy_device_t(savedDevRegAdd, intDevRegAdd);
-            /* putting the ACK into the device register?*/
-            intDevRegAdd->d_command = ACK;
-            if (intLineNo == 7){ /* if device interupt is transmitted*/
-                /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status*/
-                if (savedDevRegAdd->d_data0 == 5){
-                    intDevRegAdd->d_data1 = ACK;
-                    devIdx = devSemIdx(intLineNo, devNo, 1);
-                    unblocked_pcb = removeBlocked(&(device_sem[devIdx]));
-                    insertProcQ(&readyQ, unblocked_pcb);
-                    LDST((void *) BIOSDATAPAGE);
-                }
-                /* for terminal reciever sub device, handling like other device?*/
+
+            if (intLineNo != 7 | ((intLineNo == 7)&(intDevRegAdd->d_status == 5))){ /* if it is not terminal device or is terminal and needing to write to terminal*/ /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status */
+                helper_terminal_write_other_device(intLineNo, devNo);
             }
-            intDevRegAdd->d_command = ACK;
-            devIdx = devSemIdx(intLineNo, devNo, 0);
-            ((state_t*) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
-            VERHOGEN();
-            /* putting the process returned by V operation to unblocked_pcb */
-            unblocked_pcb = (pcb_PTR) ((state_t*) BIOSDATAPAGE)->s_v0;
-            /* if V operation failed to remove a pcb then return control to the current process*/
-            if (unblocked_pcb == NULL){
-                /* if there is no current process to return to either, call scheduler*/
-                if (currentP == NULL){
-                    scheduler();
-                }
-                LDST(currentP);
-            }
-            LDST((void *) BIOSDATAPAGE);
+            helper_terminal_read(intLineNo, devNo);
         }
     }
 }
