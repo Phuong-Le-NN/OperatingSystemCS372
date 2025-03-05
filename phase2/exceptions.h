@@ -23,7 +23,7 @@ void WAITIO();
 void GETCPUTIME();
 void WAITCLOCK();
 void GETSUPPORTPTR();
-unsigned int SYSCALL_handler();
+void SYSCALL_handler();
 
 void pass_up_or_die(int exception_constant);
 void exception_handler();
