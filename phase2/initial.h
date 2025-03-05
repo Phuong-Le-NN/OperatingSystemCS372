@@ -7,6 +7,8 @@
 #ifndef INITIAL_H
 #define INITIAL_H
 
+#include "../h/pcb.h"
+
 extern void test();
 
 /* Global Variables*/
