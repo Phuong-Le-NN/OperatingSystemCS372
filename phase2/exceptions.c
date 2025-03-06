@@ -18,6 +18,21 @@
 
 #define pseudo_clock_idx    48
 
+void helper_PASSEREN(){
+    /*  
+         
+    */
+
+    /* getting the sema4 address from register a1 */
+    semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
+
+    *(sema4->s_semAdd) = *(sema4->s_semAdd) --;
+    if (*(sema4->s_semAdd) < 0){
+        insertBlocked(sema4->s_semAdd, currentP);
+    }
+    return;
+}
+
 HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
     /*
     the function that takes in pointer to 2 state_t and deep copy the value src to dest
@@ -181,10 +196,11 @@ void PASSEREN(){
     if (*(sema4->s_semAdd) < 0){
         insertBlocked(sema4->s_semAdd, currentP);
         /*should or should not call scheudler here? if call scheduler here, also need to increament pc here?-- decided to do it in syscall hander at the end may change later by uncomment calling blocking_syscall_handler right below and comment and comment things at in syscall handler way below*/
-        /*
+        
         blocking_syscall_handler();
-        */
+
     }
+    non_blocking_syscall_handler();
     return;
 }
 
@@ -224,7 +240,7 @@ void WAITIO(){
     /*put the device sema4 address into register a1 to call P*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = &(device_sem[device_idx]);
 
-    PASSEREN();
+    helper_PASSEREN();
 
     
     
@@ -253,7 +269,7 @@ void WAITCLOCK(){
     /*put the pseudoclock sema4 into the register a1 to do P operation*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = device_sem[pseudo_clock_idx];
     
-    PASSEREN();
+    helper_PASSEREN();
 
     /*scheuler is called in SYSCALL handler*/
     /* 
