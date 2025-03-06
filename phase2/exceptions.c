@@ -26,8 +26,8 @@ void helper_PASSEREN(){
     /* getting the sema4 address from register a1 */
     semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
-    *(sema4->s_semAdd) = *(sema4->s_semAdd) --;
-    if (*(sema4->s_semAdd) < 0){
+    (*sema4->s_semAdd) --;
+    if ((*sema4->s_semAdd) < 0){
         insertBlocked(sema4->s_semAdd, currentP);
     }
     return;
@@ -192,9 +192,9 @@ void PASSEREN(){
     /* getting the sema4 address from register a1 */
     semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
-    *(sema4->s_semAdd)--;
+    (*sema4->s_semAdd)--;
 
-    if (*(sema4->s_semAdd) < 0){
+    if ((*sema4->s_semAdd) < 0){
         insertBlocked(sema4->s_semAdd, currentP);
         /* executing process is blocked on the ASL and Scheduler is called*/
         blocking_syscall_handler();
