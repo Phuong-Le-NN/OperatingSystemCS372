@@ -176,8 +176,6 @@ void process_local_timer_interrupts(){
     /* copy the processor state at the time of the exception into current process*/
     deep_copy_state_t(&(currentP->p_s), (state_PTR) BIOSDATAPAGE);
     /* update accumulated CPU time for the current process*/
-    int interval_current;
-    STCK(interval_current);
     currentP->p_time += 5000 - getTIMER();
     /* place current process on ready queue*/
     insertProcQ(&readyQ, currentP);
