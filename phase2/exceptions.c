@@ -32,6 +32,15 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
     dest->s_status = src->s_status;
 }
 
+void deep_copy_context_t(context_t *dest,context_t *src) {
+    /*
+    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
+    */
+    dest->c_pc = src->c_pc;
+    dest->c_stackPtr = src->c_stackPtr;
+    dest->c_status = src->c_status;
+}
+
 void deep_copy_support_t(support_t *dest,support_t *src) {
     /*
     the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
@@ -42,15 +51,6 @@ void deep_copy_support_t(support_t *dest,support_t *src) {
     for (i = 0; i < STATEREGNUM; i ++){
         deep_copy_state_t(&dest->sup_exceptState[i], &src->sup_exceptState[i]);
     }
-}
-
-void deep_copy_context_t(context_t *dest,context_t *src) {
-    /*
-    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
-    */
-    dest->c_pc = src->c_pc;
-    dest->c_stackPtr = src->c_stackPtr;
-    dest->c_status = src->c_status;
 }
 
 void blocking_syscall_handler (){
@@ -80,6 +80,9 @@ int check_KU_mode_bit() {
     Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
     */
     int KUp = ((state_PTR) BIOSDATAPAGE)->s_status & 0x00000008;
+    if (KUp == 0){
+        return 1;
+    }
     return 0;
 }
 
@@ -237,8 +240,6 @@ void WAITIO(){
 
 void GETCPUTIME(){
     /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
-    int interval_current;
-    STCK(interval_current);
     ((state_PTR) BIOSDATAPAGE)->s_v0 = currentP->p_time + 5000 - getTIMER();
     return;
 }
@@ -249,7 +250,7 @@ void WAITCLOCK(){
     This semaphore is V’ed every 100 milliseconds by the Nucleus.
     block the Current Process on the ASL then Scheduler is called.*/
 
-    helper_block_currentP(device_sem[pseudo_clock_idx]);
+    helper_block_currentP(&(device_sem[pseudo_clock_idx]));
 
     /*put the pseudoclock sema4 into the register a1 to do P operation*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = device_sem[pseudo_clock_idx];
@@ -292,7 +293,7 @@ void pass_up_or_die(int exception_constant) {
 }
 
 
-unsigned int SYSCALL_handler() {
+void SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode_bit() != 0){
@@ -305,7 +306,7 @@ unsigned int SYSCALL_handler() {
 
         /* Program Traps */
         pass_up_or_die(GENERALEXCEPT);
-        return 1;
+        return;
     }
 
    switch (((state_PTR) BIOSDATAPAGE)->s_a0) {
