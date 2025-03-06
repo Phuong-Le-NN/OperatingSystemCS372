@@ -134,9 +134,10 @@ void CREATEPROCESS(){
 
     /* deep copy the support struct */
     /* If no parameter is provided, this field is set to NULL. */
-    if (((state_PTR) BIOSDATAPAGE)->s_a2 != NULL | ((state_PTR) BIOSDATAPAGE)->s_a2 == 0){
+    if (((state_PTR) BIOSDATAPAGE)->s_a2 != NULL & ((state_PTR) BIOSDATAPAGE)->s_a2 != 0){
         newProcess->p_supportStruct = ((state_PTR) BIOSDATAPAGE)->s_a2;
-    }else{
+    }
+    else{
         newProcess->p_supportStruct = NULL;
     }
 
@@ -149,7 +150,11 @@ void CREATEPROCESS(){
 
     /* return the value 0 in the caller’s v0 */
     ((state_PTR) BIOSDATAPAGE)->s_v0 = 0;
+
+    /* increase process count*/
     process_count++;
+
+    /* p_time is set to 0 and p_semAdd is set to NULL in allocPcb() */
 }
 
 void TERMINATEPROCESS(){
