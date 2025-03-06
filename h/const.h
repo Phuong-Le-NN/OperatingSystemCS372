@@ -26,7 +26,7 @@
 #define HIDDEN			  static
 #define EOS				    '\0'
 
-#define NULL 			    ((void *)0xFFFFFFFF)
+#define NULL 			    ((state_t *)0xFFFFFFFF)
 
 /* high precedence interrupts */
 #define INTERPROCESSORINT       0
@@ -122,11 +122,11 @@
 /* Macro to enable PLT bit*/
 #define enable_TE(current_status) (current_status | 0x08000000)
 
-/* Macro to enable previous setting of the status.IEc bit which is status.IEp*/
+/* Macro to enable previous setting of the status.IEc bit*/
 #define enable_IEp(current_status) (current_status | 0x00000004)
 
-/* Macro to enable previous setting of the status.KUc bit which is status.KUp*/
-#define kernel(current_status) (current_status | 0x00000008)
+/* Macro to enable previous setting of the status.KUc bit*/
+#define kernel(current_status) (current_status & 0xfffffff7)
 
 /* Macro to calculate starting address of the device’s device register*/
 #define devAddrBase(intLineNo, devNo) 0x10000054 + ((intLineNo - 3) * 0x80) + (devNo * 0x10);
@@ -134,12 +134,14 @@
 /* Macro to get the ExcCode given the Code register*/
 #define CauseExcCode(Cause) EXECCODEBITS & Cause;
 
-/* Macro to calculate address of Interrupt Device Bit Map of Interrupt line*/
-#define intDevBitMap(intLine) INT_DEV_REG + (0x04*(intLine - 3));
+/* Macro to calculate address of Interrupt Device Bit Map of Interrupt line */
+#define intDevBitMap(intLine) INT_DEV_REG + (0x04*intLine); /* wrong calculation off set by 3*/
 
-/* Macro to calculate the device sema4 idx in the device sema4 array
-terminal write higher priority than terminal read */
-#define devSemIdx(intLineNo, devNo, termRead) (intLineNo - 3) * 8 + termRead * 8 + devNo;
+/* Macro to calculate address of Installed Device Bit Map of Interrupt line */
+#define installedDevBitMap(intLine) INSTALLED_DEV_REG + (0x04*intLine); /* delete not needed*/
+
+/* Macro to calculate the device sema4 idx in the device sema4 array*/
+#define devSemIdx(intLineNo, devNo, temRead) (intLineNo - 3) * 8 + temRead* 8 + devNo;
 
 /* Maximum number of semaphore and pcb that can be allocated*/
 #define MAXPROC	20
