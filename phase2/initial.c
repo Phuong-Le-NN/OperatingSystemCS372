@@ -90,8 +90,6 @@ void main() {
     first_pro->p_s.s_t9 = (memaddr) test;
     first_pro->p_s.s_sp = (memaddr) (RAMSTART + PAGESIZE);
 
-    debug(test, 1,1,1);
-
     /* Set all the Process Tree fields to NULL.
     Set the accumulated time field (p time) to zero.
     Set the blocking semaphore address (p semAdd) to NULL.

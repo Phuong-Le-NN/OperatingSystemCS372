@@ -220,7 +220,6 @@ pcb_PTR VERHOGEN(){
         insertProcQ(&readyQ, process_unblocked);
         return process_unblocked;
     }
-    debug (1, process_count, 8, 9);
     return NULL;
 }
 
