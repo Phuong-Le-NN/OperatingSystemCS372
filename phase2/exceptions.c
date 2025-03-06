@@ -20,7 +20,7 @@
 
 HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
     /*
-    the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
+    the function that takes in pointer to 2 state_t and deep copy the value src to dest
     */
     dest->s_cause = src->s_cause;
     dest->s_entryHI = src->s_entryHI;
@@ -39,18 +39,6 @@ void deep_copy_context_t(context_t *dest,context_t *src) {
     dest->c_pc = src->c_pc;
     dest->c_stackPtr = src->c_stackPtr;
     dest->c_status = src->c_status;
-}
-
-void deep_copy_support_t(support_t *dest,support_t *src) {
-    /*
-    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
-    */
-    dest->sup_asid = src->sup_asid;
-    deep_copy_context_t(dest->sup_exceptContext, &src->sup_exceptContext);
-    int i;
-    for (i = 0; i < STATEREGNUM; i ++){
-        deep_copy_state_t(&dest->sup_exceptState[i], &src->sup_exceptState[i]);
-    }
 }
 
 void blocking_syscall_handler (){
@@ -81,9 +69,9 @@ int check_KU_mode_bit() {
     */
     int KUp = ((state_PTR) BIOSDATAPAGE)->s_status & 0x00000008;
     if (KUp == 0){
-        return 1;
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 
@@ -258,7 +246,9 @@ void WAITCLOCK(){
     PASSEREN();
 
     /*scheuler is called in SYSCALL handler*/
+    /* 
     blocking_syscall_handler();
+    */
     return;
 }
 
@@ -297,12 +287,8 @@ void SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode_bit() != 0){
-        /* clear out current exec code bit field in cause registers*/
-        ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause & (~EXECCODEBITS);
-        /* put RI value into the exec code bit field which is from 2 to 6 so we shift RI by 2 and do OR operation*/
-        ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause | (RI << 2);
-        /* save the new cause register*/
-        ((state_t *) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause;
+        ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause | 0x00000028;
+        ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause & 0xFFFFFFEB;
 
         /* Program Traps */
         pass_up_or_die(GENERALEXCEPT);
@@ -346,7 +332,9 @@ void SYSCALL_handler() {
     
     /*if the syscall was blocking*/
     if (((state_PTR) BIOSDATAPAGE)->s_a0 == 3 | ((state_PTR) BIOSDATAPAGE)->s_a0 == 5 | ((state_PTR) BIOSDATAPAGE)->s_a0 == 7){
-        /*process was already added to ASL in the syscall =>already blocked*/
+        /* save processor state copy into current process pcb*/
+        deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
+        /*process was already added to ASL in the syscall => already blocked*/
         scheduler();
     }
     
