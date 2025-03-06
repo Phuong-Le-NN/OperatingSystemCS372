@@ -88,14 +88,17 @@ void helper_block_currentP(int *semdAdd){
 }
 
 void helper_terminate_process(pcb_PTR toBeTerminate){
-    /*are we terminating the current process, then where are we supposed to put the return value in - a2 of currentP ???*/
     pcb_PTR childToBeTerminate;
     /* recursively, all progeny of this process are terminated as well. */
     while (!emptyChild(toBeTerminate)) {
         childToBeTerminate = removeChild(currentP);
-        TERMINATEPROCESS(childToBeTerminate);
+        helper_terminate_process(childToBeTerminate);
     }
+    /* make the child no longer child of its parent*/
     outChild(toBeTerminate);
+    /* if this pcb is in readyQ, take it out*/
+    outProcQ(&readyQ, toBeTerminate);
+    /* free the pcb and decrease process count*/
     freePcb(toBeTerminate);
     process_count--;
     return;
@@ -160,6 +163,8 @@ void CREATEPROCESS(){
 void TERMINATEPROCESS(){
     /* recursively terminate child and free pcb */
     helper_terminate_process(currentP);
+    /* call scheduler */
+    scheduler();
 }
 
 void PASSEREN(){
