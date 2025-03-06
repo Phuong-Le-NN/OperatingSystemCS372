@@ -29,12 +29,7 @@ In scheduler:
         of the Current Process (p_s).
 */
 
-void debug(int a0, int a1, int a2, int a3){
-}
-
 void scheduler (){
-
-    debug(2,2,3,4);
 
     /* if the ready Q is empty */
     if (emptyProcQ(readyQ)){ 

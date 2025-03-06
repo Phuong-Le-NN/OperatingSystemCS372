@@ -31,17 +31,20 @@ pcb_PTR     readyQ;                  /* Tail ptr to a queue of pcbs that are rea
 pcb_PTR     currentP;                /* Current Process */
 int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphores 49 semaphores in an array */
 
+extern debug (pcb_PTR a0, int a1, int a2, int a3){
+
+}
 
 void main() {
 
     /* Nucleus TLB-Refill event Handler */
     /* Populate the pass up vector */
-    passupvector_t *passup_pro0 = (memaddr) PASSUPVECTOR;
+    passupvector_t *passup_pro0 = (passupvector_t *) PASSUPVECTOR;
     passup_pro0->tlb_refll_handler = (memaddr) uTLB_RefillHandler;  /* uTLB RefillHandler replaced later */
     /* Set the Stack Pointer for the Nucleus TLB-Refill event handler to the top of the Nucleus stack page */
     passup_pro0->tlb_refll_stackPtr = (memaddr) (RAMSTART + PAGESIZE);
     /* exception_handler is the exception handler function */
-    passup_pro0->exception_handler = (memaddr)exception_handler;
+    passup_pro0->exception_handler = (memaddr) exception_handler;
     /* Stack pointer for the Nucleus exception handler to the top of the Nucleus stack page: 0x2000.1000. */
     passup_pro0->exception_stackPtr = (memaddr) (RAMSTART + PAGESIZE);
     
@@ -86,6 +89,8 @@ void main() {
     /*technical reasons, assign same value to both PC and general purpose register t9*/
     first_pro->p_s.s_t9 = (memaddr) test;
     first_pro->p_s.s_sp = (memaddr) (RAMSTART + PAGESIZE);
+
+    debug(test, 1,1,1);
 
     /* Set all the Process Tree fields to NULL.
     Set the accumulated time field (p time) to zero.

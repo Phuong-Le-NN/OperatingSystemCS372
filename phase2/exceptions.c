@@ -192,28 +192,36 @@ void PASSEREN(){
     /* getting the sema4 address from register a1 */
     semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
-    *(sema4->s_semAdd) = *(sema4->s_semAdd) --;
+    *(sema4->s_semAdd)--;
+
     if (*(sema4->s_semAdd) < 0){
         insertBlocked(sema4->s_semAdd, currentP);
-        /*should or should not call scheudler here? if call scheduler here, also need to increament pc here?-- decided to do it in syscall hander at the end may change later by uncomment calling blocking_syscall_handler right below and comment and comment things at in syscall handler way below*/
-        
+        /* executing process is blocked on the ASL and Scheduler is called*/
         blocking_syscall_handler();
-
     }
+    /* control is returned to the Current Process */
     non_blocking_syscall_handler();
     return;
 }
 
 pcb_PTR VERHOGEN(){
+    /* FIXXXXXX CALLING process_unblocked*/
     /*getting the sema4 address from register a1*/
-    semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
-    pcb_PTR temp;
-    *(sema4->s_semAdd) = *(sema4->s_semAdd) ++;
-    if (*(sema4->s_semAdd) <= 0){
-        temp = removeBlocked(sema4->s_semAdd);
-        insertProcQ(&readyQ, temp);
+    int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
+
+    pcb_PTR process_unblocked;
+    (*sema4) ++;
+
+    if ((*sema4) <= 0){
+        process_unblocked = removeBlocked(sema4);
+        if (process_unblocked == NULL){
+            return NULL;
+        }
+        insertProcQ(&readyQ, process_unblocked);
+        return process_unblocked;
     }
-    return temp;
+    debug (1, process_count, 8, 9);
+    return NULL;
 }
 
 void WAITIO(){
@@ -296,7 +304,7 @@ void pass_up_or_die(int exception_constant) {
    /* If the Current Process’s p supportStruct is NULL, 
     then the exception should be handled as a SYS2: the Current Process and all its progeny are terminated. */
     if (currentP -> p_supportStruct == NULL){
-        TERMINATEPROCESS();
+        helper_terminate_process(currentP);
     }else{
         /* Copy the saved exception state from the BIOS Data Page to the correct sup exceptState field of the Current Process. 
         Perform a LDCXT using the fields from the correct sup exceptContextfield of the Current Process. */
@@ -320,8 +328,7 @@ void SYSCALL_handler() {
         pass_up_or_die(GENERALEXCEPT);
         return;
     }
-
-   switch (((state_PTR) BIOSDATAPAGE)->s_a0) {
+    switch (((state_PTR) BIOSDATAPAGE)->s_a0) {
     case 1:
         CREATEPROCESS();
         break;
@@ -355,7 +362,6 @@ void SYSCALL_handler() {
     ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
     /* update the cpu_time*/
     currentP->p_time += (5000 - getTIMER());
-    
     /*if the syscall was blocking*/
     if (((state_PTR) BIOSDATAPAGE)->s_a0 == 3 | ((state_PTR) BIOSDATAPAGE)->s_a0 == 5 | ((state_PTR) BIOSDATAPAGE)->s_a0 == 7){
         /* save processor state copy into current process pcb*/
@@ -363,14 +369,12 @@ void SYSCALL_handler() {
         /*process was already added to ASL in the syscall => already blocked*/
         scheduler();
     }
-    
     /*save processor state into the "well known" location for nonblocking syscall*/
     LDST((state_PTR) BIOSDATAPAGE);
 
 }
 
 void exception_handler(){
-
     /* Get the Cause registers from the saved exception state and 
     use AND bitwise operation to get the .ExcCode field */
     int ExcCode = CauseExcCode(((state_PTR) BIOSDATAPAGE)->s_cause);
