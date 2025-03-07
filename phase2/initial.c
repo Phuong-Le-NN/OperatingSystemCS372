@@ -88,7 +88,7 @@ void main() {
     first_pro->p_s.s_pc = (memaddr) test;
     /*technical reasons, assign same value to both PC and general purpose register t9*/
     first_pro->p_s.s_t9 = (memaddr) test;
-    first_pro->p_s.s_sp = (memaddr) (RAMBASESIZE + RAMBASEADDR);
+    first_pro->p_s.s_sp = (memaddr) (RAMSTART + *((int*) RAMBASESIZE));
 
     /* Set all the Process Tree fields to NULL.
     Set the accumulated time field (p time) to zero.
