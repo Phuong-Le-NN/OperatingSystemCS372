@@ -31,10 +31,6 @@ pcb_PTR     readyQ;                  /* Tail ptr to a queue of pcbs that are rea
 pcb_PTR     currentP;                /* Current Process */
 int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphores 49 semaphores in an array */
 
-extern void debug (pcb_PTR a0, int a1, int a2, int a3){
-
-}
-
 void main() {
 
     /* Nucleus TLB-Refill event Handler */
@@ -88,8 +84,7 @@ void main() {
     first_pro->p_s.s_pc = (memaddr) test;
     /*technical reasons, assign same value to both PC and general purpose register t9*/
     first_pro->p_s.s_t9 = (memaddr) test;
-    first_pro->p_s.s_sp = (memaddr) (RAMSTART + *((int*) RAMBASESIZE));
-
+    first_pro->p_s.s_sp = ((devregarea_t *) RAMBASEADDR)->rambase + ((devregarea_t *) RAMBASEADDR)->ramsize;
     /* Set all the Process Tree fields to NULL.
     Set the accumulated time field (p time) to zero.
     Set the blocking semaphore address (p semAdd) to NULL.

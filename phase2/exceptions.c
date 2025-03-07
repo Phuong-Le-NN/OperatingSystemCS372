@@ -369,7 +369,7 @@ void SYSCALL_handler() {
         scheduler();
     }
     /*save processor state into the "well known" location for nonblocking syscall*/
-    LDST((state_PTR) BIOSDATAPAGE);
+    LDST(((state_PTR) BIOSDATAPAGE));
 
 }
 
