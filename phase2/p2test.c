@@ -129,11 +129,12 @@ void print(char *msg) {
 	SYSCALL(PASSERN, (int)&term_mut, 0, 0);				/* P(term_mut) */
 	while (*s != EOS) {
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
-		status = SYSCALL(WAITIO, TERMINT, 0, 0);
 		debugTest(4,4,2,2);	
-		if ((status & TERMSTATMASK) != RECVD)
+		status = SYSCALL(WAITIO, TERMINT, 0, 0);
+		if ((status & TERMSTATMASK) != RECVD){
 			debugTest(2,2,2,2);
 			PANIC();
+		}
 		s++;	
 	}
 	SYSCALL(VERHOGEN, (int)&term_mut, 0, 0);				/* V(term_mut) */

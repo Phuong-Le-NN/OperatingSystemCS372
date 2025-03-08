@@ -24,11 +24,11 @@ void helper_PASSEREN(){
     */
 
     /* getting the sema4 address from register a1 */
-    semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
+    int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
-    (*sema4->s_semAdd) --;
-    if ((*sema4->s_semAdd) < 0){
-        insertBlocked(sema4->s_semAdd, currentP);
+    (*sema4) --;
+    if ((*sema4) < 0){
+        insertBlocked(sema4, currentP);
     }
     return;
 }
@@ -87,19 +87,6 @@ int check_KU_mode_bit() {
         return 0;
     }
     return 1;
-}
-
-
-
-void helper_block_currentP(int *semdAdd){
-    /* 
-    Helper function that block the current process and place on the ASL and increase softblock count
-    parameter: the (device) sema4
-    */
-    softBlock_count += 1;
-
-    /*insert the process into ASL*/
-    insertBlocked(semdAdd, currentP);
 }
 
 void helper_terminate_process(pcb_PTR toBeTerminate){
@@ -203,12 +190,12 @@ void PASSEREN(){
     */
 
     /* getting the sema4 address from register a1 */
-    semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
+    int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
-    (*sema4->s_semAdd)--;
+    (*sema4)--;
 
-    if ((*sema4->s_semAdd) < 0){
-        insertBlocked(sema4->s_semAdd, currentP);
+    if ((*sema4) < 0){
+        insertBlocked(sema4, currentP);
         /* executing process is blocked on the ASL and Scheduler is called*/
         blocking_syscall_handler();
     }
@@ -253,16 +240,13 @@ void WAITIO(){
     /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this*/
 
     int device_idx = devSemIdx(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2,  ((state_PTR) BIOSDATAPAGE)->s_a2); /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
-    
-    /*is it correct to put the address of sema4 into a1 like this?*/
-    helper_block_currentP(&(device_sem[device_idx]));
-    
+        
     /*put the device sema4 address into register a1 to call P*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = &(device_sem[device_idx]);
 
     helper_PASSEREN();
 
-    
+    softBlock_count ++;
     
     /*returning the device status word*/
     ((state_PTR) BIOSDATAPAGE)->s_v0 = devAddrBase(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2);
@@ -284,12 +268,12 @@ void WAITCLOCK(){
     This semaphore is V’ed every 100 milliseconds by the Nucleus.
     block the Current Process on the ASL then Scheduler is called.*/
 
-    helper_block_currentP(&(device_sem[pseudo_clock_idx]));
-
     /*put the pseudoclock sema4 into the register a1 to do P operation*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = device_sem[pseudo_clock_idx];
     
     helper_PASSEREN();
+
+    softBlock_count ++;
 
     /*scheuler is called in SYSCALL handler*/
     /* 
