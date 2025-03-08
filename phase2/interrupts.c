@@ -93,7 +93,7 @@ void helper_terminal_read(int intLineNo, int devNo){
     */
 
     /* Calculate the address for this device’s device register */
-    device_t *intDevRegAdd = (device_t*) devAddrBase(intLineNo, devNo);
+    device_t *intDevRegAdd = devAddrBase(intLineNo, devNo);
 
     /* Save off the status code from the device’s device register*/
     int savedDevRegStatus = intDevRegAdd->d_data0;
@@ -104,19 +104,18 @@ void helper_terminal_read(int intLineNo, int devNo){
     /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
     int devIdx = devSemIdx(intLineNo, devNo, 1);
     /* put semdAdd into currentP state register a1 to call VERHOGEN -- VERHOGEN use the state in currentP*/
-    ((state_PTR) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
-    VERHOGEN();
+    ((state_PTR) BIOSDATAPAGE)->s_a1 = &device_sem[devIdx];
     /* putting the process returned by V operation to unblocked_pcb */
-    pcb_PTR unblocked_pcb = (pcb_PTR) ((state_PTR) BIOSDATAPAGE)->s_v0;
-
+    pcb_PTR unblocked_pcb = VERHOGEN();
     /* if V operation failed to remove a pcb then return control to the current process*/
     if (unblocked_pcb == NULL){
         /* if there is no current process to return to either, call scheduler*/
         if (currentP == NULL){
             scheduler();
         }
-        LDST((void *) BIOSDATAPAGE);
+        LDST((state_PTR *) BIOSDATAPAGE);
     }
+    softBlock_count --;
 
     /* Place the stored off status code in the newly unblocked pcb’s v0 register.*/
     unblocked_pcb->p_s.s_v0 = savedDevRegStatus;
@@ -125,7 +124,7 @@ void helper_terminal_read(int intLineNo, int devNo){
     /* Done in VERHOGEN()*/
 
     /* Perform a LDST on the saved exception state*/
-    LDST((void *) BIOSDATAPAGE);
+    LDST((state_PTR *) BIOSDATAPAGE);
 }
 
 void helper_terminal_write_other_device(int intLineNo, int devNo){
@@ -194,7 +193,6 @@ void pseudo_clock_interrupts(){
     }
     /* reset pseudo-clock semaphore to 0*/
     *(pseudo_clock_sem) = 0;
-    state_PTR caller_process_state = (state_PTR) BIOSDATAPAGE;
     if (currentP == NULL){
         scheduler();
     }
@@ -208,8 +206,7 @@ void non_timer_interrupts(int intLineNo){
     /*  Calculate the address for Interrupting Devices Bit Map of that Line. */
     /*  After knowing which line specifically, this is how get the devices that have pending interrupt on that line
         Value at intLineDevBitMap as a hex has a bit as 1 if that device has interrupt pending */
-    int *intLineDevBitMap = (int*) intDevBitMap(intLineNo);
-    
+    int *intLineDevBitMap = intDevBitMap(intLineNo);
     /* Boolean to later store whether the device has interrupt*/
     int devIntBool;
    
@@ -224,8 +221,7 @@ void non_timer_interrupts(int intLineNo){
 
         if (devIntBool == TRUE){
             /* calculate address of register of device with interrupt pending to look into device status to check if read or write terminal*/
-            intDevRegAdd = (device_t*) devAddrBase(intLineNo, devNo);
-
+            intDevRegAdd = devAddrBase(intLineNo, devNo);
             if (intLineNo != 7 | ((intLineNo == 7)&(intDevRegAdd->d_status == 5))){ /* if it is not terminal device or is terminal and needing to write to terminal*/ /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status */
                 helper_terminal_write_other_device(intLineNo, devNo);
             }
