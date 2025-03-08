@@ -294,6 +294,7 @@ void pass_up_or_die(int exception_constant) {
     then the exception should be handled as a SYS2: the Current Process and all its progeny are terminated. */
     if (currentP -> p_supportStruct == NULL){
         helper_terminate_process(currentP);
+        scheduler();
     }else{
         /* Copy the saved exception state from the BIOS Data Page to the correct sup exceptState field of the Current Process. 
         Perform a LDCXT using the fields from the correct sup exceptContextfield of the Current Process. */
