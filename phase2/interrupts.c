@@ -42,9 +42,10 @@ int check_interrupt_line(int idx){
     The function that takes in a line number and check if there is interrupt pending on that line
     Return TRUE or FALSE
     */
-    /* get the IP bit from cause registers then shift right to get the interrupt line which*/
-    /* as a hex, on bits indicate line with interrupt pending -- this is Cause.IP*/
+    /* Get the IP bit from cause registers then shift right to get the interrupt line which*/
+    /* in binary, 1 bits indicate line with interrupt pending -- this is Cause.IP*/
     int IPLines = (((state_PTR) BIOSDATAPAGE)->s_cause & IPBITS) >> IPBITSPOS;
+
     /* 31 as the size of int is 32 bits (4 bytes)*/
     if ((IPLines << (31 - idx)) >> (31) == 0) {
         return FALSE;
@@ -103,17 +104,20 @@ void helper_terminal_read(int intLineNo, int devNo){
 
     /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
     int devIdx = devSemIdx(intLineNo, devNo, 1);
-    /* put semdAdd into currentP state register a1 to call VERHOGEN -- VERHOGEN use the state in currentP*/
+
+    /* put semdAdd into BIOSDATAPAGE state register a1 to call VERHOGEN -- VERHOGEN use the state in currentP*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = &device_sem[devIdx];
+
     /* putting the process returned by V operation to unblocked_pcb */
     pcb_PTR unblocked_pcb = VERHOGEN();
+
     /* if V operation failed to remove a pcb then return control to the current process*/
     if (unblocked_pcb == NULL){
         /* if there is no current process to return to either, call scheduler*/
         if (currentP == NULL){
             scheduler();
         }
-        LDST((state_PTR *) BIOSDATAPAGE);
+        LDST((state_PTR) BIOSDATAPAGE);
     }
     softBlock_count --;
 
@@ -124,7 +128,7 @@ void helper_terminal_read(int intLineNo, int devNo){
     /* Done in VERHOGEN()*/
 
     /* Perform a LDST on the saved exception state*/
-    LDST((state_PTR *) BIOSDATAPAGE);
+    LDST((state_PTR) BIOSDATAPAGE);
 }
 
 void helper_terminal_write_other_device(int intLineNo, int devNo){
@@ -143,8 +147,10 @@ void helper_terminal_write_other_device(int intLineNo, int devNo){
 
     /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
     int devIdx = devSemIdx(intLineNo, devNo, 0);
-    /* put semdAdd into currentP state register a1 to call VERHOGEN -- VERHOGEN use the semdAdd in reg a1 of the state saved*/
+    
+    /* put semdAdd into BIOSDATAPAGE state register a1 to call VERHOGEN -- VERHOGEN use the semdAdd in reg a1 of the state saved*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
+    
     VERHOGEN();
     /* putting the process returned by V operation to unblocked_pcb */
     pcb_PTR unblocked_pcb = (pcb_PTR) ((state_PTR) BIOSDATAPAGE)->s_v0;
@@ -155,7 +161,7 @@ void helper_terminal_write_other_device(int intLineNo, int devNo){
         if (currentP == NULL){
             scheduler();
         }
-        LDST((void *) BIOSDATAPAGE);
+        LDST((state_PTR) BIOSDATAPAGE);
     }
 
     /* Place the stored off status code in the newly unblocked pcb’s v0 register.*/
@@ -165,7 +171,7 @@ void helper_terminal_write_other_device(int intLineNo, int devNo){
     /* Done in VERHOGEN()*/
 
     /* Perform a LDST on the saved exception state*/
-    LDST((void *) BIOSDATAPAGE);  
+    LDST((state_PTR) BIOSDATAPAGE);  
 }
 
 /*Process Local Timer (PLT) Interrupt*/
@@ -231,9 +237,7 @@ void non_timer_interrupts(int intLineNo){
     }
 }
 
-
-
-/* interupt exception handler function */
+/* interrupt exception handler function */
 void interrupt_exception_handler(){
     int i;
     int lineIntBool;
