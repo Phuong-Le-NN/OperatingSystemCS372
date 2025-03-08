@@ -18,13 +18,10 @@
 
 #define pseudo_clock_idx    48
 
-void helper_PASSEREN(){
+void helper_PASSEREN(int *sema4){
     /*  
          
     */
-
-    /* getting the sema4 address from register a1 */
-    int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
     (*sema4) --;
     if ((*sema4) < 0){
@@ -61,7 +58,8 @@ void blocking_syscall_handler (){
     This function handle the steps after a blocking handler including:
     */
     ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
-    /*already copied the saved processor state into the current process pcb at the beginning of SYSCALL_handler as that what we have been using*/
+    /* save processor state copy into current process pcb*/
+    deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
     /*update the cpu time for the current process*/
     currentP->p_time += (5000 - getTIMER());
     /*process was already added to ASL in the syscall =>already blocked*/
@@ -99,9 +97,9 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
     /* make the child no longer child of its parent*/
     outChild(toBeTerminate);
     pcb_PTR process_unblocked;
-    /* check to see if it is in our device semaphore */
+    /*if terminated process is not blocked on our device semaphore */
     if (outBlocked(toBeTerminate) == NULL){
-        process_unblocked = (&(((semd_t *) toBeTerminate->p_semAdd)->s_procQ), toBeTerminate);
+        process_unblocked = outProcQ(&(((semd_t *) toBeTerminate->p_semAdd)->s_procQ), toBeTerminate);
         if (process_unblocked != NULL){
             if ((*toBeTerminate->p_semAdd) < 0){
                 (*toBeTerminate->p_semAdd)++;
@@ -141,10 +139,11 @@ void CREATEPROCESS(){
 
     pcb_PTR newProcess = allocPcb();
 
-    /* If no more free pcb’s, then ... */
+    /* If no more free pcb’s return -1*/
     if (newProcess == NULL) {
         /* return an error code of -1 is placed/returned in the caller’s v0 */
         ((state_PTR) BIOSDATAPAGE)->s_v0 = -1;
+        return;
     }
 
     /* deep copy the process state where a1 contain a pointer to a processor state (state t) */
@@ -205,12 +204,12 @@ void PASSEREN(){
 }
 
 pcb_PTR VERHOGEN(){
-    /* FIXXXXXX CALLING process_unblocked*/
     /*getting the sema4 address from register a1*/
     int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
     pcb_PTR process_unblocked;
     (*sema4) ++;
+    
     if ((*sema4) <= 0){
         process_unblocked = removeBlocked(sema4);
         if (process_unblocked == NULL){
@@ -238,12 +237,9 @@ void WAITIO(){
    
     /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this*/
 
-    int device_idx = devSemIdx(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2,  ((state_PTR) BIOSDATAPAGE)->s_a2); /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
-        
-    /*put the device sema4 address into register a1 to call P*/
-    ((state_PTR) BIOSDATAPAGE)->s_a1 = &(device_sem[device_idx]);
+    int device_idx = devSemIdx(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2,  ((state_PTR) BIOSDATAPAGE)->s_a2);
 
-    helper_PASSEREN();
+    helper_PASSEREN(&(device_sem[device_idx]));
 
     softBlock_count ++;
     
@@ -266,11 +262,8 @@ void WAITCLOCK(){
     This service performs a P operation on the Pseudo-clock semaphore.
     This semaphore is V’ed every 100 milliseconds by the Nucleus.
     block the Current Process on the ASL then Scheduler is called.*/
-
-    /*put the pseudoclock sema4 into the register a1 to do P operation*/
-    ((state_PTR) BIOSDATAPAGE)->s_a1 = device_sem[pseudo_clock_idx];
     
-    helper_PASSEREN();
+    helper_PASSEREN(&(device_sem[pseudo_clock_idx]));
 
     softBlock_count ++;
 
@@ -323,10 +316,6 @@ void SYSCALL_handler() {
         pass_up_or_die(GENERALEXCEPT);
         return;
     }
-
-    /*increment PC by 4*/
-    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;                        /* Is it here that we increment pc? */
-
     
     switch (((state_PTR) BIOSDATAPAGE)->s_a0) {
     case 1:
@@ -359,7 +348,7 @@ void SYSCALL_handler() {
     }
 
     /*increment PC by 4*/
-    /* ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;*/                   /* Is it right to increment pc here? */
+    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
 
     /* update the cpu_time*/
     currentP->p_time += (5000 - getTIMER());
