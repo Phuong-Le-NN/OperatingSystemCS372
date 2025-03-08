@@ -365,7 +365,7 @@ void SYSCALL_handler() {
     /* update the cpu_time*/
     currentP->p_time += (5000 - getTIMER());
     /*if the syscall was blocking*/
-    if (((state_PTR) BIOSDATAPAGE)->s_a0 == 3 | ((state_PTR) BIOSDATAPAGE)->s_a0 == 5 | ((state_PTR) BIOSDATAPAGE)->s_a0 == 7){
+    if ((((state_PTR) BIOSDATAPAGE)->s_a0 == 3 ) || (((state_PTR) BIOSDATAPAGE)->s_a0 == 5) || (((state_PTR) BIOSDATAPAGE)->s_a0 == 7)){
         /* save processor state copy into current process pcb*/
         deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
         /*process was already added to ASL in the syscall => already blocked*/
@@ -410,4 +410,3 @@ void exception_handler(){
         break;
     }
 }
-
