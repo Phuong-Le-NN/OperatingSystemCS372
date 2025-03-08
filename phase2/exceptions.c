@@ -57,7 +57,7 @@ void blocking_syscall_handler (){
     /*
     This function handle the steps after a blocking handler including:
     */
-    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
+    ((state_PTR) BIOSDATAPAGE)->s_pc += WORDLEN;
     /* save processor state copy into current process pcb*/
     deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
     /*update the cpu time for the current process*/
@@ -68,7 +68,7 @@ void blocking_syscall_handler (){
 
 void non_blocking_syscall_handler (){
     /*increment PC by 4*/
-    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
+    ((state_PTR) BIOSDATAPAGE)->s_pc += WORDLEN;
     /* update the cpu_time*/
     currentP->p_time += (5000 - getTIMER());
     /*save processor state into the "well known" location for return*/
@@ -243,8 +243,9 @@ void WAITIO(){
 
     softBlock_count ++;
     
+    /* not supposed to do this?*/
     /*returning the device status word*/
-    ((state_PTR) BIOSDATAPAGE)->s_v0 = devAddrBase(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2);
+    /* ((state_PTR) BIOSDATAPAGE)->s_v0 = devAddrBase(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2); */
     /* 
     blocking_syscall_handler();
     */
@@ -348,7 +349,7 @@ void SYSCALL_handler() {
     }
 
     /*increment PC by 4*/
-    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
+    ((state_PTR) BIOSDATAPAGE)->s_pc += WORDLEN;
 
     /* update the cpu_time*/
     currentP->p_time += (5000 - getTIMER());
