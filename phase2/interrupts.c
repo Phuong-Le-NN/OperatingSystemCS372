@@ -202,25 +202,26 @@ void pseudo_clock_interrupts(){
 
 /* Non-Timer Interrupts */
 void non_timer_interrupts(int intLineNo){
-
     /*  Calculate the address for Interrupting Devices Bit Map of that Line. */
-    /*  After knowing which line specifically, this is how get the devices that have pending interrupt on that line
-        Value at intLineDevBitMap as a hex has a bit as 1 if that device has interrupt pending */
+    
+    /*  After knowing which line specifically, find which pending interrupt on that line
+        Value at Interrupting Devices Bit Map in binary has a bit as 1 if that device has interrupt pending */
     int *intLineDevBitMap = intDevBitMap(intLineNo);
+
     /* Boolean to later store whether the device has interrupt*/
     int devIntBool;
-   
+    
     /* address of register of device with interrupt pending*/
     device_t *intDevRegAdd;
 
-    /* looping through every bit to see if the device has interrupt*/
+    /* looping through every bit 0-7 to see if the device has interrupt*/
     int devNo;
     for (devNo = 0; devNo < DEVPERINT; devNo ++){
-        /* check in Interrupting Devices Bit Map to see if the device has interrupt */
+        /* check in Interrupting Devices Bit Map of that line to see if the device has interrupt */
         devIntBool = check_interrupt_device(devNo, intLineDevBitMap);
 
         if (devIntBool == TRUE){
-            /* calculate address of register of device with interrupt pending to look into device status to check if read or write terminal*/
+            /* address of register of device*/
             intDevRegAdd = devAddrBase(intLineNo, devNo);
             if (intLineNo != 7 | ((intLineNo == 7)&(intDevRegAdd->d_status == 5))){ /* if it is not terminal device or is terminal and needing to write to terminal*/ /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status */
                 helper_terminal_write_other_device(intLineNo, devNo);

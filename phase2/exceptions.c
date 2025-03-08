@@ -91,7 +91,7 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
     pcb_PTR childToBeTerminate;
     /* recursively, all progeny of this process are terminated as well. */
     while (!emptyChild(toBeTerminate)) {
-        childToBeTerminate = removeChild(currentP);
+        childToBeTerminate = removeChild(toBeTerminate);
         helper_terminate_process(childToBeTerminate);
     }
     /* make the child no longer child of its parent*/
@@ -237,7 +237,7 @@ void WAITIO(){
    
     /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this*/
 
-    int device_idx = devSemIdx(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2,  ((state_PTR) BIOSDATAPAGE)->s_a2);
+    int device_idx = devSemIdx(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2,  ((state_PTR) BIOSDATAPAGE)->s_a3);
 
     helper_PASSEREN(&(device_sem[device_idx]));
 
