@@ -31,6 +31,10 @@ pcb_PTR     readyQ;                  /* Tail ptr to a queue of pcbs that are rea
 pcb_PTR     currentP;                /* Current Process */
 int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphores 49 semaphores in an array */
 
+extern void debug(pcb_PTR a0, int a1, int a2, int a3){
+
+}
+
 void main() {
 
     /* Nucleus TLB-Refill event Handler */
@@ -55,7 +59,7 @@ void main() {
     readyQ = mkEmptyProcQ();              
     currentP = NULL;
 
-    /* intializing device semaphores to 0 */
+    /* initalizing device semaphores to 0 */
     int i;
     int numberOfSemaphores = DEVINTNUM*DEVPERINT + DEVPERINT + 1;
     for (i = 0; i < numberOfSemaphores; i++){

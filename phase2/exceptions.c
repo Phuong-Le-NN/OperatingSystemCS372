@@ -24,11 +24,11 @@ void helper_PASSEREN(){
     */
 
     /* getting the sema4 address from register a1 */
-    semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
+    int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
-    (*sema4->s_semAdd) --;
-    if ((*sema4->s_semAdd) < 0){
-        insertBlocked(sema4->s_semAdd, currentP);
+    (*sema4) --;
+    if ((*sema4) < 0){
+        insertBlocked(sema4, currentP);
     }
     return;
 }
@@ -190,12 +190,13 @@ void PASSEREN(){
     */
 
     /* getting the sema4 address from register a1 */
-    semd_t *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
+    int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
-    (*sema4->s_semAdd)--;
+    (*sema4) --;
+    debug(*sema4, 2, 1, 2);
 
-    if ((*sema4->s_semAdd) < 0){
-        insertBlocked(sema4->s_semAdd, currentP);
+    if ((*sema4) < 0){
+        insertBlocked(sema4, currentP);
         /* executing process is blocked on the ASL and Scheduler is called*/
         blocking_syscall_handler();
     }
@@ -241,7 +242,6 @@ void WAITIO(){
 
     int device_idx = devSemIdx(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2,  ((state_PTR) BIOSDATAPAGE)->s_a2); /*does the pseudoclock generate interupt using this too? No right? Cause this is just interrupt line 3 to 7 but clock and stuff use other line (PLT use line 1)*/
     
-    /*is it correct to put the address of sema4 into a1 like this?*/
     helper_block_currentP(&(device_sem[device_idx]));
     
     /*put the device sema4 address into register a1 to call P*/
@@ -273,7 +273,7 @@ void WAITCLOCK(){
 
     helper_block_currentP(&(device_sem[pseudo_clock_idx]));
 
-    /*put the pseudoclock sema4 into the register a1 to do P operation*/
+    /*put the pseudocloprintck sema4 into the register a1 to do P operation*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = device_sem[pseudo_clock_idx];
     
     helper_PASSEREN();

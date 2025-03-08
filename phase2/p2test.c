@@ -115,6 +115,9 @@ void	p5sys(),p8root(),child1(),child2(),p8leaf();
 extern void p5gen ();
 extern void p5mm ();
 
+void debugTest(int a0, int a1, int a2, int a3){
+
+}
 
 /* a procedure to print on terminal 0 */
 void print(char *msg) {
@@ -126,8 +129,10 @@ void print(char *msg) {
 	SYSCALL(PASSERN, (int)&term_mut, 0, 0);				/* P(term_mut) */
 	while (*s != EOS) {
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
-		status = SYSCALL(WAITIO, TERMINT, 0, 0);	
+		status = SYSCALL(WAITIO, TERMINT, 0, 0);
+		debugTest(4,4,2,2);	
 		if ((status & TERMSTATMASK) != RECVD)
+			debugTest(2,2,2,2);
 			PANIC();
 		s++;	
 	}

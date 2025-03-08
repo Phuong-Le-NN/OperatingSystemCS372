@@ -43,11 +43,11 @@ void scheduler (){
             /* Thus, this case is checking for the Process Count > 0 and the Soft-block Count > 0 */
 
             unsigned int current_status_reg = getSTATUS();
+            unsigned int saved_status_reg = current_status_reg;
             current_status_reg = enable_IEc(current_status_reg);
             current_status_reg = disable_TE(current_status_reg);
-            setSTATUS(current_status_reg);
+            setSTATUS(current_status_reg|0x0000FF00);
             WAIT();
-
         }else{
             /* if process count is not equal to 0, then it must be greater than 0 */
             /* if soft block count is greater than 0, then it must be equal to 0 */
