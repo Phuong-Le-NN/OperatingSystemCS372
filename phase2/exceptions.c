@@ -324,13 +324,18 @@ void SYSCALL_handler() {
         pass_up_or_die(GENERALEXCEPT);
         return;
     }
+
+    /*increment PC by 4*/
+    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;                        /* Is it here that we increment pc? */
+
+    
     switch (((state_PTR) BIOSDATAPAGE)->s_a0) {
     case 1:
         CREATEPROCESS();
         break;
     case 2:
         TERMINATEPROCESS();    
-        return;
+        break;
     case 3:
         PASSEREN();
         break;
@@ -355,7 +360,8 @@ void SYSCALL_handler() {
     }
 
     /*increment PC by 4*/
-    ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;
+    /* ((state_PTR) BIOSDATAPAGE)->s_pc += 0x4;*/                   /* Is it right to increment pc here? */
+
     /* update the cpu_time*/
     currentP->p_time += (5000 - getTIMER());
     /*if the syscall was blocking*/
@@ -373,16 +379,20 @@ void SYSCALL_handler() {
 void exception_handler(){
     /* Get the Cause registers from the saved exception state and 
     use AND bitwise operation to get the .ExcCode field */
+    /* decodes Cause.ExcCode */
     int ExcCode = CauseExcCode(((state_PTR) BIOSDATAPAGE)->s_cause);
 
     switch (ExcCode)
     {
     case INT:
+        /* external device interrupt */
         interrupt_exception_handler();
+        break;
     case MOD:
     case TLBL:
     case TLBS:
         pass_up_or_die(PGFAULTEXCEPT);
+        break;
     case ADEL:
     case ADES:
     case IBE:
@@ -392,8 +402,10 @@ void exception_handler(){
     case CPU:
     case OV:
         pass_up_or_die(GENERALEXCEPT);
+        break;
     case SYS:
         SYSCALL_handler();
+        break;
     default:
         break;
     }
