@@ -46,7 +46,7 @@ int check_interrupt_line(int idx){
     /* as a hex, on bits indicate line with interrupt pending -- this is Cause.IP*/
     int IPLines = (((state_PTR) BIOSDATAPAGE)->s_cause & IPBITS) >> IPBITSPOS;
     /* 31 as the size of int is 32 bits (4 bytes)*/
-    if ((IPLines << (31 - IPBITSPOS - idx)) >> (31) == 0) {
+    if ((IPLines << (31 - idx)) >> (31) == 0) {
         return FALSE;
     }
     return TRUE;
