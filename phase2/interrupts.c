@@ -44,9 +44,9 @@ int check_interrupt_line(int idx){
     */
     /* get the IP bit from cause registers then shift right to get the interrupt line which*/
     /* as a hex, on bits indicate line with interrupt pending -- this is Cause.IP*/
-    int IPLines = (getCAUSE()&IPBITS) >> IPBITSPOS;
+    int IPLines = (((state_PTR) BIOSDATAPAGE)->s_cause & IPBITS) >> IPBITSPOS;
     /* 31 as the size of int is 32 bits (4 bytes)*/
-    if ((IPLines << (31 - idx)) >> (31) == 0) {
+    if ((IPLines << (31 - IPBITSPOS - idx)) >> (31) == 0) {
         return FALSE;
     }
     return TRUE;
@@ -54,7 +54,7 @@ int check_interrupt_line(int idx){
 
 int check_interrupt_device(int idx, int* devRegAdd){
     /* 
-    The fucntion that check if a device has interrupt pending that takes in a device number and address of the Line Interrupt Device Bit Map
+    The function that check if a device has interrupt pending that takes in a device number and address of the Line Interrupt Device Bit Map
     Return TRUE or FALSE
     */
     /* loop through the devices on each line*/
@@ -241,7 +241,7 @@ void interrupt_exception_handler(){
     int i;
     int lineIntBool;
     /* loop through the interrupt line for devices*/
-    for (i = 0; i <= INTLINESCOUNT; i ++){
+    for (i = 0; i < INTLINESCOUNT; i ++){
         lineIntBool = check_interrupt_line(i);
         /*
         Interrupt line 0 is reserved for inter-processor interrupts.
@@ -267,7 +267,7 @@ void interrupt_exception_handler(){
             case PRNTINT:
             case TERMINT:
                 /*device interrupt*/
-                non_timer_interrupts(TERMINT);
+                non_timer_interrupts(i);
             default:
                 break;
             }

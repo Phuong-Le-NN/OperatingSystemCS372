@@ -96,7 +96,7 @@
 
 /* Cause register bit fields */
 #define EXECCODEBITS        0x0000007C
-#define IPBITS              0x00110000
+#define IPBITS              0x0000FF00
 
 /* Device register related addresses*/
 #define INSTALLED_DEV_REG   0x1000002C
