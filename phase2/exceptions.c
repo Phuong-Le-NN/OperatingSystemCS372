@@ -211,7 +211,6 @@ pcb_PTR VERHOGEN(){
 
     pcb_PTR process_unblocked;
     (*sema4) ++;
-
     if ((*sema4) <= 0){
         process_unblocked = removeBlocked(sema4);
         if (process_unblocked == NULL){

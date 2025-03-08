@@ -27,9 +27,20 @@ typedef struct {
 #define t_transm_status		d_data0
 #define t_transm_command	d_data1
 
+/* Device register type for terminals */
+typedef struct termreg {
+	unsigned int recv_status;
+	unsigned int recv_command;
+	unsigned int transm_status;
+	unsigned int transm_command;
+} termreg_t;
+typedef union devreg {
+	device_t dtp;
+	termreg_t term;
+} devreg_t;
 
-/* Bus Register Area */
-typedef struct {
+/* Bus register area */
+typedef struct devregarea {
 	unsigned int rambase;
 	unsigned int ramsize;
 	unsigned int execbase;
@@ -40,10 +51,10 @@ typedef struct {
 	unsigned int todlo;
 	unsigned int intervaltimer;
 	unsigned int timescale;
-	unsigned int TLB_Floor_Addr;
-	unsigned int inst_dev[DEVINTNUM];
-	unsigned int interrupt_dev[DEVINTNUM];
-	device_t	devreg[DEVINTNUM * DEVPERINT];
+	unsigned int TLBFloorAddr;
+	unsigned int inst_dev[5];
+	unsigned int interrupt_dev[5];
+	devreg_t devreg[5][8];
 } devregarea_t;
 
 
