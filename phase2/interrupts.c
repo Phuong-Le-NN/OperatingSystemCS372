@@ -87,7 +87,7 @@ pcb_PTR helper_unblock_process(int *semdAdd){
     return unblocked_pcb;
 }
 
-void helper_terminal_read(int intLineNo, int devNo){
+void helper_terminal_write(int intLineNo, int devNo){
     /*
     Helper function to acknowledge interrupts from terminal read sub-device
     for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status
@@ -103,7 +103,7 @@ void helper_terminal_read(int intLineNo, int devNo){
     intDevRegAdd->d_data1 = ACK;
 
     /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
-    int devIdx = devSemIdx(intLineNo, devNo, 1);
+    int devIdx = devSemIdx(intLineNo, devNo, 0);
 
     /* put semdAdd into BIOSDATAPAGE state register a1 to call VERHOGEN -- VERHOGEN use the state in currentP*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = &device_sem[devIdx];
@@ -131,7 +131,7 @@ void helper_terminal_read(int intLineNo, int devNo){
     LDST((state_PTR) BIOSDATAPAGE);
 }
 
-void helper_terminal_write_other_device(int intLineNo, int devNo){
+void helper_terminal_read_other_device(int intLineNo, int devNo){
     /*
     Helper function to acknowledge interrupts from terminal write sub-device and other devices
     */
@@ -146,14 +146,13 @@ void helper_terminal_write_other_device(int intLineNo, int devNo){
     intDevRegAdd->d_command = ACK;
 
     /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
-    int devIdx = devSemIdx(intLineNo, devNo, 0);
+    int devIdx = devSemIdx(intLineNo, devNo, 1);
     
     /* put semdAdd into BIOSDATAPAGE state register a1 to call VERHOGEN -- VERHOGEN use the semdAdd in reg a1 of the state saved*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
     
-    VERHOGEN();
     /* putting the process returned by V operation to unblocked_pcb */
-    pcb_PTR unblocked_pcb = (pcb_PTR) ((state_PTR) BIOSDATAPAGE)->s_v0;
+    pcb_PTR unblocked_pcb = (pcb_PTR) VERHOGEN();
 
     /* if V operation failed to remove a pcb then return control to the current process*/
     if (unblocked_pcb == NULL){
@@ -229,10 +228,10 @@ void non_timer_interrupts(int intLineNo){
         if (devIntBool == TRUE){
             /* address of register of device*/
             intDevRegAdd = devAddrBase(intLineNo, devNo);
-            if (intLineNo != 7 || ((intLineNo == 7)&&(intDevRegAdd->d_status == 5))){ /* if it is not terminal device or is terminal and needing to write to terminal*/ /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status */
-                helper_terminal_write_other_device(intLineNo, devNo);
+            if ((intLineNo != 7) || ((intLineNo == 7)&&(((intDevRegAdd->d_status) & 0x000000FF) == 5))){ /* if it is not terminal device or is terminal and needing to write to terminal*/ /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status */
+                helper_terminal_read_other_device(intLineNo, devNo);
             }
-            helper_terminal_read(intLineNo, devNo);
+            helper_terminal_write(intLineNo, devNo);
         }
     }
 }

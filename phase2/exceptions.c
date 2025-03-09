@@ -236,7 +236,6 @@ void WAITIO(){
     */
    
     /* must also update the Cause.IP field bits to show which interrupt lines are pending -- no, the hardware do this*/
-
     int device_idx = devSemIdx(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2,  ((state_PTR) BIOSDATAPAGE)->s_a3);
 
     helper_PASSEREN(&(device_sem[device_idx]));

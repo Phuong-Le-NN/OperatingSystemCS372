@@ -125,8 +125,10 @@ void print(char *msg) {
 	char *s = msg;
 	devregtr * base = (devregtr *) (TERM0ADDR);
 	devregtr status;
-	
+
+	debugTest(term_mut, 0xaa, 0xaa, 0xbb);
 	SYSCALL(PASSERN, (int)&term_mut, 0, 0);				/* P(term_mut) */
+	debugTest(term_mut, 0xaa, 0xaa, 0xbb);
 	while (*s != EOS) {
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
 		debugTest(*s,s,2,2);	

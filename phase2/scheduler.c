@@ -30,7 +30,8 @@ In scheduler:
 */
 
 void scheduler (){
-
+    
+    currentP = NULL;
     /* if the ready Q is empty */
     if (emptyProcQ(readyQ)){ 
 
@@ -43,10 +44,12 @@ void scheduler (){
             /* Thus, this case is checking for the Process Count > 0 and the Soft-block Count > 0 */
 
             unsigned int current_status_reg = getSTATUS();
-            unsigned int saved_status_reg = current_status_reg;
             current_status_reg = enable_IEc(current_status_reg);
             current_status_reg = disable_TE(current_status_reg);
             setSTATUS(current_status_reg|0x0000FF00);
+            if (softBlock_count == 0){
+                scheduler();
+            }
             WAIT();
         }else{
             /* if process count is not equal to 0, then it must be greater than 0 */
