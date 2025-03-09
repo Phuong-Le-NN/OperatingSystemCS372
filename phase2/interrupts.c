@@ -229,7 +229,7 @@ void non_timer_interrupts(int intLineNo){
         if (devIntBool == TRUE){
             /* address of register of device*/
             intDevRegAdd = devAddrBase(intLineNo, devNo);
-            if (intLineNo != 7 | ((intLineNo == 7)&(intDevRegAdd->d_status == 5))){ /* if it is not terminal device or is terminal and needing to write to terminal*/ /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status */
+            if (intLineNo != 7 || ((intLineNo == 7)&&(intDevRegAdd->d_status == 5))){ /* if it is not terminal device or is terminal and needing to write to terminal*/ /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status */
                 helper_terminal_write_other_device(intLineNo, devNo);
             }
             helper_terminal_read(intLineNo, devNo);
