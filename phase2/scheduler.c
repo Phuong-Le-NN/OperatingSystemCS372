@@ -26,7 +26,24 @@
 #include "scheduler.h"
 
 
-/* scheduler function */
+/**********************************************************
+ *  scheduler()
+ *
+ *  This function determines the next process from the ready queue
+ *  and schedules it for execution. If no process is ready, it
+ *  determines the appropriate system action based on the process
+ *  count and soft-block count.
+ *
+ *  The scheduler implements a round-robin scheduling method and
+ *  sets each process to get an execution time by setting
+ *  the processor timer to 5 milliseconds.
+ *
+ *  Parameters:
+ *         
+ *
+ *  Returns:
+ *
+ **********************************************************/
 void scheduler (){
     
     currentP = NULL;

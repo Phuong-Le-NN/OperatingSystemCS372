@@ -40,7 +40,21 @@ extern void debug(pcb_PTR a0, int a1, int a2, int a3){
 
 }
 
-
+/**********************************************************
+ *  main()
+ *
+ *  This function initializes system components
+ *  required for process execution. It sets up the Pass Up
+ *  Vector, initializes system data structures, creates the
+ *  first process, and calls the scheduler.
+ *
+ *  Parameters:
+ *         
+ *
+ *  Returns:
+ *         
+ *
+ **********************************************************/
 void main() {
 
     /* Populate the pass up vector */
