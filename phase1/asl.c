@@ -20,7 +20,7 @@
 #define MAXPROC	20
 
 HIDDEN semd_t *semdFree_h;
-static semd_t semdTable[MAXPROC+2];
+static semd_t semdTable[MAXSEM+2];
 static semd_t *semd_h = NULL;
 
 /**********************************************************
@@ -112,6 +112,9 @@ void initASL (){
  *         
  */
 semd_t *traverseASL (int* semAdd){
+    if (semAdd < &(semdTable[0]) || semAdd > (&semdTable[MAXSEM])){
+        return &semdTable[0];
+    }
     semd_t *traverse = semd_h;
     /*the loop that move traverse pointer until the the next sema4 no longer has the descriptor smaller than the given sema4 descriptor*/
     while (traverse->s_next->s_semAdd < semAdd){
