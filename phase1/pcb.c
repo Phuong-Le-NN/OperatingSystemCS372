@@ -321,8 +321,23 @@ int emptyChild (pcb_PTR p){
  */
 void insertChild (pcb_PTR prnt, pcb_PTR p){
 
-    /* Insert child using insert method from the process queue module */
-    insertProcQ(&(prnt->p_child), p);
+    pcb_PTR *tp = &(prnt->p_child);
+    /* Special case - if pq is empty, make p the tail */
+    if (emptyProcQ(*tp)){
+        (*tp) = p;
+        p->p_next_sib= p;
+        p->p_prev_sib = p;
+        p->p_prnt = prnt;
+        return;
+    }
+
+    /* Insert element at the tail */
+    p->p_next_sib = (*tp)->p_next_sib;
+    p->p_prev_sib = (*tp);
+    ((*tp)->p_next_sib)->p_prev_sib = p;
+    (*tp)->p_next_sib = p;
+    *tp = p;
+
     p->p_prnt = prnt;
 }
 
@@ -340,8 +355,26 @@ void insertChild (pcb_PTR prnt, pcb_PTR p){
  */
 pcb_PTR removeChild (pcb_PTR p){
 
-    /*remove first child of the pcb from the queue using removeProcQ() from pcb module*/
-    return removeProcQ(&(p->p_child));
+    pcb_PTR *tp = &(p->p_child);
+    
+    /* Special case - pq is empty */
+    if (emptyProcQ(*tp)){
+        return NULL;
+    }
+
+    pcb_PTR rm = (*tp)-> p_next_sib;
+
+    /* Removing head element from pq */
+    (*tp)->p_next_sib = rm->p_next_sib;
+    rm->p_next_sib->p_prev_sib = (*tp);
+
+    /* Special case - if removing the last element in pq,
+    *  make the tail pointer = NULL*/
+    if (rm == (*tp)){
+        (*tp) = NULL;
+    }
+
+    return rm;
 }
 
 
@@ -367,6 +400,42 @@ pcb_PTR outChild (pcb_PTR p){
         return NULL;
     }
 
-    /*return the remove child of the pcb from the queue using outProcQ() from pcb module*/
-    return outProcQ(&(prnt->p_child), p);
+    pcb_PTR *tp = &(p->p_child);
+
+    /* Special Case - when pq is empty */
+    if ((*tp) == NULL){
+        return NULL;
+    }
+
+    /* find the element p */
+    pcb_PTR traverse = *tp;
+    while ((traverse != p) && (traverse->p_next_sib != (*tp))) {
+        traverse = traverse->p_next_sib;
+    }
+
+    /* Special Case - when p is not in the pq */
+    if (traverse != p){
+        return NULL;
+    }
+
+    /* remove pcb from the queue */
+    pcb_PTR next = p->p_next_sib;
+    pcb_PTR prev = p->p_prev_sib;
+
+    (next)->p_prev_sib = prev;
+    (prev)->p_next_sib = next;
+
+    /* Special case when removed element is the tail */
+    if ((*tp) == p){
+        (*tp) = p->p_prev_sib;
+        if ((*tp) == p){
+            (*tp) = NULL;
+        }
+    }
+
+    /* setting removed pcb values to NULL */
+    p->p_prev_sib = NULL;
+    p->p_next_sib = NULL;
+
+    return p;
 }

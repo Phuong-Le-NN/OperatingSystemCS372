@@ -210,8 +210,20 @@ pcb_PTR outBlocked (pcb_PTR p){
     if (predecessor->s_next->s_semAdd != semAdd || emptyProcQ(predecessor->s_next->s_procQ)){
         return NULL;
     }
+    
+    pcb_PTR resultPcb = outProcQ(&(predecessor->s_next->s_procQ), p);
+    
+    /*fixing the pointer to the sema4 of pcb to NULL*/
+    resultPcb->p_semAdd = NULL;
+    /*removing sema4 from ASL if no longer active*/
+    if (emptyProcQ(predecessor->s_next->s_procQ)){
+        semd_t *toBeFreeSem = predecessor->s_next;
+        predecessor->s_next = predecessor->s_next->s_next;
+        freeSemd(toBeFreeSem);
+    }
     /*remove pcb from the queue of the found sema4 using outProcQ() from pcb module*/
-    return outProcQ(&(predecessor->s_next->s_procQ), p);
+    
+    return resultPcb;
 }
 /**********************************************************
  *  Accessing head of a queue of a sema4 in ASL
