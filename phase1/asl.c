@@ -212,9 +212,7 @@ pcb_PTR outBlocked (pcb_PTR p){
     }
     
     pcb_PTR resultPcb = outProcQ(&(predecessor->s_next->s_procQ), p);
-    
-    /*fixing the pointer to the sema4 of pcb to NULL*/
-    resultPcb->p_semAdd = NULL;
+
     /*removing sema4 from ASL if no longer active*/
     if (emptyProcQ(predecessor->s_next->s_procQ)){
         semd_t *toBeFreeSem = predecessor->s_next;

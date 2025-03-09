@@ -127,7 +127,7 @@ void initPcbs (){
 pcb_PTR mkEmptyProcQ (){
 
     /* Initializes the pointer of the tail of an empty process queue */
-    static pcb_PTR queueTail = NULL;
+    pcb_PTR queueTail = NULL;
     return queueTail;
 }
 
@@ -391,6 +391,11 @@ pcb_PTR removeChild (pcb_PTR p){
  *         pcb_PTR p - pointer to the removed child in pq
  *         
  */
+
+void debug(pcb_PTR a0, int a1, int a2, int a3){
+
+}
+
 pcb_PTR outChild (pcb_PTR p){
 
     pcb_PTR prnt = p->p_prnt;
@@ -400,7 +405,7 @@ pcb_PTR outChild (pcb_PTR p){
         return NULL;
     }
 
-    pcb_PTR *tp = &(p->p_child);
+    pcb_PTR *tp = &(prnt->p_child);
 
     /* Special Case - when pq is empty */
     if ((*tp) == NULL){
