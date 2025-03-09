@@ -20,7 +20,7 @@
 #define MAXPROC	20
 
 HIDDEN semd_t *semdFree_h;
-static semd_t semdTable[MAXSEM+2];
+static semd_t semdTable[MAXPROC+2];
 static semd_t *semd_h = NULL;
 
 /**********************************************************
@@ -112,12 +112,9 @@ void initASL (){
  *         
  */
 semd_t *traverseASL (int* semAdd){
-    if (semAdd < &(semdTable[0]) || semAdd > (&semdTable[MAXSEM])){
-        return &semdTable[0];
-    }
     semd_t *traverse = semd_h;
     /*the loop that move traverse pointer until the the next sema4 no longer has the descriptor smaller than the given sema4 descriptor*/
-    while (traverse->s_next->s_semAdd < semAdd){
+    while (traverse->s_next->s_semAdd != &(semdTable[MAXPROC + 1]) && traverse->s_next->s_semAdd < semAdd){
         traverse = traverse->s_next;
     }
     return traverse;
@@ -210,18 +207,8 @@ pcb_PTR outBlocked (pcb_PTR p){
     if (predecessor->s_next->s_semAdd != semAdd || emptyProcQ(predecessor->s_next->s_procQ)){
         return NULL;
     }
-    
-    pcb_PTR resultPcb = outProcQ(&(predecessor->s_next->s_procQ), p);
-
-    /*removing sema4 from ASL if no longer active*/
-    if (emptyProcQ(predecessor->s_next->s_procQ)){
-        semd_t *toBeFreeSem = predecessor->s_next;
-        predecessor->s_next = predecessor->s_next->s_next;
-        freeSemd(toBeFreeSem);
-    }
     /*remove pcb from the queue of the found sema4 using outProcQ() from pcb module*/
-    
-    return resultPcb;
+    return outProcQ(&(predecessor->s_next->s_procQ), p);
 }
 /**********************************************************
  *  Accessing head of a queue of a sema4 in ASL

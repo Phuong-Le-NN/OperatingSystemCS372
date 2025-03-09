@@ -374,6 +374,8 @@ pcb_PTR removeChild (pcb_PTR p){
         (*tp) = NULL;
     }
 
+    rm->p_prnt = NULL;
+
     return rm;
 }
 
@@ -391,10 +393,6 @@ pcb_PTR removeChild (pcb_PTR p){
  *         pcb_PTR p - pointer to the removed child in pq
  *         
  */
-
-void debug(pcb_PTR a0, int a1, int a2, int a3){
-
-}
 
 pcb_PTR outChild (pcb_PTR p){
 
@@ -441,6 +439,8 @@ pcb_PTR outChild (pcb_PTR p){
     /* setting removed pcb values to NULL */
     p->p_prev_sib = NULL;
     p->p_next_sib = NULL;
+
+    p->p_prnt = NULL;
 
     return p;
 }
