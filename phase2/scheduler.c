@@ -1,8 +1,19 @@
 /*********************************SCHEDULER.C*******************************
+ *  Scheduler Module
  *
- * 
- *      Modified by Phuong and Oghap on Feb 2025
+ *  This module manages the scheduling of processes in the system. It manages
+ *  scheduling the processes gets a chance to run using a round-robin scheduling 
+ *  method.
+ *  The function scheduler() selects the next process from the ready queue
+ *  and gives it control.
+ *
+ *  The scheduler uses a queue to manage ready processes. When a process is selected to 
+ *  run, its state is loaded using `LDST()`, and the processor timer is set to 5 
+ *  milliseconds to ensure proper execution.
+ *
+ *  Modified by Phuong and Oghap on Feb 2025
  */
+
 #include "/usr/include/umps3/umps/libumps.h"
 
 #include "../h/pcb.h"
@@ -14,51 +25,41 @@
 
 #include "scheduler.h"
 
-/*
-In scheduler:
-    - get pcb from the readyque
-    - check if queue empty or not
-    - then, LDST(runningProcQ -> p_state)
-*/
 
-/* The Scheduler does...
-    1. Remove the pcb from the head of the Ready Queue and store the pointer to the pcb 
-        in the Current Process field.
-    2. Load 5 milliseconds on the PLT. [Section 4.1.4-pops]
-    3. Perform a Load Processor State (LDST) on the processor state stored in pcb
-        of the Current Process (p_s).
-*/
-
+/* scheduler function */
 void scheduler (){
     
     currentP = NULL;
     /* if the ready Q is empty */
     if (emptyProcQ(readyQ)){ 
 
-        /* case for when the Process Count is zero */
+        /* if the Process Count is zero */
         if (process_count == 0) {
             HALT();
 
         } else if (softBlock_count > 0){
-            /* if process count is not equal to 0, then it must be greater than 0 */
-            /* Thus, this case is checking for the Process Count > 0 and the Soft-block Count > 0 */
+            /* if Process Count > 0 and the Soft-block Count > 0 */
 
+            /* get status, enable interrupt on current enable bit, disable PLT */
             unsigned int current_status_reg = getSTATUS();
             current_status_reg = enable_IEc(current_status_reg);
             current_status_reg = disable_TE(current_status_reg);
+
+            /* enable Interrupt Mask */
             setSTATUS(current_status_reg|0x0000FF00);
+            
+            /* if soft block count is zero */
             if (softBlock_count == 0){
                 scheduler();
             }
             WAIT();
         }else{
-            /* if process count is not equal to 0, then it must be greater than 0 */
-            /* if soft block count is greater than 0, then it must be equal to 0 */
-            /* Thus, this case is for when ProcessCount > 0 and theSoft- block Count is zero*/
+            /* if ProcessCount > 0 and softBlock_count = 0 */
             PANIC();
         }
     }
     
+    /* remove from the Ready Queue */
     currentP = removeProcQ(&readyQ);
 
     /*Load 5 milisec on the PLT*/ 

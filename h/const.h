@@ -15,7 +15,7 @@
 /* timer, timescale, TOD-LO and other bus regs */
 #define RAMBASEADDR		0x10000000
 #define RAMBASESIZE		0x10000004
-#define TODLOADDR		  0x1000001C
+#define TODLOADDR		0x1000001C
 #define INTERVALTMR		0x10000020	
 #define TIMESCALEADDR	0x10000024
 
@@ -44,13 +44,13 @@
 #define DEVINTNUM		  5		    /* interrupt lines used by devices */
 #define DEVPERINT		  8		    /* devices per interrupt line */
 #define DEVREGLEN		  4		    /* device register field length in bytes, and regs per dev */	
-#define DEVREGSIZE	  16 		    /* device register size in bytes */
+#define DEVREGSIZE	      16 		/* device register size in bytes */
 
 /* device register field number for non-terminal devices */
 #define STATUS			  0
 #define COMMAND			  1
-#define DATA0			    2
-#define DATA1			    3
+#define DATA0			  2
+#define DATA1			  3
 
 /* device register field number for terminal devices */
 #define RECVSTATUS  	0
@@ -59,7 +59,7 @@
 #define TRANCOMMAND 	3
 
 /* device common STATUS codes */
-#define UNINSTALLED		0
+#define UNINSTALLED		    0
 #define READY			    1
 #define BUSY			    3
 
@@ -93,6 +93,7 @@
 #define RI                  10      /* Reserved Instruction Exception*/
 #define CPU                 11      /* Coprocessor Unusable Exception*/
 #define OV                  12      /* Arithmetic Overflow Exception*/
+
 
 /* Cause register bit fields */
 #define EXECCODEBITS        0x0000007C
@@ -138,7 +139,7 @@
 #define intDevBitMap(intLine) INT_DEV_REG + (0x04*(intLine - 3));
 
 /* Macro to calculate the device sema4 idx in the device sema4 array
-terminal write higher priority than terminal read*/
+   terminal write higher priority than terminal read*/
 #define devSemIdx(intLineNo, devNo, termRead) (intLineNo - 3) * 8 + termRead* 8 + devNo;
 
 /* Maximum number of semaphore and pcb that can be allocated*/

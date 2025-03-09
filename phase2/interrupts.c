@@ -1,9 +1,24 @@
 /*********************************INTERRUPTS.C*******************************
+ *  Interrupt Handling Module
  *
- * 
- *      Modified by Phuong and Oghap on Feb 2025
+ *  This module handles system interrupts. 
+ *  There are three main types: processor local timer (PLT), pseudo-clock,
+ *  and device interrupts. The function interrupt_exception_handler()  
+ *  checks which interrupt occurred and calls the right function.
+ *
+ *  The code uses functions to handle different types of interrupts. 
+ *  process_local_timer_interrupts() manages the PLT by resetting the timer 
+ *  and putting the current process back in the ready queue.
+ *  pseudo_clock_interrupts() updates the pseudo-clock and unblocks waiting processes.
+ *  non_timer_interrupts() checks which device caused an interrupt and processes it.
+ *  It also has special handling for terminal devices using  helper_terminal_write()  and
+ *  helper_terminal_read_other_device() .
+ *
+ *  The code uses arrays to store device semaphores and linked lists to manage process queues.
+ *  It also updates the process state and may call the scheduler when needed. 
+ *
+ *  Modified by Phuong and Oghap on Feb 2025
  */
-
 #include "/usr/include/umps3/umps/libumps.h"
 
 #include "../h/pcb.h"
@@ -23,10 +38,10 @@
 
 /* Helper Functions */
 
+/************************************************************************************
+ * The funtion that takes in pointer to 2 state_t and deep copy the value src to dest
+ */ 
 HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
-    /*
-    the funtion that takes in pointer to 2 state_t and deep copy the value src to dest
-    */
     dest->s_cause = src->s_cause;
     dest->s_entryHI = src->s_entryHI;
     dest->s_pc = src->s_pc;
@@ -37,13 +52,15 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
     dest->s_status = src->s_status;
 }
 
+
+/************************************************************************************
+ * The function that takes in a line number and check if there is interrupt pending on that line
+ * Return TRUE or FALSE
+ */ 
 int check_interrupt_line(int idx){
-    /*
-    The function that takes in a line number and check if there is interrupt pending on that line
-    Return TRUE or FALSE
-    */
     /* Get the IP bit from cause registers then shift right to get the interrupt line which*/
     /* in binary, 1 bits indicate line with interrupt pending -- this is Cause.IP*/
+
     int IPLines = (((state_PTR) BIOSDATAPAGE)->s_cause & IPBITS) >> IPBITSPOS;
 
     /* 31 as the size of int is 32 bits (4 bytes)*/
@@ -53,6 +70,9 @@ int check_interrupt_line(int idx){
     return TRUE;
 }
 
+/************************************************************************************
+ * 
+ */ 
 int check_interrupt_device(int idx, int* devRegAdd){
     /* 
     The function that check if a device has interrupt pending that takes in a device number and address of the Line Interrupt Device Bit Map
@@ -67,6 +87,9 @@ int check_interrupt_device(int idx, int* devRegAdd){
     return TRUE;
 }
 
+/************************************************************************************
+ * 
+ */ 
 void deep_copy_device_t(device_t *dest, device_t *src){
     dest->d_command = src->d_command;
     dest->d_data0 = src->d_data0;
@@ -74,6 +97,9 @@ void deep_copy_device_t(device_t *dest, device_t *src){
     dest->d_status = src->d_status;
 }
 
+/************************************************************************************
+ * 
+ */ 
 pcb_PTR helper_unblock_process(int *semdAdd){
     /*
     Helper function that unblock 1 process and decrease softblock count
@@ -87,6 +113,9 @@ pcb_PTR helper_unblock_process(int *semdAdd){
     return unblocked_pcb;
 }
 
+/************************************************************************************
+ * 
+ */ 
 void helper_terminal_write(int intLineNo, int devNo){
     /*
     Helper function to acknowledge interrupts from terminal read sub-device
@@ -131,6 +160,9 @@ void helper_terminal_write(int intLineNo, int devNo){
     LDST((state_PTR) BIOSDATAPAGE);
 }
 
+/************************************************************************************
+ * 
+ */ 
 void helper_terminal_read_other_device(int intLineNo, int devNo){
     /*
     Helper function to acknowledge interrupts from terminal write sub-device and other devices
@@ -173,7 +205,10 @@ void helper_terminal_read_other_device(int intLineNo, int devNo){
     LDST((state_PTR) BIOSDATAPAGE);  
 }
 
-/*Process Local Timer (PLT) Interrupt*/
+
+/************************************************************************************
+ * Process Local Timer (PLT) Interrupt
+ */ 
 void process_local_timer_interrupts(){
     /* load new time into timer for PLT*/
     setTIMER(5000); 
@@ -186,6 +221,9 @@ void process_local_timer_interrupts(){
     scheduler();
 }
 
+/************************************************************************************
+ * psuedo_clock_interrupts
+ */
 void pseudo_clock_interrupts(){
     /* load interval timer with 100 miliseconds*/
     LDIT(100000);
@@ -201,11 +239,13 @@ void pseudo_clock_interrupts(){
     if (currentP == NULL){
         scheduler();
     }
-    /* return contorl to the current process*/
+    /* return control to the current process*/
     LDST((state_t *) BIOSDATAPAGE);
 }
 
-/* Non-Timer Interrupts */
+/************************************************************************************
+ * non_timer_interrupts
+ */
 void non_timer_interrupts(int intLineNo){
     /*  Calculate the address for Interrupting Devices Bit Map of that Line. */
     
@@ -228,21 +268,25 @@ void non_timer_interrupts(int intLineNo){
         if (devIntBool == TRUE){
             /* address of register of device*/
             intDevRegAdd = devAddrBase(intLineNo, devNo);
-            if ((intLineNo != 7) || ((intLineNo == 7)&&(((intDevRegAdd->d_status) & 0x000000FF) == 5))){ /* if it is not terminal device or is terminal and needing to write to terminal*/ /* for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status */
+
+            /* What is 0x000000FF? */
+            if ((intLineNo != 7) || ((intLineNo == 7)&&(((intDevRegAdd->d_status) & 0x000000FF) == 5))){ 
                 helper_terminal_read_other_device(intLineNo, devNo);
             }
             helper_terminal_write(intLineNo, devNo);
         }
     }
 }
-
-/* interrupt exception handler function */
+/************************************************************************************
+ * interrupt exception handler function
+ */
 void interrupt_exception_handler(){
     int i;
     int lineIntBool;
     /* loop through the interrupt line for devices*/
     for (i = 0; i < INTLINESCOUNT; i ++){
         lineIntBool = check_interrupt_line(i);
+
         /*
         Interrupt line 0 is reserved for inter-processor interrupts.
         Line 1 is reserved for the processor Local Timer interrupts.

@@ -1,8 +1,29 @@
 /*********************************EXCEPTIONS.C*******************************
- *
+ *  Implementation of the Exception Handling Module
+ *  
+ *  Responsible for handling all exceptions that occur in the system:
+ *  -  Interrupts : External device signals.
+ *  -  System Calls (SYSCALLs) : Requests for system services.
+ *  -  TLB Exceptions : Memory access violations.
+ *  -  Program Traps : Invalid operations.
+ *  
+ *  This module includes the following functions:
+ *  - exception_handler(): Determines the type of exception and
+ *    delegates processing to specialized handlers.
+ *  - interrupt_exception_handler(): Handles external device interrupts
+ *  - SYSCALL_handler(): Processes system calls (SYS1–SYS8), allowing user processes to
+ *    request services such as process management, I/O operations, and clock waiting.
+ *  - pass_up_or_die(): Handles program traps and TLB exceptions. If the process
+ *    has a support structure, the exception is passed up to the user-level handler;
+ *    otherwise, the process and its children are terminated.
+ *  
+ *  The exception handling system integrates with the process scheduler to manage
+ *  blocked.
  * 
  *      Modified by Phuong and Oghap on Feb 2025
  */
+
+
 #include "/usr/include/umps3/umps/libumps.h"
 
 #include "../h/pcb.h"
@@ -18,6 +39,11 @@
 
 #define pseudo_clock_idx    48
 
+/* Helper Functions*/
+
+/************************************************************************************
+ * 
+ */
 void helper_PASSEREN(int *sema4){
     /*  
          
@@ -30,6 +56,9 @@ void helper_PASSEREN(int *sema4){
     return;
 }
 
+/************************************************************************************
+ * 
+ */
 HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
     /*
     the function that takes in pointer to 2 state_t and deep copy the value src to dest
@@ -44,6 +73,9 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
     dest->s_status = src->s_status;
 }
 
+/************************************************************************************
+ * 
+ */
 void deep_copy_context_t(context_t *dest,context_t *src) {
     /*
     the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
@@ -53,6 +85,9 @@ void deep_copy_context_t(context_t *dest,context_t *src) {
     dest->c_status = src->c_status;
 }
 
+/************************************************************************************
+ * 
+ */
 void blocking_syscall_handler (){
     /*
     This function handle the steps after a blocking handler including:
@@ -66,6 +101,9 @@ void blocking_syscall_handler (){
     scheduler();
 }
 
+/************************************************************************************
+ * 
+ */
 void non_blocking_syscall_handler (){
     /*increment PC by 4*/
     ((state_PTR) BIOSDATAPAGE)->s_pc += WORDLEN;
@@ -75,7 +113,9 @@ void non_blocking_syscall_handler (){
     LDST((state_PTR) BIOSDATAPAGE);
 }
 
-
+/************************************************************************************
+ * 
+ */
 int check_KU_mode_bit() {
     /*
     Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
@@ -87,6 +127,9 @@ int check_KU_mode_bit() {
     return 1;
 }
 
+/************************************************************************************
+ * 
+ */
 void helper_terminate_process(pcb_PTR toBeTerminate){
     pcb_PTR childToBeTerminate;
     /* recursively, all progeny of this process are terminated as well. */
@@ -117,9 +160,12 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
     return;
 }
 
-/* Is there a time when we need to determine whether the current process is executing in kernel mode or 
-user-mode? */
+/* System Calls Functions*/
 
+
+/************************************************************************************
+ * Create Process
+ */
 /*
     initializes:
         p s from a1.
@@ -174,6 +220,9 @@ void CREATEPROCESS(){
     /* p_time is set to 0 and p_semAdd is set to NULL in allocPcb() */
 }
 
+/************************************************************************************
+ * 
+ */
 void TERMINATEPROCESS(){
     /* recursively terminate child and free pcb */
     helper_terminate_process(currentP);
@@ -181,6 +230,9 @@ void TERMINATEPROCESS(){
     scheduler();
 }
 
+/************************************************************************************
+ * 
+ */
 void PASSEREN(){
     /*  
         Depending on the value of the semaphore, control is either returned to the
@@ -203,6 +255,9 @@ void PASSEREN(){
     return;
 }
 
+/************************************************************************************
+ * 
+ */
 pcb_PTR VERHOGEN(){
     /*getting the sema4 address from register a1*/
     int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
@@ -221,6 +276,9 @@ pcb_PTR VERHOGEN(){
     return NULL;
 }
 
+/************************************************************************************
+ * 
+ */
 void WAITIO(){
     /*value 5 in a0
     the interrupt line number in a1 ([3. . .7])
@@ -251,12 +309,19 @@ void WAITIO(){
     return;
 }
 
+/************************************************************************************
+ * 
+ */
 void GETCPUTIME(){
     /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
     ((state_PTR) BIOSDATAPAGE)->s_v0 = currentP->p_time + 5000 - getTIMER();
     return;
 }
 
+
+/************************************************************************************
+ * 
+ */
 void WAITCLOCK(){
     /*
     This service performs a P operation on the Pseudo-clock semaphore.
@@ -274,6 +339,10 @@ void WAITCLOCK(){
     return;
 }
 
+
+/************************************************************************************
+ * 
+ */
 void GETSUPPORTPTR(){
     /*
     returns the value of p supportStruct from the Current Process’s pcb
@@ -281,6 +350,10 @@ void GETSUPPORTPTR(){
     ((state_PTR) BIOSDATAPAGE)->s_v0 = currentP->p_supportStruct;
 }
 
+
+/************************************************************************************
+ * Pass Up or Die
+ */
 /* The Nucleus Program Trap exception handler performs a standard Pass Up or Die operation 
 using the GENERALEXCEPT index value. */
 /* 
@@ -306,6 +379,9 @@ void pass_up_or_die(int exception_constant) {
 }
 
 
+/************************************************************************************
+ * 
+ */
 void SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
@@ -354,7 +430,9 @@ void SYSCALL_handler() {
     /* update the cpu_time*/
     currentP->p_time += (5000 - getTIMER());
     /*if the syscall was blocking*/
-    if ((((state_PTR) BIOSDATAPAGE)->s_a0 == 3 ) || (((state_PTR) BIOSDATAPAGE)->s_a0 == 5) || (((state_PTR) BIOSDATAPAGE)->s_a0 == 7)){
+    if ((((state_PTR) BIOSDATAPAGE)->s_a0 == 3 ) || 
+        (((state_PTR) BIOSDATAPAGE)->s_a0 == 5)  || 
+        (((state_PTR) BIOSDATAPAGE)->s_a0 == 7)){
         /* save processor state copy into current process pcb*/
         deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
         /*process was already added to ASL in the syscall => already blocked*/
@@ -365,6 +443,9 @@ void SYSCALL_handler() {
 
 }
 
+/************************************************************************************
+ * 
+ */
 void exception_handler(){
     /* Get the Cause registers from the saved exception state and 
     use AND bitwise operation to get the .ExcCode field */
