@@ -130,6 +130,7 @@ int check_KU_mode_bit() {
 /************************************************************************************
  * 
  */
+
 void helper_terminate_process(pcb_PTR toBeTerminate){
     pcb_PTR childToBeTerminate;
     /* recursively, all progeny of this process are terminated as well. */
@@ -141,16 +142,19 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
     outChild(toBeTerminate);
     pcb_PTR process_unblocked;
     /*if terminated process is not blocked on our device semaphore */
-    if (outBlocked(toBeTerminate) == NULL){
-        process_unblocked = outProcQ(&(((semd_t *) toBeTerminate->p_semAdd)->s_procQ), toBeTerminate);
+    if (toBeTerminate->p_semAdd < &device_sem[0] ||
+        toBeTerminate->p_semAdd > &device_sem[DEVINTNUM * DEVPERINT + DEVPERINT + 1 - 1]){
+        process_unblocked = outBlocked(toBeTerminate);
         if (process_unblocked != NULL){
             if ((*toBeTerminate->p_semAdd) < 0){
                 (*toBeTerminate->p_semAdd)++;
             }
-            softBlock_count --;
         }
     } else {
-        softBlock_count --;
+        process_unblocked = outBlocked(toBeTerminate);
+        if (process_unblocked != NULL){
+            softBlock_count --;
+        }
     }
     /* if this pcb is in readyQ, take it out*/
     outProcQ(&readyQ, toBeTerminate);
@@ -159,6 +163,7 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
     process_count--;
     return;
 }
+
 
 /* System Calls Functions*/
 
@@ -427,17 +432,19 @@ void SYSCALL_handler() {
     /*increment PC by 4*/
     ((state_PTR) BIOSDATAPAGE)->s_pc += WORDLEN;
 
-    /* update the cpu_time*/
-    currentP->p_time += (5000 - getTIMER());
     /*if the syscall was blocking*/
     if ((((state_PTR) BIOSDATAPAGE)->s_a0 == 3 ) || 
         (((state_PTR) BIOSDATAPAGE)->s_a0 == 5)  || 
         (((state_PTR) BIOSDATAPAGE)->s_a0 == 7)){
         /* save processor state copy into current process pcb*/
         deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
+        /* update the cpu_time*/
+        currentP->p_time += (5000 - getTIMER());
         /*process was already added to ASL in the syscall => already blocked*/
         scheduler();
     }
+    /* update the cpu_time*/
+    currentP->p_time += (5000 - getTIMER());
     /*save processor state into the "well known" location for nonblocking syscall*/
     LDST(((state_PTR) BIOSDATAPAGE));
 
