@@ -66,7 +66,7 @@ void helper_PASSEREN(int *sema4){
 /**********************************************************
  *  deep_copy_state_t()
  *
- *  Copies the contents of a source processor state into a
+ *  Deep copies the contents of a source processor state into a
  *  destination processor state.
  *
  *  Parameters:
@@ -90,7 +90,7 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
 /**********************************************************
  *  deep_copy_context_t()
  *
- *  Copies the contents of a source context into a destination
+ *  Deep copies the contents of a source context into a destination
  *  context.
  *
  *  Parameters:
