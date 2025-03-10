@@ -111,30 +111,10 @@ HIDDEN int helper_check_interrupt_device(int idx, int* devRegAdd){
     /* loop through the devices on each line*/
     int devBits = *devRegAdd;
     /* 31 as the size of int is 32 bits (4 bytes)*/
-    if ((devBits << (REGWIDTH - 1 - idx)) >> (REGWIDTH) == 0) {
+    if ((devBits << (REGWIDTH - 1 - idx)) >> (REGWIDTH - 1) == 0) {
         return FALSE;
     }
     return TRUE;
-}
-
-/**********************************************************
- *  deep_copy_device_t()
- *
- *  Deep copies the contents of a device register into a
- *  destination device register.
- *
- *  Parameters:
- *         state_PTR dest - Pointer to the destination device
- *         state_PTR src  - Pointer to the source device
- *
- *  Returns:
- *         
- **********************************************************/
-HIDDEN void deep_copy_device_t(device_t *dest, device_t *src){
-    dest->d_command = src->d_command;
-    dest->d_data0 = src->d_data0;
-    dest->d_data1 = src->d_data1;
-    dest->d_status = src->d_status;
 }
 
 /**********************************************************
@@ -385,11 +365,11 @@ HIDDEN void non_timer_interrupts(int intLineNo){
  *         
  **********************************************************/
 void interrupt_exception_handler(){
-    int i;
+    int lineNum;
     int lineIntBool;
     /* loop through the interrupt line for devices*/
-    for (i = 0; i < INTLINESCOUNT; i ++){
-        lineIntBool = helper_check_interrupt_line(i);
+    for (lineNum = 0; lineNum < INTLINESCOUNT; lineNum ++){
+        lineIntBool = helper_check_interrupt_line(lineNum);
 
         /*
         Interrupt line 0 is reserved for inter-processor interrupts.
@@ -398,7 +378,7 @@ void interrupt_exception_handler(){
         Interrupt lines 3–7 are for monitoring interrupts from peripheral devices
         */
         if (lineIntBool == TRUE) {
-            switch (i)
+            switch (lineNum)
             {
             case INTERPROCESSORINT:
                 /*processor interrupt -- pandos is only for uniprocessor -- this case will not happen -- can safely ignore -- delete later*/
@@ -415,7 +395,7 @@ void interrupt_exception_handler(){
             case PRNTINT:
             case TERMINT:
                 /*device interrupt*/
-                non_timer_interrupts(i);
+                non_timer_interrupts(lineNum);
             default:
                 break;
             }
