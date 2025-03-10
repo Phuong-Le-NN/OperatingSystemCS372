@@ -60,7 +60,7 @@ void scheduler (){
             /* get status, enable interrupt on current enable bit, disable PLT, enable Interrupt Mask */
             setSTATUS(((getSTATUS() | IECBITON)  & (~TEBITON)) | IPBITS);
             
-            /* if soft block count is zero */
+            /* check if soft block count is 0, in case interrupt happen while setting status*/
             if (softBlock_count == 0){
                 scheduler();
             }
