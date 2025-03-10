@@ -86,7 +86,7 @@ void main() {
     }
 
     /* Load the system-wide Interval Timer with 100 milliseconds */
-    LDIT(100000);
+    LDIT(CLOCKINTERVAL);
 
     /* Instantiate a single process, place its pcb in the Ready Queue, and increment Process Count. */
     pcb_PTR first_pro = allocPcb();
@@ -99,9 +99,7 @@ void main() {
         SP set to RAMTOP (i.e. use the last RAM frame for its stack)
         PC set to the address of test
     */
-    first_pro->p_s.s_status = enable_IEp(first_pro->p_s.s_status);
-    first_pro->p_s.s_status = kernel(first_pro->p_s.s_status);
-    first_pro->p_s.s_status = enable_TE(first_pro->p_s.s_status);
+    first_pro->p_s.s_status = ((first_pro->p_s.s_status | IEPBITON) & KUPBITOFF) | TEBITON;
     first_pro->p_s.s_pc = (memaddr) test;
 
     /*technical reasons, assign same value to both PC and general purpose register t9*/

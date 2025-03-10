@@ -57,13 +57,13 @@ void scheduler (){
         } else if (softBlock_count > 0){
             /* if Process Count > 0 and the Soft-block Count > 0 */
 
-            /* get status, enable interrupt on current enable bit, disable PLT */
+            /* get status, enable interrupt on current enable bit, disable PLT, enable Interrupt Mask */
             unsigned int current_status_reg = getSTATUS();
-            current_status_reg = enable_IEc(current_status_reg);
-            current_status_reg = disable_TE(current_status_reg);
+            current_status_reg = current_status_reg | IECBITON;
+            current_status_reg = current_status_reg & (~TEBITON);
+            current_status_reg = current_status_reg | IPBITS;
 
-            /* enable Interrupt Mask */
-            setSTATUS(current_status_reg|0x0000FF00);
+            setSTATUS(current_status_reg);
             
             /* if soft block count is zero */
             if (softBlock_count == 0){

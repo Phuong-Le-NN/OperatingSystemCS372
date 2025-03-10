@@ -78,7 +78,7 @@
 
 /* Exceptions related constants */
 #define	PGFAULTEXCEPT	    0
-#define GENERALEXCEPT	    1
+#define  GENERALEXCEPT	    1
 
 #define INT                 0       /* External Device Interrupt*/
 #define MOD                 1       /* TLB-Modification Exception*/
@@ -94,10 +94,36 @@
 #define CPU                 11      /* Coprocessor Unusable Exception*/
 #define OV                  12      /* Arithmetic Overflow Exception*/
 
+/* hardware constants */
+#define PRINTCHR	2
+#define BYTELEN	8
+#define RECVD	5
+
+#define CLOCKINTERVAL	100000UL	/* interval to V clock semaphore */
+
+#define TERMSTATMASK	0xFF
+#define CAUSEMASK		0xFF
+#define VMOFF 			0xF8FFFFFF
+
+#define SYSCAUSE		(0x8 << 2)
+#define BUSERROR		6
+#define RESVINSTR   	10
+#define ADDRERROR		4
+#define SYSCALLEXCPT	8
+
+#define QPAGE			1024
 
 /* Cause register bit fields */
-#define EXECCODEBITS        0x0000007C
-#define IPBITS              0x0000FF00
+#define EXECCODEBITS          0x0000007C
+#define IPBITS                0x0000FF00
+#define IECBITON              0x00000001
+#define KUPBITON		         0x00000008
+#define KUPBITOFF		         0xFFFFFFF7
+#define IEPBITON              0x00000004
+#define TEBITON			      0x08000000
+#define ALLOFF			         0x0
+
+#define BADADDR			0xFFFFFFFF
 
 /* Device register related addresses*/
 #define INSTALLED_DEV_REG   0x1000002C
@@ -116,18 +142,6 @@
 
 /* Macro to enable interrupt on current enable bit*/
 #define enable_IEc(current_status) (current_status | 0x00000001)
-
-/* Macro to disable PLT bit*/
-#define disable_TE(current_status) (current_status & 0xf7ffffff)
-
-/* Macro to enable PLT bit*/
-#define enable_TE(current_status) (current_status | 0x08000000)
-
-/* Macro to enable previous setting of the status.IEc bit which is status.IEp*/
-#define enable_IEp(current_status) (current_status | 0x00000004)
-
-/* Macro to enable previous setting of the status.KUc bit which is status.KUp*/
-#define kernel(current_status) (current_status & 0xfffffff7)
 
 /* Macro to calculate starting address of the device’s device register*/
 #define devAddrBase(intLineNo, devNo) 0x10000054 + ((intLineNo - 3) * 0x80) + (devNo * 0x10);
