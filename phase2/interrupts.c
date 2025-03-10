@@ -38,9 +38,19 @@
 
 /* Helper Functions */
 
-/************************************************************************************
- * The funtion that takes in pointer to 2 state_t and deep copy the value src to dest
- */ 
+/**********************************************************
+ *  deep_copy_state_t()
+ *
+ *  Deep copies the contents of a source processor state into a
+ *  destination processor state.
+ *
+ *  Parameters:
+ *         state_PTR dest - Pointer to the destination state
+ *         state_PTR src  - Pointer to the source state
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
     dest->s_cause = src->s_cause;
     dest->s_entryHI = src->s_entryHI;
@@ -53,14 +63,23 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
 }
 
 
-/************************************************************************************
- * The function that takes in a line number and check if there is interrupt pending on that line
- * Return TRUE or FALSE
- */ 
+/**********************************************************
+ *  check_interrupt_line()
+ *
+ *  Takes in a line number and check if there is interrupt pending 
+ *  on that line by checking on the cause register.
+ *
+ *  Parameters:
+ *         int idx - line number
+ *
+ *  Returns:
+ *          TRUE 
+ *          FALSE
+ **********************************************************/
 int check_interrupt_line(int idx){
+
     /* Get the IP bit from cause registers then shift right to get the interrupt line which*/
     /* in binary, 1 bits indicate line with interrupt pending -- this is Cause.IP*/
-
     int IPLines = (((state_PTR) BIOSDATAPAGE)->s_cause & IPBITS) >> IPBITSPOS;
 
     /* 31 as the size of int is 32 bits (4 bytes)*/
@@ -70,14 +89,24 @@ int check_interrupt_line(int idx){
     return TRUE;
 }
 
-/************************************************************************************
- * 
- */ 
+/**********************************************************
+ *  check_interrupt_device()
+ *
+ *  Checks if a device has interrupt pending by taking in a 
+ *  device number and address of the Line Interrupt 
+ *  Device Bit Map. Calculates by using device register bits.
+ *
+ *  Parameters:
+ *         int idx - device number
+ *         int* devRegAdd - address of the Line Interrupt
+ *                          Device Bit Map
+ *
+ *  Returns:
+ *          TRUE 
+ *          FALSE
+ **********************************************************/
 int check_interrupt_device(int idx, int* devRegAdd){
-    /* 
-    The function that check if a device has interrupt pending that takes in a device number and address of the Line Interrupt Device Bit Map
-    Return TRUE or FALSE
-    */
+
     /* loop through the devices on each line*/
     int devBits = *devRegAdd;
     /* 31 as the size of int is 32 bits (4 bytes)*/
@@ -87,9 +116,19 @@ int check_interrupt_device(int idx, int* devRegAdd){
     return TRUE;
 }
 
-/************************************************************************************
- * 
- */ 
+/**********************************************************
+ *  deep_copy_device_t()
+ *
+ *  Deep copies the contents of a device register into a
+ *  destination device register.
+ *
+ *  Parameters:
+ *         state_PTR dest - Pointer to the destination device
+ *         state_PTR src  - Pointer to the source device
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void deep_copy_device_t(device_t *dest, device_t *src){
     dest->d_command = src->d_command;
     dest->d_data0 = src->d_data0;
@@ -97,13 +136,20 @@ void deep_copy_device_t(device_t *dest, device_t *src){
     dest->d_status = src->d_status;
 }
 
-/************************************************************************************
- * 
- */ 
+/**********************************************************
+ *  helper_unblock_process()
+ *
+ *  Unblock 1 process, removes from the ASl, 
+ *  and decrements softblock count
+ *
+ *  Parameters:
+ *         int *semdAdd - semaphore address
+ *
+ *  Returns:
+ *         pcb_PTR - Pointer to the unblocked process 
+ **********************************************************/
 pcb_PTR helper_unblock_process(int *semdAdd){
-    /*
-    Helper function that unblock 1 process and decrease softblock count
-    */
+
     /* remove the process from ASL*/
     pcb_PTR unblocked_pcb = removeBlocked(semdAdd);
 
@@ -113,14 +159,22 @@ pcb_PTR helper_unblock_process(int *semdAdd){
     return unblocked_pcb;
 }
 
-/************************************************************************************
- * 
- */ 
+
+/**********************************************************
+ *  helper_terminal_write()
+ *
+ *  Aknowledge interrupts from terminal read sub-device.
+ *  Performs a V operation on the device semaphore
+ *  and unblocks waiting process if needed
+ *
+ *  Parameters:
+ *         int intLineNo - Interrupt line number
+ *         int devNo  - Device Number
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void helper_terminal_write(int intLineNo, int devNo){
-    /*
-    Helper function to acknowledge interrupts from terminal read sub-device
-    for terminal device, data1 is trasm_command, data0 is transm_status, comman is recv_comman, status is recv_status
-    */
 
     /* Calculate the address for this device’s device register */
     device_t *intDevRegAdd = devAddrBase(intLineNo, devNo);
@@ -160,9 +214,22 @@ void helper_terminal_write(int intLineNo, int devNo){
     LDST((state_PTR) BIOSDATAPAGE);
 }
 
-/************************************************************************************
- * 
- */ 
+/**********************************************************
+ *  helper_terminal_read_other_device()
+ *
+ *  Aknowledge interrupts from terminal write sub-device 
+ *  or other devices. Performs a V operation on the device 
+ *  semaphore and unblocks waiting process if needed.
+ *  When V operation fails to remove a pcb, it 
+ *  returns control to the current process.
+ *
+ *  Parameters:
+ *         int intLineNo - Interrupt line number
+ *         int devNo  - Device Number
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void helper_terminal_read_other_device(int intLineNo, int devNo){
     /*
     Helper function to acknowledge interrupts from terminal write sub-device and other devices
@@ -184,7 +251,7 @@ void helper_terminal_read_other_device(int intLineNo, int devNo){
     ((state_PTR) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
     
     /* putting the process returned by V operation to unblocked_pcb */
-    pcb_PTR unblocked_pcb = (pcb_PTR) VERHOGEN();
+    pcb_PTR unblocked_pcb = VERHOGEN();
 
     /* if V operation failed to remove a pcb then return control to the current process*/
     if (unblocked_pcb == NULL){
@@ -205,10 +272,21 @@ void helper_terminal_read_other_device(int intLineNo, int devNo){
     LDST((state_PTR) BIOSDATAPAGE);  
 }
 
+/* Interrupts */
 
-/************************************************************************************
- * Process Local Timer (PLT) Interrupt
- */ 
+/**********************************************************
+ *  process_local_timer_interrupts()
+ *
+ *  Resets timer to 5 miliseconds and copies the processor 
+ *  state from BIOS. Updates CPU time and moves the 
+ *  current process to the ready queue, then calls
+ *  scheduler.
+ *
+ *  Parameters:
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void process_local_timer_interrupts(){
     /* load new time into timer for PLT*/
     setTIMER(5000); 
@@ -221,9 +299,18 @@ void process_local_timer_interrupts(){
     scheduler();
 }
 
-/************************************************************************************
- * psuedo_clock_interrupts
- */
+/**********************************************************
+ *  pseudo_clock_interrupts()
+ *
+ *  Reloads timer and unblocks all pcb that was blocked on
+ *  pseudo-clock. Resets the psuedo-clock semaphore and
+ *  returns control to the current process.
+ *
+ *  Parameters:
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void pseudo_clock_interrupts(){
     /* load interval timer with 100 miliseconds*/
     LDIT(100000);
@@ -243,9 +330,18 @@ void pseudo_clock_interrupts(){
     LDST((state_t *) BIOSDATAPAGE);
 }
 
-/************************************************************************************
- * non_timer_interrupts
- */
+/**********************************************************
+ *  non_timer_interrupts()
+ *
+ *  Identifies the device that caused the interrupt and 
+ *  processes it accordingly. Checks in Interrupting Devices
+ *  Bit Map of that line to see if the device has interrupt.
+ *
+ *  Parameters:
+ *          int intLineNo - Line Number
+ *  Returns:
+ *         
+ **********************************************************/
 void non_timer_interrupts(int intLineNo){
     /*  Calculate the address for Interrupting Devices Bit Map of that Line. */
     
@@ -277,9 +373,19 @@ void non_timer_interrupts(int intLineNo){
         }
     }
 }
-/************************************************************************************
- * interrupt exception handler function
- */
+
+/**********************************************************
+ *  interrupt_exception_handler()
+ *
+ *  Determines the pending interrupt line and delegates to 
+ *  the appropriate handler such as process local timer, 
+ *  pseudo-clock, and devices interrupt handler.
+ *
+ *  Parameters:
+ *          
+ *  Returns:
+ *         
+ **********************************************************/
 void interrupt_exception_handler(){
     int i;
     int lineIntBool;
