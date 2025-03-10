@@ -140,9 +140,6 @@
 /* Macro to read the TOD clock */
 #define STCK(T) ((T) = ((* ((cpu_t *) TODLOADDR)) / (* ((cpu_t *) TIMESCALEADDR))))
 
-/* Macro to enable interrupt on current enable bit*/
-#define enable_IEc(current_status) (current_status | 0x00000001)
-
 /* Macro to calculate starting address of the device’s device register*/
 #define devAddrBase(intLineNo, devNo) 0x10000054 + ((intLineNo - 3) * 0x80) + (devNo * 0x10);
 

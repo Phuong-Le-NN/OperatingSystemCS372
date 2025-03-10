@@ -32,9 +32,10 @@
 
 #include "interrupts.h"
 
-#define pseudo_clock_idx    48
-#define IPBITSPOS       8
-#define INTLINESCOUNT   8
+#define pseudo_clock_idx    48  /* pseudo clock semaphore in device semaphore array*/
+#define IPBITSPOS       8       /* Interrupt pending bits position*/
+#define INTLINESCOUNT   8       /* number of interrupt lines*/
+#define REGWIDTH        32      /* register width*/
 
 /* Helper Functions */
 
@@ -64,7 +65,7 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
 
 
 /**********************************************************
- *  check_interrupt_line()
+ *  helper_check_interrupt_line()
  *
  *  Takes in a line number and check if there is interrupt pending 
  *  on that line by checking on the cause register.
@@ -76,21 +77,21 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
  *          TRUE 
  *          FALSE
  **********************************************************/
-int check_interrupt_line(int idx){
+HIDDEN int helper_check_interrupt_line(int idx){
 
     /* Get the IP bit from cause registers then shift right to get the interrupt line which*/
     /* in binary, 1 bits indicate line with interrupt pending -- this is Cause.IP*/
     int IPLines = (((state_PTR) BIOSDATAPAGE)->s_cause & IPBITS) >> IPBITSPOS;
 
     /* 31 as the size of int is 32 bits (4 bytes)*/
-    if ((IPLines << (31 - idx)) >> (31) == 0) {
+    if ((IPLines << (REGWIDTH - 1 - idx)) >> (REGWIDTH - 1) == 0) {
         return FALSE;
     }
     return TRUE;
 }
 
 /**********************************************************
- *  check_interrupt_device()
+ *  helper_check_interrupt_device()
  *
  *  Checks if a device has interrupt pending by taking in a 
  *  device number and address of the Line Interrupt 
@@ -105,12 +106,12 @@ int check_interrupt_line(int idx){
  *          TRUE 
  *          FALSE
  **********************************************************/
-int check_interrupt_device(int idx, int* devRegAdd){
+HIDDEN int helper_check_interrupt_device(int idx, int* devRegAdd){
 
     /* loop through the devices on each line*/
     int devBits = *devRegAdd;
     /* 31 as the size of int is 32 bits (4 bytes)*/
-    if ((devBits << (31 - idx)) >> (31) == 0) {
+    if ((devBits << (REGWIDTH - 1 - idx)) >> (REGWIDTH) == 0) {
         return FALSE;
     }
     return TRUE;
@@ -129,7 +130,7 @@ int check_interrupt_device(int idx, int* devRegAdd){
  *  Returns:
  *         
  **********************************************************/
-void deep_copy_device_t(device_t *dest, device_t *src){
+HIDDEN void deep_copy_device_t(device_t *dest, device_t *src){
     dest->d_command = src->d_command;
     dest->d_data0 = src->d_data0;
     dest->d_data1 = src->d_data1;
@@ -148,7 +149,7 @@ void deep_copy_device_t(device_t *dest, device_t *src){
  *  Returns:
  *         pcb_PTR - Pointer to the unblocked process 
  **********************************************************/
-pcb_PTR helper_unblock_process(int *semdAdd){
+HIDDEN pcb_PTR helper_unblock_process(int *semdAdd){
 
     /* remove the process from ASL*/
     pcb_PTR unblocked_pcb = removeBlocked(semdAdd);
@@ -163,7 +164,7 @@ pcb_PTR helper_unblock_process(int *semdAdd){
 /**********************************************************
  *  helper_terminal_write()
  *
- *  Aknowledge interrupts from terminal read sub-device.
+ *  Acknowledge interrupts from terminal read sub-device.
  *  Performs a V operation on the device semaphore
  *  and unblocks waiting process if needed
  *
@@ -174,7 +175,7 @@ pcb_PTR helper_unblock_process(int *semdAdd){
  *  Returns:
  *         
  **********************************************************/
-void helper_terminal_write(int intLineNo, int devNo){
+HIDDEN void helper_terminal_write(int intLineNo, int devNo){
 
     /* Calculate the address for this device’s device register */
     device_t *intDevRegAdd = devAddrBase(intLineNo, devNo);
@@ -186,7 +187,7 @@ void helper_terminal_write(int intLineNo, int devNo){
     intDevRegAdd->d_data1 = ACK;
 
     /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
-    int devIdx = devSemIdx(intLineNo, devNo, 0);
+    int devIdx = devSemIdx(intLineNo, devNo, FALSE);
 
     /* put semdAdd into BIOSDATAPAGE state register a1 to call VERHOGEN -- VERHOGEN use the state in currentP*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = &device_sem[devIdx];
@@ -230,10 +231,7 @@ void helper_terminal_write(int intLineNo, int devNo){
  *  Returns:
  *         
  **********************************************************/
-void helper_terminal_read_other_device(int intLineNo, int devNo){
-    /*
-    Helper function to acknowledge interrupts from terminal write sub-device and other devices
-    */
+HIDDEN void helper_terminal_read_other_device(int intLineNo, int devNo){
 
     /* Calculate the address for this device’s device register */
     device_t *intDevRegAdd = (device_t*) devAddrBase(intLineNo, devNo);
@@ -245,7 +243,7 @@ void helper_terminal_read_other_device(int intLineNo, int devNo){
     intDevRegAdd->d_command = ACK;
 
     /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
-    int devIdx = devSemIdx(intLineNo, devNo, 1);
+    int devIdx = devSemIdx(intLineNo, devNo, TRUE);
     
     /* put semdAdd into BIOSDATAPAGE state register a1 to call VERHOGEN -- VERHOGEN use the semdAdd in reg a1 of the state saved*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
@@ -287,7 +285,7 @@ void helper_terminal_read_other_device(int intLineNo, int devNo){
  *  Returns:
  *         
  **********************************************************/
-void process_local_timer_interrupts(){
+HIDDEN void process_local_timer_interrupts(){
     /* load new time into timer for PLT*/
     setTIMER(5000); 
     /* copy the processor state at the time of the exception into current process*/
@@ -311,7 +309,7 @@ void process_local_timer_interrupts(){
  *  Returns:
  *         
  **********************************************************/
-void pseudo_clock_interrupts(){
+HIDDEN void pseudo_clock_interrupts(){
     /* load interval timer with 100 miliseconds*/
     LDIT(100000);
     pcb_PTR unblocked_pcb;
@@ -342,7 +340,7 @@ void pseudo_clock_interrupts(){
  *  Returns:
  *         
  **********************************************************/
-void non_timer_interrupts(int intLineNo){
+HIDDEN void non_timer_interrupts(int intLineNo){
     /*  Calculate the address for Interrupting Devices Bit Map of that Line. */
     
     /*  After knowing which line specifically, find which pending interrupt on that line
@@ -359,7 +357,7 @@ void non_timer_interrupts(int intLineNo){
     int devNo;
     for (devNo = 0; devNo < DEVPERINT; devNo ++){
         /* check in Interrupting Devices Bit Map of that line to see if the device has interrupt */
-        devIntBool = check_interrupt_device(devNo, intLineDevBitMap);
+        devIntBool = helper_check_interrupt_device(devNo, intLineDevBitMap);
 
         if (devIntBool == TRUE){
             /* address of register of device*/
@@ -391,7 +389,7 @@ void interrupt_exception_handler(){
     int lineIntBool;
     /* loop through the interrupt line for devices*/
     for (i = 0; i < INTLINESCOUNT; i ++){
-        lineIntBool = check_interrupt_line(i);
+        lineIntBool = helper_check_interrupt_line(i);
 
         /*
         Interrupt line 0 is reserved for inter-processor interrupts.
