@@ -39,6 +39,19 @@
 
 /* Helper Functions */
 
+
+/**********************************************************
+ *  helper_verhogen() 
+ *
+ *  Performs a V operation on the semaphore. If a process
+ *  is blocked on the semaphore, it is unblocked and moved to
+ *  the ready queue.
+ *
+ *  Parameters:
+ *
+ *  Returns:
+ *         pcb_PTR - Pointer to the unblocked process 
+ **********************************************************/
 pcb_PTR helper_verhogen(){
     /*getting the sema4 address from register a1*/
     int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
