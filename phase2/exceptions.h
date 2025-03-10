@@ -16,17 +16,6 @@ extern int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphore
 
 extern void uTLB_RefillHandler ();
 
-void CREATEPROCESS();
-void TERMINATEPROCESS();
-void PASSEREN();
-pcb_PTR VERHOGEN();
-void WAITIO();
-void GETCPUTIME();
-void WAITCLOCK();
-void GETSUPPORTPTR();
-void SYSCALL_handler();
-
-void pass_up_or_die(int exception_constant);
 void exception_handler();
 
 #endif

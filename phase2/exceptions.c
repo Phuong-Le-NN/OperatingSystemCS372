@@ -54,7 +54,7 @@
  *  Returns:
  *         
  **********************************************************/
-void helper_PASSEREN(int *sema4){
+HIDDEN void helper_PASSEREN(int *sema4){
 
     (*sema4) --;
     if ((*sema4) < 0){
@@ -100,7 +100,7 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
  *  Returns:
  *         
  **********************************************************/
-void deep_copy_context_t(context_t *dest,context_t *src) {
+HIDDEN void deep_copy_context_t(context_t *dest,context_t *src) {
     /*
     the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
     */
@@ -110,7 +110,7 @@ void deep_copy_context_t(context_t *dest,context_t *src) {
 }
 
 /**********************************************************
- *  blocking_syscall_handler()
+ *  helper_blocking_syscall_handler()
  *
  *  Handles blocking system calls by:
  *  - Incrementing the saved program counter
@@ -123,7 +123,7 @@ void deep_copy_context_t(context_t *dest,context_t *src) {
  *  Returns:
  *         
  **********************************************************/
-void blocking_syscall_handler (){
+HIDDEN void helper_blocking_syscall_handler (){
     /*
     This function handle the steps after a blocking handler including:
     */
@@ -138,7 +138,7 @@ void blocking_syscall_handler (){
 
 
 /**********************************************************
- *  non_blocking_syscall_handler()
+ *   helper_non_blocking_syscall_handler()
  * 
  *  Handles non-blocking system calls by:
  *  - Incrementing the saved program counter
@@ -150,7 +150,7 @@ void blocking_syscall_handler (){
  *  Returns:
  * 
  **********************************************************/
-void non_blocking_syscall_handler (){
+HIDDEN void  helper_non_blocking_syscall_handler (){
     /*increment PC by 4*/
     ((state_PTR) BIOSDATAPAGE)->s_pc += WORDLEN;
     /* update the cpu_time*/
@@ -170,7 +170,7 @@ void non_blocking_syscall_handler (){
  *  Returns:
  *         int - 0 if Kernel mode, 1 if User mode
  **********************************************************/
-int check_KU_mode_bit() {
+HIDDEN int check_KU_mode_bit() {
     /*
     Examines the Status register in the saved exception state. 
     In particular, examine the previous version of the KU bit (KUp)
@@ -196,7 +196,7 @@ int check_KU_mode_bit() {
  *  Returns:
  *         
  **********************************************************/
-void helper_terminate_process(pcb_PTR toBeTerminate){
+HIDDEN void helper_terminate_process(pcb_PTR toBeTerminate){
     pcb_PTR childToBeTerminate;
     /* recursively, all progeny of this process are terminated as well. */
     while (!emptyChild(toBeTerminate)) {
@@ -245,7 +245,7 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
  *  Returns:
  * 
  **********************************************************/
-void CREATEPROCESS(){
+HIDDEN void CREATEPROCESS(){
 
     pcb_PTR newProcess = allocPcb();
 
@@ -297,7 +297,7 @@ void CREATEPROCESS(){
  *  Returns:
  * 
  **********************************************************/
-void TERMINATEPROCESS(){
+HIDDEN void TERMINATEPROCESS(){
     /* recursively terminate child and free pcb */
     helper_terminate_process(currentP);
     /* call scheduler */
@@ -316,7 +316,7 @@ void TERMINATEPROCESS(){
  *  Returns:
  *         
  **********************************************************/
-void PASSEREN(){
+HIDDEN void PASSEREN(){
     /*  
         Depending on the value of the semaphore, control is either returned to the
         Current Process, or this process is blocked on the ASL (transitions from “running”
@@ -331,10 +331,10 @@ void PASSEREN(){
     if ((*sema4) < 0){
         insertBlocked(sema4, currentP);
         /* executing process is blocked on the ASL and Scheduler is called*/
-        blocking_syscall_handler();
+        helper_blocking_syscall_handler();
     }
     /* control is returned to the Current Process */
-    non_blocking_syscall_handler();
+    helper_non_blocking_syscall_handler();
     return;
 }
 
@@ -350,7 +350,7 @@ void PASSEREN(){
  *  Returns:
  *         pcb_PTR - Pointer to the unblocked process 
  **********************************************************/
-pcb_PTR VERHOGEN(){
+HIDDEN pcb_PTR VERHOGEN(){
     /*getting the sema4 address from register a1*/
     int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
 
@@ -380,7 +380,7 @@ pcb_PTR VERHOGEN(){
  *  Returns:
  * 
  **********************************************************/
-void WAITIO(){
+HIDDEN void WAITIO(){
     /*value 5 in a0
     the interrupt line number in a1 ([3. . .7])
     the device number in a2 ([0. . .7])
@@ -416,7 +416,7 @@ void WAITIO(){
  *         
  **********************************************************/
 
-void GETCPUTIME(){
+HIDDEN void GETCPUTIME(){
 
     /*the accumulated processor time (in microseconds) used by the requesting 
     process be placed/returned in the caller’s v0*/
@@ -441,7 +441,7 @@ void GETCPUTIME(){
  *  Returns:
  *        
  **********************************************************/
-void WAITCLOCK(){
+HIDDEN void WAITCLOCK(){
     
     helper_PASSEREN(&(device_sem[pseudo_clock_idx]));
 
@@ -463,7 +463,7 @@ void WAITCLOCK(){
  *  Returns:
  *         
  **********************************************************/
-void GETSUPPORTPTR(){
+HIDDEN void GETSUPPORTPTR(){
 
     ((state_PTR) BIOSDATAPAGE)->s_v0 = currentP->p_supportStruct;
 }
@@ -482,9 +482,9 @@ void GETSUPPORTPTR(){
  *  Returns:
  *         
  **********************************************************/
-void pass_up_or_die(int exception_constant) {
+HIDDEN void pass_up_or_die(int exception_constant) {
 
-   /* If the Current Process’s p supportStruct is NULL, 
+    /* If the Current Process’s p supportStruct is NULL, 
     then the exception should be handled as a SYS2: the Current Process and all its progeny are terminated. */
     if (currentP -> p_supportStruct == NULL){
         helper_terminate_process(currentP);
@@ -514,7 +514,7 @@ void pass_up_or_die(int exception_constant) {
  *  Returns:
  *         
  **********************************************************/
-void SYSCALL_handler() {
+HIDDEN void SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode_bit() != 0){
@@ -527,33 +527,33 @@ void SYSCALL_handler() {
     }
     
     switch (((state_PTR) BIOSDATAPAGE)->s_a0) {
-    case 1:
-        CREATEPROCESS();
-        non_blocking_syscall_handler();
-    case 2:
-        TERMINATEPROCESS();    
-        break;
-    case 3:
-        PASSEREN();
-        break;
-    case 4:
-        VERHOGEN();
-        non_blocking_syscall_handler();
-    case 5:
-        WAITIO();
-        blocking_syscall_handler ();
-    case 6:
-        GETCPUTIME();
-        non_blocking_syscall_handler();
-    case 7:
-        WAITCLOCK();
-        blocking_syscall_handler ();
-    case 8:
-        GETSUPPORTPTR();
-        non_blocking_syscall_handler();
-    default:
-        /* Syscall Exception Error - Program trap handler */
-        pass_up_or_die(GENERALEXCEPT);
+        case 1:
+            CREATEPROCESS();
+             helper_non_blocking_syscall_handler();
+        case 2:
+            TERMINATEPROCESS();    
+            break;
+        case 3:
+            PASSEREN();
+            break;
+        case 4:
+            VERHOGEN();
+             helper_non_blocking_syscall_handler();
+        case 5:
+            WAITIO();
+            helper_blocking_syscall_handler ();
+        case 6:
+            GETCPUTIME();
+             helper_non_blocking_syscall_handler();
+        case 7:
+            WAITCLOCK();
+            helper_blocking_syscall_handler ();
+        case 8:
+            GETSUPPORTPTR();
+             helper_non_blocking_syscall_handler();
+        default:
+            /* Syscall Exception Error - Program trap handler */
+            pass_up_or_die(GENERALEXCEPT);
     }
 }
 
