@@ -88,28 +88,6 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
 }
 
 /**********************************************************
- *  deep_copy_context_t()
- *
- *  Deep copies the contents of a source context into a destination
- *  context.
- *
- *  Parameters:
- *         context_t *dest - Pointer to the destination context
- *         context_t *src  - Pointer to the source context
- *
- *  Returns:
- *         
- **********************************************************/
-HIDDEN void deep_copy_context_t(context_t *dest,context_t *src) {
-    /*
-    the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
-    */
-    dest->c_pc = src->c_pc;
-    dest->c_stackPtr = src->c_stackPtr;
-    dest->c_status = src->c_status;
-}
-
-/**********************************************************
  *  helper_blocking_syscall_handler()
  *
  *  Handles blocking system calls by:
