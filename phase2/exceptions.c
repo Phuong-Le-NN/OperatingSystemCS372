@@ -529,7 +529,7 @@ void SYSCALL_handler() {
     switch (((state_PTR) BIOSDATAPAGE)->s_a0) {
     case 1:
         CREATEPROCESS();
-        break;
+        non_blocking_syscall_handler();
     case 2:
         TERMINATEPROCESS();    
         break;
@@ -538,43 +538,23 @@ void SYSCALL_handler() {
         break;
     case 4:
         VERHOGEN();
-        break;
+        non_blocking_syscall_handler();
     case 5:
         WAITIO();
-        break;
+        blocking_syscall_handler ();
     case 6:
         GETCPUTIME();
-        break;
+        non_blocking_syscall_handler();
     case 7:
         WAITCLOCK();
-        break;
+        blocking_syscall_handler ();
     case 8:
         GETSUPPORTPTR();
-        break;
+        non_blocking_syscall_handler();
     default:
         /* Syscall Exception Error - Program trap handler */
         pass_up_or_die(GENERALEXCEPT);
     }
-
-    /*increment PC by 4*/
-    ((state_PTR) BIOSDATAPAGE)->s_pc += WORDLEN;
-
-    /*if the syscall was blocking*/
-    if ((((state_PTR) BIOSDATAPAGE)->s_a0 == 3 ) || 
-        (((state_PTR) BIOSDATAPAGE)->s_a0 == 5)  || 
-        (((state_PTR) BIOSDATAPAGE)->s_a0 == 7)){
-        /* save processor state copy into current process pcb*/
-        deep_copy_state_t(&(currentP->p_s), BIOSDATAPAGE);
-        /* update the cpu_time*/
-        currentP->p_time += (5000 - getTIMER());
-        /*process was already added to ASL in the syscall => already blocked*/
-        scheduler();
-    }
-    /* update the cpu_time*/
-    currentP->p_time += (5000 - getTIMER());
-    /*save processor state into the "well known" location for nonblocking syscall*/
-    LDST(((state_PTR) BIOSDATAPAGE));
-
 }
 
 /**********************************************************
