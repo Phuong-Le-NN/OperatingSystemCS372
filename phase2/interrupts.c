@@ -39,6 +39,24 @@
 
 /* Helper Functions */
 
+pcb_PTR helper_verhogen(){
+    /*getting the sema4 address from register a1*/
+    int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
+
+    pcb_PTR process_unblocked;
+    (*sema4) ++;
+    
+    if ((*sema4) <= 0){
+        process_unblocked = removeBlocked(sema4);
+        if (process_unblocked == NULL){
+            return NULL;
+        }
+        insertProcQ(&readyQ, process_unblocked);
+        return process_unblocked;
+    }
+    return NULL;
+}
+
 /**********************************************************
  *  deep_copy_state_t()
  *
@@ -173,7 +191,7 @@ HIDDEN void helper_terminal_write(int intLineNo, int devNo){
     ((state_PTR) BIOSDATAPAGE)->s_a1 = &device_sem[devIdx];
 
     /* putting the process returned by V operation to unblocked_pcb */
-    pcb_PTR unblocked_pcb = VERHOGEN();
+    pcb_PTR unblocked_pcb = helper_verhogen();
 
     /* if V operation failed to remove a pcb then return control to the current process*/
     if (unblocked_pcb == NULL){
@@ -189,7 +207,7 @@ HIDDEN void helper_terminal_write(int intLineNo, int devNo){
     unblocked_pcb->p_s.s_v0 = savedDevRegStatus;
 
     /* Insert the newly unblocked pcb on the Ready Queue*/
-    /* Done in VERHOGEN()*/
+    /* Done in helper_verhogen()*/
 
     /* Perform a LDST on the saved exception state*/
     LDST((state_PTR) BIOSDATAPAGE);
@@ -229,7 +247,7 @@ HIDDEN void helper_terminal_read_other_device(int intLineNo, int devNo){
     ((state_PTR) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
     
     /* putting the process returned by V operation to unblocked_pcb */
-    pcb_PTR unblocked_pcb = VERHOGEN();
+    pcb_PTR unblocked_pcb = helper_verhogen();
 
     /* if V operation failed to remove a pcb then return control to the current process*/
     if (unblocked_pcb == NULL){
@@ -244,7 +262,7 @@ HIDDEN void helper_terminal_read_other_device(int intLineNo, int devNo){
     unblocked_pcb->p_s.s_v0 = savedDevRegStatus;
 
     /* Insert the newly unblocked pcb on the Ready Queue*/
-    /* Done in VERHOGEN()*/
+    /* Done in helper_verhogen()*/
 
     /* Perform a LDST on the saved exception state*/
     LDST((state_PTR) BIOSDATAPAGE);  
