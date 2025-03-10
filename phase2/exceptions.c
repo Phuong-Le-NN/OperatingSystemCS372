@@ -41,13 +41,20 @@
 
 /* Helper Functions*/
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  helper_PASSEREN()
+ *
+ *  This function performs a P operation on the given semaphore.
+ *  If the semaphore value is negative after decrementing, the
+ *  calling process is blocked.
+ *
+ *  Parameters:
+ *         int *sema4 - Pointer to the semaphore to decrement
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void helper_PASSEREN(int *sema4){
-    /*  
-         
-    */
 
     (*sema4) --;
     if ((*sema4) < 0){
@@ -56,13 +63,20 @@ void helper_PASSEREN(int *sema4){
     return;
 }
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  deep_copy_state_t()
+ *
+ *  Copies the contents of a source processor state into a
+ *  destination processor state.
+ *
+ *  Parameters:
+ *         state_PTR dest - Pointer to the destination state
+ *         state_PTR src  - Pointer to the source state
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
-    /*
-    the function that takes in pointer to 2 state_t and deep copy the value src to dest
-    */
     dest->s_cause = src->s_cause;
     dest->s_entryHI = src->s_entryHI;
     dest->s_pc = src->s_pc;
@@ -73,9 +87,19 @@ HIDDEN void deep_copy_state_t(state_PTR dest, state_PTR src) {
     dest->s_status = src->s_status;
 }
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  deep_copy_context_t()
+ *
+ *  Copies the contents of a source context into a destination
+ *  context.
+ *
+ *  Parameters:
+ *         context_t *dest - Pointer to the destination context
+ *         context_t *src  - Pointer to the source context
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void deep_copy_context_t(context_t *dest,context_t *src) {
     /*
     the funtion that takes in pointer to 2 support_t and deep copy the value src to dest
@@ -85,9 +109,20 @@ void deep_copy_context_t(context_t *dest,context_t *src) {
     dest->c_status = src->c_status;
 }
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  blocking_syscall_handler()
+ *
+ *  Handles blocking system calls by:
+ *  - Incrementing the saved program counter
+ *  - Copies the current process state from BIOS
+ *  - Updating CPU time
+ *  - Calling the scheduler
+ *
+ *  Parameters:
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void blocking_syscall_handler (){
     /*
     This function handle the steps after a blocking handler including:
@@ -101,9 +136,20 @@ void blocking_syscall_handler (){
     scheduler();
 }
 
-/************************************************************************************
+
+/**********************************************************
+ *  non_blocking_syscall_handler()
  * 
- */
+ *  Handles non-blocking system calls by:
+ *  - Incrementing the saved program counter
+ *  - Updating CPU time
+ *  - Load the process state into BIOS
+ *
+ *  Parameters:
+ *
+ *  Returns:
+ * 
+ **********************************************************/
 void non_blocking_syscall_handler (){
     /*increment PC by 4*/
     ((state_PTR) BIOSDATAPAGE)->s_pc += WORDLEN;
@@ -113,12 +159,21 @@ void non_blocking_syscall_handler (){
     LDST((state_PTR) BIOSDATAPAGE);
 }
 
-/************************************************************************************
+/**********************************************************
+ *  check_KU_mode_bit()
  * 
- */
+ *  Determines whether the current process is in Kernel mode
+ *  by examining the KU bit in the saved status register.
+ *
+ *  Parameters:
+ *
+ *  Returns:
+ *         int - 0 if Kernel mode, 1 if User mode
+ **********************************************************/
 int check_KU_mode_bit() {
     /*
-    Examines the Status register in the saved exception state. In particular, examine the previous version of the KU bit (KUp)
+    Examines the Status register in the saved exception state. 
+    In particular, examine the previous version of the KU bit (KUp)
     */
     int KUp = ((state_PTR) BIOSDATAPAGE)->s_status & 0x00000008;
     if (KUp == 0){
@@ -127,10 +182,20 @@ int check_KU_mode_bit() {
     return 1;
 }
 
-/************************************************************************************
- * 
- */
 
+/**********************************************************
+ *  helper_terminate_process()
+ *
+ *  Recursively terminates a process and all its children processes.
+ *  Removes the process from the process queue, device semaphores,
+ *  and releases.
+ *
+ *  Parameters:
+ *         pcb_PTR toBeTerminate - Pointer to the process to terminate
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void helper_terminate_process(pcb_PTR toBeTerminate){
     pcb_PTR childToBeTerminate;
     /* recursively, all progeny of this process are terminated as well. */
@@ -168,24 +233,18 @@ void helper_terminate_process(pcb_PTR toBeTerminate){
 /* System Calls Functions*/
 
 
-/************************************************************************************
- * Create Process
- */
-/*
-    initializes:
-        p s from a1.
-        p supportStruct from a2. If no parameter is provided, this field is set
-            to NULL.
-        The process queue fields (e.g. p next) by the call to insertProcQ
-        The process tree fields (e.g. p child) by the call to insertChild.
-        p time is set to zero; the new process has yet to accumulate any cpu time.
-        p semAdd is set to NULL; this pcb/process is in the “ready” state, not the
-            “blocked” state.
-
-        The newly populated pcb is placed on the Ready Queue and is made a child of
-        the Current Process. Process Count is incremented by one, and control is returned
-        to the Current Process.
-*/
+/**********************************************************
+ *  CREATEPROCESS()
+ *
+ *  Allocates and initializes a new process, setting up its
+ *  state and inserting it into the ready queue. The new process
+ *  becomes a child of the currently running process.
+ *
+ *  Parameters:
+ *
+ *  Returns:
+ * 
+ **********************************************************/
 void CREATEPROCESS(){
 
     pcb_PTR newProcess = allocPcb();
@@ -225,9 +284,19 @@ void CREATEPROCESS(){
     /* p_time is set to 0 and p_semAdd is set to NULL in allocPcb() */
 }
 
-/************************************************************************************
+
+/**********************************************************
+ *  TERMINATEPROCESS() 
+ *
+ *  Terminates the currently running process and all its
+ *  child processes. The scheduler is called after termination.
+ *
+ *  Parameters:
+ *         
+ *
+ *  Returns:
  * 
- */
+ **********************************************************/
 void TERMINATEPROCESS(){
     /* recursively terminate child and free pcb */
     helper_terminate_process(currentP);
@@ -235,9 +304,18 @@ void TERMINATEPROCESS(){
     scheduler();
 }
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  PASSEREN()
+ *
+ *  Performs a P operation on the semaphore. If the
+ *  semaphore value is negative, the calling process is blocked.
+ *
+ *  Parameters:
+ *        
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void PASSEREN(){
     /*  
         Depending on the value of the semaphore, control is either returned to the
@@ -260,9 +338,18 @@ void PASSEREN(){
     return;
 }
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  VERHOGEN() 
+ *
+ *  Performs a V operation on the semaphore. If a process
+ *  is blocked on the semaphore, it is unblocked and moved to
+ *  the ready queue.
+ *
+ *  Parameters:
+ *
+ *  Returns:
+ *         pcb_PTR - Pointer to the unblocked process 
+ **********************************************************/
 pcb_PTR VERHOGEN(){
     /*getting the sema4 address from register a1*/
     int *sema4 = ((state_PTR) BIOSDATAPAGE)->s_a1;
@@ -281,9 +368,18 @@ pcb_PTR VERHOGEN(){
     return NULL;
 }
 
-/************************************************************************************
+/**********************************************************
+ *  WAITIO()
+ *
+ *  Blocks the current process until the requested I/O operation
+ *  completes. The process is added to the appropriate device
+ *  semaphore queue.
+ *
+ *  Parameters:
+ *
+ *  Returns:
  * 
- */
+ **********************************************************/
 void WAITIO(){
     /*value 5 in a0
     the interrupt line number in a1 ([3. . .7])
@@ -305,66 +401,87 @@ void WAITIO(){
 
     softBlock_count ++;
     
-    /* not supposed to do this?*/
-    /*returning the device status word*/
-    /* ((state_PTR) BIOSDATAPAGE)->s_v0 = devAddrBase(((state_PTR) BIOSDATAPAGE)->s_a1, ((state_PTR) BIOSDATAPAGE)->s_a2); */
-    /* 
-    blocking_syscall_handler();
-    */
     return;
 }
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  GETCPUTIME()
+ *
+ *  Returns the total CPU time used by the calling process.
+ *
+ *  Parameters:
+ *         
+ *
+ *  Returns:
+ *         
+ **********************************************************/
+
 void GETCPUTIME(){
-    /*the accumulated processor time (in microseconds) used by the requesting process be placed/returned in the caller’s v0*/
+
+    /*the accumulated processor time (in microseconds) used by the requesting 
+    process be placed/returned in the caller’s v0*/
     ((state_PTR) BIOSDATAPAGE)->s_v0 = currentP->p_time + 5000 - getTIMER();
     return;
 }
 
 
-/************************************************************************************
+/**********************************************************
+ *  WAITCLOCK()
+ *
+ *  Performs a P operation on the pseudo-clock semaphore. The
+ *  process is blocked until the next clock tick (every 100ms).
  * 
- */
+ *  This service performs a P operation on the Pseudo-clock semaphore.
+ *  This semaphore is V’ed every 100 milliseconds by the Nucleus.
+ *  Block the Current Process on the ASL then Scheduler is called.
+ *
+ *  Parameters:
+ *         
+ *
+ *  Returns:
+ *        
+ **********************************************************/
 void WAITCLOCK(){
-    /*
-    This service performs a P operation on the Pseudo-clock semaphore.
-    This semaphore is V’ed every 100 milliseconds by the Nucleus.
-    block the Current Process on the ASL then Scheduler is called.*/
     
     helper_PASSEREN(&(device_sem[pseudo_clock_idx]));
 
     softBlock_count ++;
 
-    /*scheuler is called in SYSCALL handler*/
-    /* 
-    blocking_syscall_handler();
-    */
     return;
 }
 
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  GETSUPPORTPTR()
+ *
+ *  Returns the value of p_supportStruct from the Current 
+ *  Process’s pcb
+ *
+ *  Parameters:
+ *         None
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void GETSUPPORTPTR(){
-    /*
-    returns the value of p supportStruct from the Current Process’s pcb
-    */
+
     ((state_PTR) BIOSDATAPAGE)->s_v0 = currentP->p_supportStruct;
 }
 
 
-/************************************************************************************
- * Pass Up or Die
- */
-/* The Nucleus Program Trap exception handler performs a standard Pass Up or Die operation 
-using the GENERALEXCEPT index value. */
-/* 
-1. copy the saved exception state into a location accessible to the Support Level, 
-2. and pass control to a routine specified by the Support Level.
-*/
+/**********************************************************
+ *  pass_up_or_die()
+ *
+ *  Handles program traps and TLB exceptions by either passing
+ *  them to the user-level handler (if present) or terminating
+ *  the process.
+ *
+ *  Parameters:
+ *         int exception_constant - Exception type
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void pass_up_or_die(int exception_constant) {
 
    /* If the Current Process’s p supportStruct is NULL, 
@@ -384,9 +501,19 @@ void pass_up_or_die(int exception_constant) {
 }
 
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  SYSCALL_handler()
+ *
+ *  Decodes and processes system calls (SYS1–SYS8). If an
+ *  invalid system call is encountered, a program trap is 
+ *  triggered.
+ *
+ *  Parameters:
+ *         
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void SYSCALL_handler() {
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
@@ -450,9 +577,19 @@ void SYSCALL_handler() {
 
 }
 
-/************************************************************************************
- * 
- */
+/**********************************************************
+ *  exception_handler()
+ *
+ *  Determines the cause of an exception and delegates it to
+ *  the corresponding handler (interrupt, TLB exception, program
+ *  trap, or system call).
+ *
+ *  Parameters:
+ *         
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void exception_handler(){
     /* Get the Cause registers from the saved exception state and 
     use AND bitwise operation to get the .ExcCode field */
