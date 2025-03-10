@@ -1,7 +1,8 @@
-/************************** INTERRUPTS.H ******************************
+/************************* INTERRUPTS.H *****************************
 *
+*  The externals declaration file for INTERRUPTS Module
 *
-*  Written by Phuong and Oghap on Feb 2025
+*  Written by Phuong and Oghap
 */
 
 #ifndef INTERRUPTS_H

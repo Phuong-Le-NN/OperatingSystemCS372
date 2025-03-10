@@ -1,6 +1,8 @@
-/************************** SCHEDULER.H ******************************
+/************************* SCHEDULER.H *****************************
 *
+*  The externals declaration file for SCHEDULER Module
 *
+*  Written by Phuong and Oghap
 */
 
 #ifndef SCHEDULER_H

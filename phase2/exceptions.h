@@ -1,5 +1,6 @@
 /************************** EXCEPTIONS.H ******************************
 *
+*  The externals declaration file for EXCEPTIONS Module
 *
 *  Written by Phuong and Oghap on Feb 2025
 */
