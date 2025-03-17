@@ -93,8 +93,8 @@ typedef struct support_t {
 } support_t;
 
 typedef struct pte_t {
-    unsigned int EntryHi;  // VPN (Virtual Page Number) and ASID
-    unsigned int EntryLo;  // PFN (Physical Frame Number) and Valid/Dirty bits
+    unsigned int EntryHi;  /* VPN (Virtual Page Number) and ASID*/
+    unsigned int EntryLo;  /* PFN (Physical Frame Number) and Valid/Dirty bits */
 } pte_t;
 
 /* Exceptions related constants */

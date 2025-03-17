@@ -42,7 +42,7 @@ void uTLB_RefillHandler() {
         setENTRYLO(pte->EntryLo);
         TLBWR();  // Write new entry to TLB
 
-        LDST(exceptionState);  // Resume execution
+        LDST(exceptionState);  // return control
     } else {
         // If it's an unexpected exception (TLB-Modification), treat it as a program trap
         programTrapHandler();
