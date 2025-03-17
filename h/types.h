@@ -92,6 +92,11 @@ typedef struct support_t {
 	/*... other fields to be added later*/
 } support_t;
 
+typedef struct pte_t {
+    unsigned int EntryHi;  // VPN (Virtual Page Number) and ASID
+    unsigned int EntryLo;  // PFN (Physical Frame Number) and Valid/Dirty bits
+} pte_t;
+
 /* Exceptions related constants */
 #define PGFAULTEXCEPT 0
 #define GENERALEXCEPT 1
