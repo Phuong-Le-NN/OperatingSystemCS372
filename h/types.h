@@ -85,11 +85,18 @@ typedef struct context_t {
 				 c_pc;				/* PC address*/							
 } context_t;
 
+/* 4.4.1 _ The swap pool*/
+typedef struct swapPoolFrame_t {
+	int ASID; /* The ASID of the U-proc whose page is occupying the frame*/
+	int pgNo; /* The logical page number (VPN) of the occupying page.*/
+	pte_t *matchingPgTableEntry; /* A pointer to the matching Page Table entry in the Page Table belonging to the owner process. (i.e. ASID)*/
+} swapPoolFrame_t;
+
 typedef struct support_t {
 	int 		sup_asid;				/* Process Id (asid) */
 	state_t		sup_exceptState[2];		/* stored excpt states */
 	context_t	sup_exceptContext[2]; 	/* pass up contexts */
-	/*... other fields to be added later*/
+	pte_t		sup_pgTable[32];		/* A Pandos Page Table will be an array of 32 Page Table entries _ pg 43 pandos */
 } support_t;
 
 typedef struct pte_t {
