@@ -40,7 +40,7 @@ void initSwapStruct(){/* 4.1 -- Address Translation: The OS Perspective & 4.4.1 
     /* Backing store: None ? -- this basic version of the Support Level will use each U-proc’s flash device as its backing store device.*/
 }
 
-void initialize_Uproc_pgTable() { /* 4.2.1 Pandos - A U-proc’s Page Table*/
+void init_Uproc_pgTable() { /* 4.2.1 Pandos - A U-proc’s Page Table*/
     /* To initialize a Page Table one needs to set the VPN, ASID, V, and D bit fields for each Page Table entry*/
     int i;
     for (i = 0; i < 32; i ++){
