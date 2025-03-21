@@ -23,23 +23,13 @@
 #include "../phase2/interrupts.h"
 
 /* global variables */
-
-/* The Swap Pool must be a shared resource among all U-procs, meaning it should be globally accessible rather than local to a function. */
-
-/* Section 4.4.1 - The Swap Pool
-“The Support Level must maintain a table, one entry per frame in the Swap Pool, recording information about the logical page occupying it.”
-“The Swap Pool table is a shared data structure that must be accessed or updated in a mutually exclusive manner.” */
-
-/* Section 4.11.2 - Module Decomposition
-“Instead of declaring them globally in initProc.c, they can be declared module-wide in vmSupport.c. 
-The test function will now invoke a new ‘public’ function initSwapStructs, which will do the work of initializing both the Swap Pool table and accompanying semaphore.” */
 HIDDEN swapPoolFrame_t swapPoolTable[8 * 2];
 HIDDEN int swapPoolSema4;
 
 /**********************************************************
  *  
  **********************************************************/
-void initSwapStruct(){/* 4.1 -- Address Translation: The OS Perspective & 4.4.1 The Swap Pool */
+void initSwapStruct(){/* 4.1 -- Address Translation */
     /*
     initSwapStructs which will do the work of initializing both the Swap Pool table and accompanying semaphore [4.11.2 Module Decomposition]
     */
@@ -115,13 +105,6 @@ void uTLB_RefillHandler() { /* 4.3 -- The TLB-Refill event handler*/
  **********************************************************/
 int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
     static int nextFrame = 0; 
-    /* Look for an empty frame */
-    int i;
-    for (i = 0; i < (2 * 8); i = i + 1){
-        if (swapPoolTable[i].ASID == -1) {  /* from PANDOS 4.4.1 Technical Point */
-            return i;
-        }
-    }
 
     /* If no free frame, select the oldest one (FIFO) */ 
     int selectedFrame = nextFrame;
@@ -174,47 +157,38 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     /* 1. Obtain the pointer to the Current Process’s Support Structure: SYS8. */
     support_t *currentSupport = (support_t *) SYSCALL(8, 0, 0, 0);
 
-    /* 2. Determine the cause of the TLB exception. 
-    The saved exception state re- sponsible for this TLB exception should be found in the Current Process’s Support Structure for TLB exceptions. 
-    (sup exceptState[0]’s Cause register)*/
+    /* 2. Determine the cause of the TLB exception. )*/
     int TLBcause = CauseExcCode(currentSupport->sup_exceptState[0].s_cause);
 
-    /* 3. If the Cause is a TLB-Modification exception, treat this exception as a program trap [Section 4.8], otherwise continue. */
+    /* 3. If the Cause is a TLB-Modification exception, treat this exception as a program trap [Section 4.8] */
     /* from POPS Table 3.2, page 19 and from PANDOS 3.7.2 */
     if (TLBcause == 1){
-        /* PANDOS 4.8, we have not coded this yet, but we will have to declare it for the sysSupport.c */
+        /* PANDOS 4.8, NOT coded yet */
         programTrapHandler();
     }
 
     /* 4. Gain mutual exclusion over the Swap Pool table. (SYS3 – P operation on the Swap Pool semaphore) */
-    /* I am not sure if this is right...*/
     SYSCALL(3, &swapPoolSema4, 0, 0);
     
     /* 5. Determine the missing page number (denoted as p): found in the saved exception state’s EntryHi. */
-    int missingVPN = (((state_PTR) BIOSDATAPAGE)->s_entryHI >> 12) & 0x000FFFFF; /* missingVPN is in range [0x80000 ... 0x8001E]*/
+    int missingVPN = (((state_PTR) BIOSDATAPAGE)->s_entryHI >> 12) & 0x000FFFFF; 
 
     /* 6. Pick a frame, i, from the Swap Pool. Which frame is selected is determined by the Pandos page replacement algorithm. [Section 4.5.4]*/
     int pickedFrame = page_replace();
 
     /* 7. Determine if frame i is occupied; examine entry i in the Swap Pool table. */
-    /* If frame i is currently occupied, assume it is occupied by logical page number k belonging to process x (ASID) and 
-    that it is “dirty” (i.e. been modi- fied): */
     /* POPS 6.3.2 */
-    if (swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x00000200){     /* POPS 6.3.2 */
+    if (swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x00000200){ 
 
         /* (a) Update process x’s Page Table: mark Page Table entry k as not valid. This entry is easily accessible, since the Swap Pool table’s entry i contains a pointer to this Page Table entry. */
         pte_t *occupiedPgTable = swapPoolTable[pickedFrame].matchingPgTableEntry;
-        occupiedPgTable->EntryLo &= ~0x00000200;     /* POPS 6.3.2 */
+        occupiedPgTable->EntryLo &= ~0x00000200; 
 
         /* disable interrupts */
-        /* Interrupts should be disabled when modifying shared memory structures (like the Page Table and TLB) to prevent inconsistencies.*/
         setSTATUS(getSTATUS() & (~IECBITON));
 
 
-        /* (b) Update the TLB, if needed. The TLB is a cache of the most recently executed process’s Page Table entries. 
-        If process x’s page k’s Page Table entry is currently cached in the TLB it is clearly out of date; 
-        it was just updated in the previous step.
-        Important Point: This step and the previous step must be accomplished atomically. [Section 4.5.3] */
+        /* (b) Update the TLB, if needed. */
         setENTRYHI(occupiedPgTable->EntryHi);
         TLBP();
 
@@ -222,30 +196,25 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         int index = getINDEX();
 
         /* Check if the entry is present in the TLB (Index.P == 0) */
-        /* The TLBP (TLB-Probe) command initiates a TLB search for a matching entry in the TLB that matches the current values in the EntryHi CP0 regis- ter. 
-        If a matching entry is found in the TLB the corresponding index value is loaded into Index.
-        TLB-Index and the Probe bit (Index.P) is set to 0. If no match is found, Index.P is set to 1. [Section 7.2.1]*/
-        if ((index & 0x80000000) == 0) {  /* 0x80000000 is the "P" bit (bit 31) from POPS 6.4 */
+         /* POPS 6.4 */
+        if ((index & 0x80000000) == 0) {                           
             setENTRYLO(occupiedPgTable->EntryLo);
             TLBWI();
         }
 
         /* enable interrupts */
         /*  Pandos 4.5.3, 4.4.2, and POPS 6.4.*/
-        /* Interrupts should be disabled when modifying shared memory structures (like the Page Table and TLB) to prevent inconsistencies.
-        Interrupts should be enabled afterward to allow the system to continue handling device events and process scheduling. */
         setSTATUS(getSTATUS() | IECBITON);
 
-        /* (c) Update process x’s backing store. Write the contents of frame i to the correct location on process x’s backing store/flash device. [Section 4.5.1]
+        /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if (occupiedPgTable->EntryLo & 0x00000800) {  /* D bit set */
-            read_write_flash(pickedFrame, 1);  /* isWrite = 1 */
+            read_write_flash(pickedFrame, 1);  /* isWrite = 1 since we are writing */
         }
     }
 
-    /* 9. Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. [Section 4.5.1]
-        Treat any error status from the read operation as a program trap. [Section 4.8] */
-    read_write_flash(pickedFrame, 0);  /* isWrite = 0 */
+    /* 9. Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. [Section 4.5.1] */
+    read_write_flash(pickedFrame, 0);  /* isWrite = 0 since we are reading */
 
     /* 10. Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID, and a pointer to the Current Process’s Page Table entry for page p. */
     swapPoolTable[pickedFrame].ASID = currentSupport->sup_asid;
@@ -253,31 +222,33 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     int pgTableIndex;
 
     if (missingVPN == 0xBFFFF) {
-        pgTableIndex = 31;  /* stack page is always at index 31 */
+        pgTableIndex = 31;                              
     } else {
-        pgTableIndex = (missingVPN - 0x80000) / 0x1000;  /* compute index for text/data */
+        pgTableIndex = (missingVPN - 0x80000) / 0x1000;  
     }
 
     swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_pgTable[pgTableIndex]);
 
     /* 11. Update the Current Process’s Page Table entry for page p to indicate it is now present (V bit) and occupying frame i (PFN field).*/
     pte_t *newEntry = swapPoolTable[pickedFrame].matchingPgTableEntry;
-    newEntry->EntryLo |= 0x00000200;  /* Set V bit */
-    newEntry->EntryLo &= ~0xFFFFF000;  /* Clear old PFN */
-    newEntry->EntryLo |= (pickedFrame << 12);  /* Set new PFN */
+    /* Set V bit */
+    newEntry->EntryLo |= 0x00000200; 
+     /* Clear old PFN */
+    newEntry->EntryLo &= ~0xFFFFF000;
+    /* Set new PFN */
+    newEntry->EntryLo |= (pickedFrame << 12);
 
-    /* 12. Update the TLB. The cached entry in the TLB for the Current Process’s page p is clearly out of date; it was just updated in the previous step.
-    Important Point: This step and the previous step must be accomplished atomically. [Section 4.5.3]*/
+    /* 12. Update the TLB. */
     setSTATUS(getSTATUS() & (~IECBITON));
     setENTRYHI(newEntry->EntryHi);
     setENTRYLO(newEntry->EntryLo);
     TLBWR();
     setSTATUS(getSTATUS() | IECBITON);
 
-    /* 13. Release mutual exclusion over the Swap Pool table. (SYS4 – V operation on the Swap Pool semaphore) */
+    /* 13. Release mutual exclusion over the Swap Pool table. SYS4 */
     SYSCALL(4, &swapPoolSema4, 0, 0);
 
-    /* 14. Return control to the Current Process to retry the instruction that caused the page fault: LDST on the saved exception state. */
+    /* 14. Return control to the Current Process */
     LDST((state_t *) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
 }
 
