@@ -152,7 +152,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager*/
     SYSCALL(3, &swapPoolSema4, 0, 0);
     
     /* 5. Determine the missing page number (denoted as p): found in the saved exception state’s EntryHi. */
-    int missingVPN = (((state_PTR) BIOSDATAPAGE)->s_entryHI >> 12) & 0x000FFFFF; /* missingVPN is in range [0x80000 ... 0x8001E]*/
+    int pMissingPgNo = (((state_PTR) BIOSDATAPAGE)->s_entryHI >> 12) & 0x000FFFFF; /* missingVPN is in range [0x80000 ... 0x8001E]*/
 
     /* 6. Pick a frame, i, from the Swap Pool. Which frame is selected is determined by the Pandos page replacement algorithm*/
     int pickedSwapPoolFrame = page_replace();
@@ -198,9 +198,13 @@ void TLB_exception_handler() { /* 4.4.2 The Pager*/
     /* 9. Read the contents of the Current Process’s backingstore/flash device logical page p into frame i*/
     read_flash();
     /* 10. Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID, and a pointer to the Current Process’s Page Table entry for page p. */
-    swapPoolTable[pickedSwapPoolFrame].pgNo = currentP->p_supportStruct->sup_asid;
+    swapPoolTable[pickedSwapPoolFrame].pgNo = pMissingPgNo;
+    swapPoolTable[pickedSwapPoolFrame].matchingPgTableEntry = &(currentSupport->sup_pgTable[pMissingPgNo]);
+    swapPoolTable[pickedSwapPoolFrame].ASID = currentSupport->sup_asid;
     /* 11. Update the Current Process’s Page Table entry for page p to indicate it is now present (V bit) and occupying frame i (PFN field).*/
-    
+    currentSupport->sup_pgTable[pMissingPgNo].EntryLo = currentSupport->sup_pgTable[pMissingPgNo].EntryLo | 0x00000200;
+    currentSupport->sup_pgTable[pMissingPgNo].EntryLo = currentSupport->sup_pgTable[pMissingPgNo].EntryLo & 0x00000111; /* clear out the old PFN field*/
+    currentSupport->sup_pgTable[pMissingPgNo].EntryLo += m
     /* 12. Update the TLB. The cached entry in the TLB for the Current Process’s page p is clearly out of date; it was just updated in the previous step.
     Important Point: This step and the previous step must be accomplished atomically. [Section 4.5.3]*/
 
