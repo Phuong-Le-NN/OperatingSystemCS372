@@ -30,7 +30,43 @@ void program_trap_handler(){
 }
 
 void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
+    /*
+    virtual address of the first character of the string to be transmitted in a1,
+    the length of this string in a2
+    */
+    state_t savedExcState = passedUpSupportStruct->sup_exceptState[GENERALEXCEPT];
 
+    int devNo = passedUpSupportStruct->sup_asid - 1;
+    device_t *printerDevAdd = devAddrBase(PRNTINT, devNo);
+
+    /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
+    int stringOutsideAddSpace = (savedExcState.s_a1 < KSEG2 | savedExcState.s_a1 > KUSEG)? TRUE:FALSE;
+    /* Error: length less than 0*/
+    int negStringLen = (savedExcState.s_a2 < 0)? TRUE:FALSE;
+    /* Error: a length greater than 128*/
+    int oversizeStringLen = (savedExcState.s_a2 > 128)? TRUE:FALSE;
+
+    if (stringOutsideAddSpace || negStringLen || oversizeStringLen){
+        SYSCALL(9, 0, 0, 0);
+    }
+
+    /* add dev mutex sema4 once init proc is done*/
+    int i;
+    for (i = 0; i < savedExcState.s_a2; i++){
+        printerDevAdd->d_data0 = *((char *) (savedExcState.s_a1 + i)); /*calculate address and accessing the current char*/
+        printerDevAdd->d_command = 2; /* command PRINTCHR */
+        SYSCALL(5, PRNTINT, devNo, 0); /*call SYSCALL WAITIO to block until interrupt*/
+        if (printerDevAdd->d_status != 1) { /* operation ends with a status other than "Device Ready" */
+            savedExcState.s_v0 = - printerDevAdd->d_status;
+            return;
+        }
+    }
+
+    if (printerDevAdd->d_status == 1) { /* "Device Ready" */
+        savedExcState.s_v0 = savedExcState.s_a2;;
+    } else {
+        savedExcState.s_v0 = - printerDevAdd->d_status;
+    }
 }
 
 void syscall_handler(support_t *passedUpSupportStruct) {
