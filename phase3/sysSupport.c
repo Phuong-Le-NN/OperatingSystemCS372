@@ -19,7 +19,13 @@
  #include "../phase2/scheduler.h"
  #include "../phase2/exceptions.h"
  #include "../phase2/interrupts.h"
- 
+
+ int helper_check_string_outside_add_space(int strAdd){
+    if ((strAdd < 0x80000 | strAdd > 0x8001E) & (strAdd < 0xBFFFF | strAdd > (0xBFFFF000 + 0x1000) >> 12)){
+        return TRUE;
+    }
+    return FALSE;
+ }
  
  void helper_return_control(support_t *passedUpSupportStruct){
      passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_pc += 4;
@@ -75,7 +81,7 @@
      device_t *printerDevAdd = devAddrBase(PRNTINT, devNo);
  
      /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-     int stringOutsideAddSpace = (savedExcState->s_a1 < KSEG2 | savedExcState->s_a1 > KUSEG)? TRUE:FALSE;
+     int stringOutsideAddSpace = helper_check_string_outside_add_space(savedExcState->s_a1);
      /* Error: length less than 0*/
      int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
      /* Error: a length greater than 128*/
@@ -117,7 +123,7 @@
      device_t *termDevAdd = devAddrBase(TERMINT, devNo);
  
      /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-     int stringOutsideAddSpace = (savedExcState->s_a1 < KSEG2 | savedExcState->s_a1 > KUSEG)? TRUE:FALSE;
+     int stringOutsideAddSpace = helper_check_string_outside_add_space(savedExcState->s_a1);
      /* Error: length less than 0*/
      int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
      /* Error: a length greater than 128*/
