@@ -69,17 +69,17 @@
      virtual address of the first character of the string to be transmitted in a1,
      the length of this string in a2
      */
-     state_t savedExcState = passedUpSupportStruct->sup_exceptState[GENERALEXCEPT];
+     state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
  
      int devNo = passedUpSupportStruct->sup_asid - 1;
      device_t *printerDevAdd = devAddrBase(PRNTINT, devNo);
  
      /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-     int stringOutsideAddSpace = (savedExcState.s_a1 < KSEG2 | savedExcState.s_a1 > KUSEG)? TRUE:FALSE;
+     int stringOutsideAddSpace = (savedExcState->s_a1 < KSEG2 | savedExcState->s_a1 > KUSEG)? TRUE:FALSE;
      /* Error: length less than 0*/
-     int negStringLen = (savedExcState.s_a2 < 0)? TRUE:FALSE;
+     int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
      /* Error: a length greater than 128*/
-     int oversizeStringLen = (savedExcState.s_a2 > 128)? TRUE:FALSE;
+     int oversizeStringLen = (savedExcState->s_a2 > 128)? TRUE:FALSE;
  
      if (stringOutsideAddSpace || negStringLen || oversizeStringLen){
          SYSCALL(9, 0, 0, 0);
@@ -87,13 +87,13 @@
  
      /* add dev mutex sema4 once init proc is done*/
      int i;
-     for (i = 0; i < savedExcState.s_a2; i++){
+     for (i = 0; i < savedExcState->s_a2; i++){
          setSTATUS(getSTATUS() & (~IECBITON));
-         printerDevAdd->d_data0 = *((char *) (savedExcState.s_a1 + i)); /*calculate address and accessing the current char*/
+         printerDevAdd->d_data0 = *((char *) (savedExcState->s_a1 + i)); /*calculate address and accessing the current char*/
          printerDevAdd->d_command = 2; /* command PRINTCHR */
          SYSCALL(5, PRNTINT, devNo, 0); /*call SYSCALL WAITIO to block until interrupt*/
          if (printerDevAdd->d_status != 1) { /* operation ends with a status other than "Device Ready" */
-             savedExcState.s_v0 = - printerDevAdd->d_status;
+            savedExcState->s_v0 = - printerDevAdd->d_status;
              return;
          }
          setSTATUS(getSTATUS() | IECBITON);
@@ -111,17 +111,17 @@
      virtual address of the first character of the string to be transmitted in a1,
      the length of this string in a2
      */
-     state_t savedExcState = passedUpSupportStruct->sup_exceptState[GENERALEXCEPT];
+     state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
  
      int devNo = passedUpSupportStruct->sup_asid - 1;
      device_t *termDevAdd = devAddrBase(TERMINT, devNo);
  
      /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-     int stringOutsideAddSpace = (savedExcState.s_a1 < KSEG2 | savedExcState.s_a1 > KUSEG)? TRUE:FALSE;
+     int stringOutsideAddSpace = (savedExcState->s_a1 < KSEG2 | savedExcState->s_a1 > KUSEG)? TRUE:FALSE;
      /* Error: length less than 0*/
-     int negStringLen = (savedExcState.s_a2 < 0)? TRUE:FALSE;
+     int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
      /* Error: a length greater than 128*/
-     int oversizeStringLen = (savedExcState.s_a2 > 128)? TRUE:FALSE;
+     int oversizeStringLen = (savedExcState->s_a2 > 128)? TRUE:FALSE;
  
      if (stringOutsideAddSpace || negStringLen || oversizeStringLen){
          SYSCALL(9, 0, 0, 0);
@@ -129,47 +129,24 @@
  
      /* add dev mutex sema4 once init proc is done*/
      int i;
-     for (i = 0; i < savedExcState.s_a2; i++){
+     for (i = 0; i < savedExcState->s_a2; i++){
          setSTATUS(getSTATUS() & (~IECBITON));
-         termDevAdd->t_transm_command = *((char *) (savedExcState.s_a1 + i)) << 7 + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
+         termDevAdd->t_transm_command = *((char *) (savedExcState->s_a1 + i)) << 7 + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
          SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/
          if (termDevAdd->t_transm_status != 5) { /* operation ends with a status other than "Device Ready" */
-             savedExcState.s_v0 = - termDevAdd->t_transm_status;
+            savedExcState->s_v0 = - termDevAdd->t_transm_status;
              return;
          }
          setSTATUS(getSTATUS() | IECBITON);
      }
  
      if (termDevAdd->t_transm_status == 5) { /* "Device Ready" */
-         savedExcState.s_v0 = savedExcState.s_a2;;
+        savedExcState->s_v0 = savedExcState->s_a2;;
      } else {
-         savedExcState.s_v0 = - termDevAdd->t_transm_status;
+        savedExcState->s_v0 = - termDevAdd->t_transm_status;
      }
  }
  
- void syscall_handler(support_t *passedUpSupportStruct) {
-     switch (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0){
-         case 9:
-             TERMINATE(passedUpSupportStruct);
-             helper_return_control(passedUpSupportStruct);
-         case 10:
-             GET_TOD(passedUpSupportStruct);
-             helper_return_control(passedUpSupportStruct);
-         case 11:
-             WRITE_TO_PRINTER(passedUpSupportStruct);
-             helper_return_control(passedUpSupportStruct);
-         case 12:
-             WRITE_TO_TERMINAL(passedUpSupportStruct);
-             helper_return_control(passedUpSupportStruct);
-         case 13:
-             READ_FROM_TERMINAL(passedUpSupportStruct);
-             helper_return_control(passedUpSupportStruct);
-         default: /*should never reach this case*/
-             program_trap_handler(passedUpSupportStruct);
-             helper_return_control(passedUpSupportStruct);
-     }
- }
-
  /* Need to add Gain mutual exclusion on terminal receive NEED TO FIX */
  void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     /* Get the terminal device register
@@ -217,6 +194,29 @@
     /* Return control happens after! */
     passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_t9 += 4;
  }
+
+ void syscall_handler(support_t *passedUpSupportStruct) {
+    switch (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0){
+        case 9:
+            TERMINATE(passedUpSupportStruct);
+            helper_return_control(passedUpSupportStruct);
+        case 10:
+            GET_TOD(passedUpSupportStruct);
+            helper_return_control(passedUpSupportStruct);
+        case 11:
+            WRITE_TO_PRINTER(passedUpSupportStruct);
+            helper_return_control(passedUpSupportStruct);
+        case 12:
+            WRITE_TO_TERMINAL(passedUpSupportStruct);
+            helper_return_control(passedUpSupportStruct);
+        case 13:
+            READ_FROM_TERMINAL(passedUpSupportStruct);
+            helper_return_control(passedUpSupportStruct);
+        default: /*should never reach this case*/
+            program_trap_handler(passedUpSupportStruct);
+            helper_return_control(passedUpSupportStruct);
+    }
+}
 
  void general_exception_handler() { 
      support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
