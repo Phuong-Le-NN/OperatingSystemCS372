@@ -18,7 +18,7 @@
 #include "../phase2/initial.h"
 #include "../phase2/scheduler.h"
 #include "../phase2/exceptions.h"
-#include "../phase2/interrupts.h" 
+#include "../phase2/interrupts.h"
 
 void helper_return_control(support_t *passedUpSupportStruct){
     passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_pc += 4;
