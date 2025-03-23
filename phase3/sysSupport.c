@@ -100,9 +100,9 @@
      }
  
      if (printerDevAdd->d_status == 1) { /* "Device Ready" */
-         savedExcState.s_v0 = savedExcState.s_a2;;
+        savedExcState->s_v0 = savedExcState->s_a2;;
      } else {
-         savedExcState.s_v0 = - printerDevAdd->d_status;
+        savedExcState->s_v0 = - printerDevAdd->d_status;
      }
  }
  
