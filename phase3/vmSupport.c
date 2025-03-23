@@ -58,16 +58,16 @@ void init_Uproc_pgTable() { /* 4.2.1 Pandos - A U-proc’s Page Table*/
     for (i = 0; i < 32; i ++){
         /* VPN field will be set to [0x80000..0x8001E] for the first 31 entries => should set up to idx 30 only => will have to reset the idx 31 element after the loop*/
         /* ASID field, for any given Page Table, will all be set to the U-proc’s unique ID*/
-        currentP->p_supportStruct->sup_pgTable[i].EntryHi =  0x80000000 + i*0x1000 + currentP->p_supportStruct->sup_asid << 6;
+        currentP->p_supportStruct->sup_privatePgTbl[i].EntryHi =  0x80000000 + i*0x1000 + currentP->p_supportStruct->sup_asid << 6;
         /*  D bit field will be set to 1 (on) - bit 10 to 1*/
-        currentP->p_supportStruct->sup_pgTable[i].EntryLo = currentP->p_supportStruct->sup_pgTable[i].EntryLo | 0x00000400;
+        currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo = currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo | 0x00000400;
         /* G bit field will be set to 0 (off) - bit 8 to 0*/
-        currentP->p_supportStruct->sup_pgTable[i].EntryLo = currentP->p_supportStruct->sup_pgTable[i].EntryLo & 0xFFFFFEFF;
+        currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo = currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo & 0xFFFFFEFF;
         /* V bit field will be set to 0 (off) - bit 9 to 0*/
-        currentP->p_supportStruct->sup_pgTable[i].EntryLo = currentP->p_supportStruct->sup_pgTable[i].EntryLo & 0xFFFFFDFF;  
+        currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo = currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo & 0xFFFFFDFF;  
     }
     /* reset the idx 31 element -- VPN for the stack page (Page Table entry 31) should be set to 0xBFFFF*/
-    currentP->p_supportStruct->sup_pgTable[i].EntryHi =  0xBFFFF000 + currentP->p_supportStruct->sup_asid;
+    currentP->p_supportStruct->sup_privatePgTbl[i].EntryHi =  0xBFFFF000 + currentP->p_supportStruct->sup_asid;
 }
 /**********************************************************
  *  
@@ -91,7 +91,7 @@ void uTLB_RefillHandler() { /* 4.3 -- The TLB-Refill event handler*/
         missingVPN_idx_in_pgTable = 31;
     }
 
-    pte_t pte = currentP->p_supportStruct->sup_pgTable[missingVPN_idx_in_pgTable];
+    pte_t pte = currentP->p_supportStruct->sup_privatePgTbl[missingVPN_idx_in_pgTable];
 
     /* Write this Page Table entry into the TLB*/
     setENTRYHI(pte.EntryHi);
@@ -226,7 +226,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         pgTableIndex = (missingVPN - 0x80000) / 0x1000;  
     }
 
-    swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_pgTable[pgTableIndex]);
+    swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_privatePgTbl[pgTableIndex]);
 
     /* 11. Update the Current Process’s Page Table entry for page p to indicate it is now present (V bit) and occupying frame i (PFN field).*/
     pte_t *newEntry = swapPoolTable[pickedFrame].matchingPgTableEntry;

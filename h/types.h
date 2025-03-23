@@ -96,7 +96,9 @@ typedef struct support_t {
 	int 		sup_asid;				/* Process Id (asid) */
 	state_t		sup_exceptState[2];		/* stored excpt states */
 	context_t	sup_exceptContext[2]; 	/* pass up contexts */
-	pte_t		sup_pgTable[32];		/* A Pandos Page Table will be an array of 32 Page Table entries _ pg 43 pandos */
+	pte_t		sup_privatePgTbl[32];		/* A Pandos Page Table will be an array of 32 Page Table entries _ pg 43 pandos */
+	int			sup_stackTlb[500];		/* 2Kb area for the stack area for the process TLB exception handler*/
+	int			sup_stackGen[500];		/* 2Kb area for the stack area for the process's Support Level general exception handler*/
 } support_t;
 
 typedef struct pte_t {

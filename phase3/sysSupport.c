@@ -20,6 +20,8 @@
  #include "../phase2/exceptions.h"
  #include "../phase2/interrupts.h"
 
+ extern int masterSemaphore;
+
  int helper_check_string_outside_add_space(int strAdd){
     if ((strAdd < 0x80000 | strAdd > 0x8001E) & (strAdd < 0xBFFFF | strAdd > (0xBFFFF000 + 0x1000) >> 12)){
         return TRUE;
@@ -52,13 +54,15 @@
 
     /* Mark pages as invalid (clear VALID bit) */
     for (int i = 0; i < 32; i++) {
-        if (passedUpSupportStruct->sup_pgTable[i].EntryLo & 0x00000200) {
-            passedUpSupportStruct->sup_pgTable[i].EntryLo &= ~0x00000200;
+        if (passedUpSupportStruct->sup_privatePgTbl[i].EntryLo & 0x00000200) {
+            passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~0x00000200;
         }
     }
 
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
+
+    SYSCALL(4, &masterSemaphore, 0, 0);
 
     /* Terminate the process */
     SYSCALL(2, 0, 0, 0);  /* SYS2 */
