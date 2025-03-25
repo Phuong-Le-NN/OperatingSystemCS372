@@ -23,7 +23,7 @@
  extern int masterSemaphore;
  extern int* mutex;
 
- int helper_check_string_outside_add_space(int strAdd){
+ int helper_check_string_outside_addr_space(int strAdd){
     if ((strAdd < 0x80000000 | strAdd > 0x8001E000) & (strAdd < 0xBFFFF000 | strAdd > (0xBFFFF000 + 0x1000))){
         return TRUE;
     }
@@ -86,7 +86,7 @@
      device_t *printerDevAdd = devAddrBase(PRNTINT, devNo);
  
      /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-     int stringOutsideAddSpace = helper_check_string_outside_add_space(savedExcState->s_a1);
+     int stringOutsideAddSpace = helper_check_string_outside_addr_space(savedExcState->s_a1);
      /* Error: length less than 0*/
      int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
      /* Error: a length greater than 128*/
@@ -130,7 +130,7 @@
      device_t *termDevAdd = devAddrBase(TERMINT, devNo);
  
      /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-     int stringOutsideAddSpace = helper_check_string_outside_add_space(savedExcState->s_a1);
+     int stringOutsideAddSpace = helper_check_string_outside_addr_space(savedExcState->s_a1);
      /* Error: length less than 0*/
      int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
      /* Error: a length greater than 128*/
