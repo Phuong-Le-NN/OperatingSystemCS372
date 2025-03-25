@@ -21,9 +21,10 @@
  #include "../phase2/interrupts.h"
 
  extern int masterSemaphore;
+ extern int* mutex;
 
  int helper_check_string_outside_add_space(int strAdd){
-    if ((strAdd < 0x80000 | strAdd > 0x8001E) & (strAdd < 0xBFFFF | strAdd > (0xBFFFF000 + 0x1000) >> 12)){
+    if ((strAdd < 0x80000000 | strAdd > 0x8001E000) & (strAdd < 0xBFFFF000 | strAdd > (0xBFFFF000 + 0x1000))){
         return TRUE;
     }
     return FALSE;
@@ -95,7 +96,8 @@
          SYSCALL(9, 0, 0, 0);
      }
  
-     /* add dev mutex sema4 once init proc is done*/
+     int mutexSemIdx = devSemIdx(PRNTINT, devNo, FALSE);
+     SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
      int i;
      for (i = 0; i < savedExcState->s_a2; i++){
          setSTATUS(getSTATUS() & (~IECBITON));
@@ -114,6 +116,7 @@
      } else {
         savedExcState->s_v0 = - printerDevAdd->d_status;
      }
+     SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
  }
  
  void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
@@ -137,6 +140,8 @@
          SYSCALL(9, 0, 0, 0);
      }
  
+     int mutexSemIdx = devSemIdx(TERMINT, devNo, FALSE);
+     SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
      /* add dev mutex sema4 once init proc is done*/
      int i;
      for (i = 0; i < savedExcState->s_a2; i++){
@@ -155,6 +160,7 @@
      } else {
         savedExcState->s_v0 = - termDevAdd->t_transm_status;
      }
+     SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
  }
  
  /* Need to add Gain mutual exclusion on terminal receive NEED TO FIX */
