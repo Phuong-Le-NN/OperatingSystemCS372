@@ -22,9 +22,12 @@
 
  extern int masterSemaphore;
  extern int* mutex;
+ extern int swapPoolSema4;
+ extern swapPoolFrame_t swapPoolTable[8 * 2];
+
 
  int helper_check_string_outside_addr_space(int strAdd){
-    if ((strAdd < 0x80000000 | strAdd > 0x8001E000) & (strAdd < 0xBFFFF000 | strAdd > (0xBFFFF000 + 0x1000))){
+    if ((strAdd < 0x80000000 | strAdd > 0x8001E000 + 0x1000) & (strAdd < 0xBFFFF000 | strAdd > 0xBFFFF000 + 0x1000)){
         return TRUE;
     }
     return FALSE;
@@ -48,21 +51,33 @@
     TERMINATE(passedUpSupportStruct);
  }
 
-/* mutex sem???? it need to release any mutexes the U-proc might be holding. */ 
  void TERMINATE(support_t *passedUpSupportStruct){
     /* Disable interrupts before touching shared structures */
     setSTATUS(getSTATUS() & (~IECBITON));
 
+    /* mark all of the frames it occupied as unoccupied */
+    SYSCALL(3, &swapPoolSema4, 0, 0);
+    int i;
+    for (i = 0; i < 8 * 2; i++){
+        if (swapPoolTable[i].ASID == (passedUpSupportStruct->sup_privatePgTbl[i].EntryHi >> 6) & 0x000000FF){
+            swapPoolTable[i].ASID = -1;
+            swapPoolTable[i].pgNo = -1;
+            swapPoolTable[i].matchingPgTableEntry = NULL;
+        }
+    }
+    SYSCALL(4, &swapPoolSema4, 0, 0);
+
     /* Mark pages as invalid (clear VALID bit) */
-    for (int i = 0; i < 32; i++) {
+    for (i = 0; i < 32; i++) {
         if (passedUpSupportStruct->sup_privatePgTbl[i].EntryLo & 0x00000200) {
             passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~0x00000200;
         }
-    }
+    }    
 
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
 
+    /* 4.10 Small Support Level Optimizations */
     SYSCALL(4, &masterSemaphore, 0, 0);
 
     /* Terminate the process */
