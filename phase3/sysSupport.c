@@ -20,6 +20,8 @@
  #include "../phase2/exceptions.h"
  #include "../phase2/interrupts.h"
 
+#include "../phase3/initProc.c"
+
  extern int masterSemaphore;
 
  int helper_check_string_outside_add_space(int strAdd){
@@ -46,8 +48,6 @@
     */
     TERMINATE(passedUpSupportStruct);
  }
-
-/* mutex sem???? it need to release any mutexes the U-proc might be holding. */ 
  void TERMINATE(support_t *passedUpSupportStruct){
     /* Disable interrupts before touching shared structures */
     setSTATUS(getSTATUS() & (~IECBITON));
@@ -56,6 +56,19 @@
     for (int i = 0; i < 32; i++) {
         if (passedUpSupportStruct->sup_privatePgTbl[i].EntryLo & 0x00000200) {
             passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~0x00000200;
+        }
+    }
+
+    int line;
+    int dev;
+    /* Release any device mutexes held by the U-proc */
+    /* Pandos 4.8 - If a process holds any mutual exclusion semaphores (like for flash or swap), they must be released first */
+    for (line = 0; line < DEVINTNUM; line++) {
+        for (dev = 0; dev < DEVPERINT; dev++) {
+            int index = line * DEVPERINT + dev;
+            if (mutex[index] == 0) {
+                SYSCALL(4, (memaddr)&mutex[index], 0, 0);  /* SYS4 (VERHOGEN / V operation) */
+            }
         }
     }
 
@@ -157,7 +170,6 @@
      }
  }
  
- /* Need to add Gain mutual exclusion on terminal receive NEED TO FIX */
  void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     /* Get the terminal device register
      * POPS 5.3.1 — devAddrBase(line, devNo) gives address of device register
@@ -172,7 +184,13 @@
     
     int asid = passedUpSupportStruct->sup_asid;
     device_t *termRecvReg = (device_t *) devAddrBase(TERMINT, asid - 1);  /* receive part of terminal */
-    
+
+    /* Calculate mutex index for terminal receive */
+    int mutexIndex = (TERMINT * 8) + (asid - 1);  // assuming TERMINT is line number
+
+    /* Gain mutual exclusion on terminal receive */
+    SYSCALL(3, &mutex[mutexIndex], 0, 0);  /* P(mutex) */
+
     /* Send read command POPS 5.4 */
     termRecvReg->d_command = 2;
     
@@ -200,10 +218,14 @@
         /* On error, return negative status (Pandos 4.7.5) */
         passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0 = -(status & 0xFF);
     }
-    
+
+    /* Release mutual exclusion on terminal receive */
+    SYSCALL(4, &mutex[mutexIndex], 0, 0);  /* V(mutex) */
+
     /* Return control happens after! */
     passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_t9 += 4;
- }
+}
+
 
  void syscall_handler(support_t *passedUpSupportStruct) {
     switch (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0){
