@@ -20,6 +20,8 @@
  #include "../phase2/exceptions.h"
  #include "../phase2/interrupts.h"
 
+#include "../phase3/initProc.c"
+
  extern int masterSemaphore;
  extern int* mutex;
  extern int swapPoolSema4;
@@ -178,7 +180,6 @@
      SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
  }
  
- /* Need to add Gain mutual exclusion on terminal receive NEED TO FIX */
  void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     /* Get the terminal device register
      * POPS 5.3.1 — devAddrBase(line, devNo) gives address of device register
@@ -193,7 +194,13 @@
     
     int asid = passedUpSupportStruct->sup_asid;
     device_t *termRecvReg = (device_t *) devAddrBase(TERMINT, asid - 1);  /* receive part of terminal */
-    
+
+    /* Calculate mutex index for terminal receive */
+    int mutexIndex = (TERMINT * 8) + (asid - 1);  // assuming TERMINT is line number
+
+    /* Gain mutual exclusion on terminal receive */
+    SYSCALL(3, &mutex[mutexIndex], 0, 0);  /* P(mutex) */
+
     /* Send read command POPS 5.4 */
     termRecvReg->d_command = 2;
     
@@ -221,10 +228,14 @@
         /* On error, return negative status (Pandos 4.7.5) */
         passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0 = -(status & 0xFF);
     }
-    
+
+    /* Release mutual exclusion on terminal receive */
+    SYSCALL(4, &mutex[mutexIndex], 0, 0);  /* V(mutex) */
+
     /* Return control happens after! */
     passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_t9 += 4;
- }
+}
+
 
  void syscall_handler(support_t *passedUpSupportStruct) {
     switch (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0){
