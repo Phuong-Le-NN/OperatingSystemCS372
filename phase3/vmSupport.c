@@ -104,8 +104,16 @@ void uTLB_RefillHandler() { /* 4.3 -- The TLB-Refill event handler*/
  *  
  **********************************************************/
 int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
-    static int nextFrame = 0; 
-
+    static int nextFrame = 0;
+    
+    /* Look for an empty frame */
+    int i;
+    for (i = 0; i < (2 * 8); i = i + 1){
+        if (swapPoolTable[i].ASID == -1) {  /* from PANDOS 4.4.1 Technical Point */
+            return i;
+        }
+    }
+    
     /* If no free frame, select the oldest one (FIFO) */ 
     int selectedFrame = nextFrame;
     nextFrame = (nextFrame + 1) % (2 * 8);  /* Move to next in circular order */
