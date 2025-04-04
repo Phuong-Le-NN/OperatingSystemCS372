@@ -9,8 +9,7 @@
  *      Modified by Phuong and Oghap on March 2025
  */
 
-
-#include "/usr/include/umps3/umps/libumps.h"
+/*#include "/usr/include/umps3/umps/libumps.h"*/
 
 #include "../h/pcb.h"
 #include "../h/asl.h"
@@ -21,6 +20,9 @@
 #include "../phase2/scheduler.h"
 #include "../phase2/exceptions.h"
 #include "../phase2/interrupts.h"
+
+extern int *device_sem;            /* Device Semaphores 49 semaphores in an array */
+
 
 /* global variables */
 HIDDEN swapPoolFrame_t swapPoolTable[8 * 2];
@@ -36,10 +38,7 @@ void initSwapStruct(){/* 4.1 -- Address Translation */
 
     /* One Page Table per U-proc ..  This array should be added to the Support Structure (support t) that is pointed to by a Uproc’s pcb => added pte_t table in support_t struct in types.h*/
     swapPoolFrame_t swapPoolTable[8 * 2]; /* The size of the Swap Pool should be set to two times UPROCMAX, where UPROCMAX is defined as the specific degree of multiprogramming to be supported: [1. . .8]*/
-    /* QUESTION: how to "place  place the Swap Pool after the end of the operating system code ... Swap Pool’s starting address is: 0x2002.0000" [4.4.1]  */
-    /* int swapPoolSema4 = 1;*/ /* A mutual exclusion semaphore (hence initialized to 1) that controls access to the Swap Pool data structure.*/
-    /* Backing store: None ? -- this basic version of the Support Level will use each U-proc’s flash device as its backing store device.*/
-
+    
     /* Pandos Section 4.4.1 (page 48–49) */
     for (int i = 0; i < 16; i++) {
         swapPoolTable[i].ASID = -1;
@@ -53,29 +52,20 @@ void initSwapStruct(){/* 4.1 -- Address Translation */
  *  
  **********************************************************/
 void init_Uproc_pgTable() { /* 4.2.1 Pandos - A U-proc’s Page Table*/
+    support_t *currentSupport = SYSCALL(8, 0, 0, 0);
     /* To initialize a Page Table one needs to set the VPN, ASID, V, and D bit fields for each Page Table entry*/
     int i;
     for (i = 0; i < 32; i ++){
         /* VPN field will be set to [0x80000..0x8001E] for the first 31 entries => should set up to idx 30 only => will have to reset the idx 31 element after the loop*/
         /* ASID field, for any given Page Table, will all be set to the U-proc’s unique ID*/
-        currentP->p_supportStruct->sup_privatePgTbl[i].EntryHi =  0x80000000 + i*0x1000 + currentP->p_supportStruct->sup_asid << 6;
-        /*  D bit field will be set to 1 (on) - bit 10 to 1*/
-        currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo = currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo | 0x00000400;
-        /* G bit field will be set to 0 (off) - bit 8 to 0*/
-        currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo = currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo & 0xFFFFFEFF;
-        /* V bit field will be set to 0 (off) - bit 9 to 0*/
-        currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo = currentP->p_supportStruct->sup_privatePgTbl[i].EntryLo & 0xFFFFFDFF;  
+        currentSupport->sup_privatePgTbl[i].EntryHi =  0x80000000 + i*0x1000 + currentSupport->sup_asid << 6;
+        /*  D bit field will be set to 1 (on) - bit 10 to 1*/ /* G bit field will be set to 0 (off) - bit 8 to 0*/ /* V bit field will be set to 0 (off) - bit 9 to 0*/
+        currentSupport->sup_privatePgTbl[i].EntryLo = currentSupport->sup_privatePgTbl[i].EntryLo | 0x00000400 & 0xFFFFFEFF & 0xFFFFFDFF;
     }
-    /* reset the idx 31 element -- VPN for the stack page (Page Table entry 31) should be set to 0xBFFFF*/
-    currentP->p_supportStruct->sup_privatePgTbl[i].EntryHi =  0xBFFFF000 + currentP->p_supportStruct->sup_asid;
+    /* reset the idx 31 element -- VPN for the stack page entryHi (Page Table entry 31) should be set to 0xBFFFF*/
+    currentSupport->sup_privatePgTbl[i].EntryHi =  0xBFFFF000 + currentSupport->sup_asid;
 }
-/**********************************************************
- *  
- **********************************************************/
-void initialize_Uproc_BackingStore () { /* 4.2.2 -- A U-proc’s Backing Store*/
-    /* each U-proc will be associated with a unique flash device */
 
-}
 /**********************************************************
  *  
  **********************************************************/
@@ -91,11 +81,12 @@ void uTLB_RefillHandler() { /* 4.3 -- The TLB-Refill event handler*/
         missingVPN_idx_in_pgTable = 31;
     }
 
-    pte_t pte = currentP->p_supportStruct->sup_privatePgTbl[missingVPN_idx_in_pgTable];
+    support_t *currentSupport = SYSCALL(8, 0, 0, 0);
+    pte_t *pte = &(currentSupport->sup_privatePgTbl[missingVPN_idx_in_pgTable]);
 
     /* Write this Page Table entry into the TLB*/
-    setENTRYHI(pte.EntryHi);
-    setENTRYLO(pte.EntryLo);
+    setENTRYHI(pte->EntryHi);
+    setENTRYLO(pte->EntryLo);
     TLBWR(); 
 
     LDST((state_PTR) BIOSDATAPAGE); 
@@ -110,6 +101,9 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
     int i;
     for (i = 0; i < (2 * 8); i = i + 1){
         if (swapPoolTable[i].ASID == -1) {  /* from PANDOS 4.4.1 Technical Point */
+            if (i == nextFrame){ /* so that frame i doesn't get replace right away next time but only after cirulated*/
+                nextFrame = (nextFrame + 1) % (2 * 8);
+            }
             return i;
         }
     }
@@ -124,35 +118,39 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
 /**********************************************************
  * flash I/O function: read or write a page
  **********************************************************/
-void read_write_flash(int pickedSwapPoolFrame, int isWrite) {
-    /* Disable interrupts to ensure to do atomically */
-    setSTATUS(getSTATUS() & (~IECBITON));
+void read_write_flash(int pickedSwapPoolFrame, int isRead) {
+    support_t *currentSupport = SYSCALL(8, 0, 0, 0);
 
-    int asid = currentP->p_supportStruct->sup_asid;
-    int vpn = swapPoolTable[pickedSwapPoolFrame].pgNo;
+    int devNo = currentSupport->sup_asid - 1;
+    int blockNo = swapPoolTable[pickedSwapPoolFrame].pgNo;
+    int flashSemIdx = devSemIdx(FLASHINT, devNo, isRead)
 
     /* Get the device register address for the U-proc’s flash device */
-    device_t *flashDevRegAdd = (device_t *) devAddrBase(FLASHINT, asid - 1);
+    device_t *flashDevRegAdd = devAddrBase(FLASHINT, devNo);
 
-    /* Write the physical memory address (start of frame) to DATA0 */
-    flashDevRegAdd->d_data0 = (memaddr)(0x20000000 + (pickedSwapPoolFrame * 4096));
+    SYSCALL(3, &(device_sem[flashSemIdx]), 0, 0);
+
+    /* Write the physical memory address (start of frame) to DATA0 */ /* swap pool starts at 0x20020000 - pandos pg 48*/
+    flashDevRegAdd->d_data0 = (memaddr)(0x20020000 + (pickedSwapPoolFrame * 4096));
 
     /* Choose the correct flash command */
     int flashCommand;
-    if (isWrite == 1) {
+    if (isRead == 0) {
         flashCommand = 3;  /* FLASHWRITE */
     } else {
         flashCommand = 2;  /* FLASHREAD */
     }
 
+    /* Disable interrupts to ensure to do atomically */
+    setSTATUS(getSTATUS() & (~IECBITON));
     /* Write the command to COMMAND register */
-    flashDevRegAdd->d_command = (vpn << 8) | flashCommand;
-
+    flashDevRegAdd->d_command = (blockNo << 8) | flashCommand;
     /* Block the process until the flash operation is complete */
-    SYSCALL(5, FLASHINT, asid - 1, 0);
-
+    SYSCALL(5, FLASHINT, devNo, 0);
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
+
+    SYSCALL(4, &(device_sem[flashSemIdx]), 0, 0);
 }
 
 
@@ -160,18 +158,16 @@ void read_write_flash(int pickedSwapPoolFrame, int isWrite) {
  *  
  **********************************************************/
 void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
-    
-    /* page 50 of pandos */
     /* 1. Obtain the pointer to the Current Process’s Support Structure: SYS8. */
-    support_t *currentSupport = (support_t *) SYSCALL(8, 0, 0, 0);
+    support_t *currentSupport = SYSCALL(8, 0, 0, 0);
 
     /* 2. Determine the cause of the TLB exception. )*/
-    int TLBcause = CauseExcCode(currentSupport->sup_exceptState[0].s_cause);
+    int TLBcause = CauseExcCode(currentSupport->sup_exceptState[PGFAULTEXCEPT].s_cause);
 
     /* 3. If the Cause is a TLB-Modification exception, treat this exception as a program trap [Section 4.8] */
     /* from POPS Table 3.2, page 19 and from PANDOS 3.7.2 */
     if (TLBcause == 1){
-        /* PANDOS 4.8, NOT coded yet */
+        /* PANDOS 4.8 */
         programTrapHandler();
     }
 
@@ -186,7 +182,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
 
     /* 7. Determine if frame i is occupied; examine entry i in the Swap Pool table. */
     /* POPS 6.3.2 */
-    if (swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x00000200){ 
+    if (swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x00000200 == 1){ 
         
         /* disable interrupts */
         setSTATUS(getSTATUS() & (~IECBITON));
@@ -216,12 +212,12 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if (occupiedPgTable->EntryLo & 0x00000800) {  /* D bit set */
-            read_write_flash(pickedFrame, 1);  /* isWrite = 1 since we are writing */
+            read_write_flash(pickedFrame, 0);  /* isRead = 0 since we are writing */
         }
     }
 
     /* 9. Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. [Section 4.5.1] */
-    read_write_flash(pickedFrame, 0);  /* isWrite = 0 since we are reading */
+    read_write_flash(pickedFrame, 1);  /* isRead = 1 since we are reading */
 
     /* 10. Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID, and a pointer to the Current Process’s Page Table entry for page p. */
     swapPoolTable[pickedFrame].ASID = currentSupport->sup_asid;
@@ -231,7 +227,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     if (missingVPN == 0xBFFFF) {
         pgTableIndex = 31;                              
     } else {
-        pgTableIndex = (missingVPN - 0x80000) / 0x1000;  
+        pgTableIndex = (missingVPN - 0x80000) / 0x1;  
     }
 
     swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_privatePgTbl[pgTableIndex]);
