@@ -192,7 +192,7 @@ HIDDEN void helper_terminal_write(int intLineNo, int devNo){
     device_t *intDevRegAdd = devAddrBase(intLineNo, devNo);
 
     /* Save off the status code from the device’s device register*/
-    int savedDevRegStatus = intDevRegAdd->d_data0;
+    int savedDevRegStatus = intDevRegAdd->d_data0; /* shoudl be 5 for CHARTRANSMITTED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
         
     /* Acknowledge the outstanding interrupt */
     intDevRegAdd->d_data1 = ACK;
