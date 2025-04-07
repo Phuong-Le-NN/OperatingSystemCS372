@@ -181,61 +181,69 @@
  }
  
  void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
-    /* Get the terminal device register
-     * POPS 5.3.1 — devAddrBase(line, devNo) gives address of device register
-     * Pandos assigns terminal device (receive part) per ASID-1
-     */
-    memaddr virtAddr = passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a1;  /* a1 */
+    /* Access the general exception state */
+    state_t *excState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
 
-    /* Error if address is not in kuseg */
-    if (virtAddr > 0xC0000000) {
-        TERMINATE(passedUpSupportStruct);  /* terminate the U-proc */
-    }
-    
     int asid = passedUpSupportStruct->sup_asid;
-    device_t *termRecvReg = (device_t *) devAddrBase(TERMINT, asid - 1);  /* receive part of terminal */
+    int termIndex = asid - 1;  /* terminal index for this ASID */
+    device_t *termReg = devAddrBase(TERMINT, termIndex);
 
-    /* Calculate mutex index for terminal receive */
-    int mutexIndex = (TERMINT * 8) + (asid - 1);  // assuming TERMINT is line number
+    /* Safety checks on user buffer address and length */
+    int addrInvalid = helper_check_string_outside_addr_space(excState->s_a1);
+    int tooLong = (excState->s_a2 > 128);
+    int tooShort = (excState->s_a2 < 0);
 
-    /* Gain mutual exclusion on terminal receive */
-    SYSCALL(3, &mutex[mutexIndex], 0, 0);  /* P(mutex) */
+    if (addrInvalid || tooLong || tooShort) {
+        SYSCALL(9, 0, 0, 0);  /* terminate the user process */
+    }
 
-    /* Send read command POPS 5.4 */
-    termRecvReg->d_command = 2;
-    
-    /* Block until read completes */
-    SYSCALL(5, TERMINT, asid - 1, 0);
-    
-    /* Extract number of characters received from upper byte (POPS 5.3.3) */
-    unsigned int status = termRecvReg->d_status;
-    int charsReceived = (status >> 8) & 0xFF;
-    
-    if ((status & 0xFF) == 5) {
-        /* Copy received characters into user buffer
-         * Note: max 128 characters (Pandos 4.7.5)
-         */
-        char *userBuffer = (char *) virtAddr;
-        char *sourceBuffer = (char *) termRecvReg->d_data0;
-    
-        for (int i = 0; i < charsReceived && i < 128; i++) {
-            userBuffer[i] = sourceBuffer[i];
+    /* Lock the terminal receive mutex */
+    int termMutex = devSemIdx(TERMINT, termIndex, TRUE);  /* TRUE = receive */
+    SYSCALL(3, &mutex[termMutex], 0, 0);  /* P() operation */
+
+    /*Pandos 4.7.5*/
+    char dest = excState->s_a1;    /*buffer address*/
+    int limit = excState->s_a2;
+    int count = 0;
+    unsigned int ioResult;
+    char incomingChar;
+    int statusCode;
+
+    while (count < limit) {
+        /* Send read command to terminal device */
+        setSTATUS(getSTATUS() & ~IECBITON);      /* disable interrupts */
+        termReg->t_recv_command = 2;             /* issue RECEIVECHAR command */
+        setSTATUS(getSTATUS() | IECBITON);       /* enable interrupts */
+
+        ioResult = SYSCALL(5, TERMINT, termIndex, TRUE);  /* wait for terminal input */
+
+        /* Extract character and status info */
+        incomingChar = (ioResult >> 8) & 0xFF;
+        statusCode = ioResult & 0xFF;
+
+        if (statusCode != 5) {
+            excState->s_v0 = -statusCode;
+            break;
         }
 
-        /* Return number of characters received in v0 (POPS 4.1.2) */
-        passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0 = charsReceived;  /* v0 */
-    } else {
-        /* On error, return negative status (Pandos 4.7.5) */
-        passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0 = -(status & 0xFF);
+        dest[count++] = incomingChar;
+
+        if (incomingChar == EOS) {
+            break;
+        }
     }
 
-    /* Release mutual exclusion on terminal receive */
-    SYSCALL(4, &mutex[mutexIndex], 0, 0);  /* V(mutex) */
+    /* If status was ok throughout, return number of characters read */
+    if (statusCode == 5) {
+        excState->s_v0 = count;
+    }
 
-    /* Return control happens after! */
-    passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_t9 += 4;
+    /* Unlock the terminal receive mutex */
+    SYSCALL(4, &mutex[termMutex], 0, 0);  /* V() operation */
+
+    /* Move the PC to skip the syscall */
+    excState->s_t9 += 4;
 }
-
 
  void syscall_handler(support_t *passedUpSupportStruct) {
     switch (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0){
