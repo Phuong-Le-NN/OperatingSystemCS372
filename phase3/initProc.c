@@ -7,42 +7,10 @@
  */
 
 
-#include "/usr/include/umps3/umps/libumps.h"
-
-#include "../h/pcb.h"
-#include "../h/asl.h"
-#include "../h/types.h"
-#include "../h/const.h"
- 
-#include "../phase2/initial.h"
-#include "../phase2/scheduler.h"
-#include "../phase2/exceptions.h"
-#include "../phase2/interrupts.h"
-
-extern TLB_exception_handler;
-extern general_exception_handler;
+#include "initProc.h"
 
 int mutex[48];
 int masterSemaphore = 0;
-
-void test() {
-    initSwapStruct();
-
-    int i;
-    for (i = 0; i < 48; i++){
-        mutex[i] = 1;
-    }
-
-    support_t initSupportArr[8];
-
-    pcb_PTR newUproc;
-    for (i = 1; i <= 8; i++){
-        newUproc = init_Uproc(&initSupportArr[i-1], i);
-        SYSCALL(3, &masterSemaphore, 0, 0); /* P operation */
-    }
-    
-    SYSCALL(2, 0, 0, 0);
-}
 
 pcb_PTR init_Uproc(support_t *initSupport, int ASID){
     state_t initState;
@@ -65,5 +33,23 @@ pcb_PTR init_Uproc(support_t *initSupport, int ASID){
     initSupport->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr =  &initSupport->sup_stackGen[499];
     initSupport->sup_exceptContext[GENERALEXCEPT].c_stackPtr =  &initSupport->sup_stackGen[499];
 
-    SYSCALL(1, &initState, initSupport, 0);
+    pcb_PTR newPcb = SYSCALL(1, &initState, initSupport, 0);
+    return newPcb;
+}
+
+void test() {
+    initSwapStruct();
+
+    int i;
+    for (i = 0; i < 48; i++){
+        mutex[i] = 1;
+    }
+
+    support_t initSupportArr[8];
+
+    pcb_PTR newUproc;
+    for (i = 1; i <= 8; i++){
+        newUproc = init_Uproc(&initSupportArr[i-1], i);
+        SYSCALL(3, &masterSemaphore, 0, 0); /* P operation */
+    }
 }

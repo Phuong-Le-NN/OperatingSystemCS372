@@ -11,22 +11,7 @@
 
 /*#include "/usr/include/umps3/umps/libumps.h"*/
 
-#include "../h/pcb.h"
-#include "../h/asl.h"
-#include "../h/types.h"
-#include "../h/const.h"
-  
-#include "../phase2/initial.h"
-#include "../phase2/scheduler.h"
-#include "../phase2/exceptions.h"
-#include "../phase2/interrupts.h"
-
-extern int *device_sem;            /* Device Semaphores 49 semaphores in an array */
-
-
-/* global variables */
-HIDDEN swapPoolFrame_t swapPoolTable[8 * 2];
-HIDDEN int swapPoolSema4;
+#include "vmSupport.h"
 
 /**********************************************************
  *  
@@ -40,7 +25,8 @@ void initSwapStruct(){/* 4.1 -- Address Translation */
     swapPoolFrame_t swapPoolTable[8 * 2]; /* The size of the Swap Pool should be set to two times UPROCMAX, where UPROCMAX is defined as the specific degree of multiprogramming to be supported: [1. . .8]*/
     
     /* Pandos Section 4.4.1 (page 48–49) */
-    for (int i = 0; i < 16; i++) {
+    int i;
+    for (i = 0; i < 16; i++) {
         swapPoolTable[i].ASID = -1;
         swapPoolTable[i].pgNo = -1;
         swapPoolTable[i].matchingPgTableEntry = NULL;
@@ -168,7 +154,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     /* from POPS Table 3.2, page 19 and from PANDOS 3.7.2 */
     if (TLBcause == 1){
         /* PANDOS 4.8 */
-        programTrapHandler();
+        program_trap_handler();
     }
 
     /* 4. Gain mutual exclusion over the Swap Pool table. (SYS3 – P operation on the Swap Pool semaphore) */

@@ -85,6 +85,11 @@ typedef struct context_t {
 				 c_pc;				/* PC address*/							
 } context_t;
 
+typedef struct pte_t {
+    unsigned int EntryHi;  /* VPN (Virtual Page Number) and ASID*/
+    unsigned int EntryLo;  /* PFN (Physical Frame Number) and Valid/Dirty bits */
+} pte_t;
+
 /* 4.4.1 _ The swap pool*/
 typedef struct swapPoolFrame_t {
 	int ASID; /* The ASID of the U-proc whose page is occupying the frame*/
@@ -100,11 +105,6 @@ typedef struct support_t {
 	int			sup_stackTlb[500];		/* 2Kb area for the stack area for the process TLB exception handler*/
 	int			sup_stackGen[500];		/* 2Kb area for the stack area for the process's Support Level general exception handler*/
 } support_t;
-
-typedef struct pte_t {
-    unsigned int EntryHi;  /* VPN (Virtual Page Number) and ASID*/
-    unsigned int EntryLo;  /* PFN (Physical Frame Number) and Valid/Dirty bits */
-} pte_t;
 
 /* Exceptions related constants */
 #define PGFAULTEXCEPT 0

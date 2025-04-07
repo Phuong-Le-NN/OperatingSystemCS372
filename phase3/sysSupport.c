@@ -7,25 +7,7 @@
  *      Modified by Phuong and Oghap on March 2025
  */
 
-
- #include "/usr/include/umps3/umps/libumps.h"
-
- #include "../h/pcb.h"
- #include "../h/asl.h"
- #include "../h/types.h"
- #include "../h/const.h"
-   
- #include "../phase2/initial.h"
- #include "../phase2/scheduler.h"
- #include "../phase2/exceptions.h"
- #include "../phase2/interrupts.h"
-
- #include "../phase3/initProc.c"
-
- extern int masterSemaphore;
- extern int* mutex;
- extern int swapPoolSema4;
- extern swapPoolFrame_t swapPoolTable[8 * 2];
+#include "sysSupport.h"
 
 /**************************************************************************************************************** 
  * return TRUE if string address is NOT valid
