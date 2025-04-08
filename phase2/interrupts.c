@@ -213,7 +213,10 @@ HIDDEN void helper_terminal_write(int intLineNo, int devNo){
             scheduler();
         }
         LDST((state_PTR) BIOSDATAPAGE);
+        return;     /* By returning it ensures nothing below runs */
     }
+
+    /* Only runs if unblocked_pcb != NULL */
     softBlock_count --;
 
     /* Place the stored off status code in the newly unblocked pcb’s v0 register.*/
