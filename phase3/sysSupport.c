@@ -7,37 +7,18 @@
  *      Modified by Phuong and Oghap on March 2025
  */
 
+#include "sysSupport.h"
 
- #include "/usr/include/umps3/umps/libumps.h"
-
- #include "../h/pcb.h"
- #include "../h/asl.h"
- #include "../h/types.h"
- #include "../h/const.h"
-   
- #include "../phase2/initial.h"
- #include "../phase2/scheduler.h"
- #include "../phase2/exceptions.h"
- #include "../phase2/interrupts.h"
-
-#include "../phase3/initProc.c"
-
- extern int masterSemaphore;
- extern int* mutex;
- extern int swapPoolSema4;
- extern swapPoolFrame_t swapPoolTable[8 * 2];
-
-
+/**************************************************************************************************************** 
+ * return TRUE if string address is NOT valid
+*/
  int helper_check_string_outside_addr_space(int strAdd){
-    if ((strAdd < 0x80000000 | strAdd > 0x8001E000 + 0x1000) & (strAdd < 0xBFFFF000 | strAdd > 0xBFFFF000 + 0x1000)){
-        return TRUE;
-    }
-    return FALSE;
+    return (strAdd < 0x80000000 | strAdd > 0x8001E000 + 0x1000) & (strAdd < 0xBFFFF000 | strAdd > 0xBFFFF000 + 0x1000);
  }
  
  void helper_return_control(support_t *passedUpSupportStruct){
-     passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_pc += 4;
-     LDST(&(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]));
+    passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_pc += 4;
+    LDST(&(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]));
  }
  
  void program_trap_handler(support_t *passedUpSupportStruct){
@@ -89,7 +70,6 @@
  void GET_TOD(support_t *passedUpSupportStruct){
      /* POPS 4.1.2 */
      STCK(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0);
- 
  }
  
  void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
@@ -116,22 +96,23 @@
      int mutexSemIdx = devSemIdx(PRNTINT, devNo, FALSE);
      SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
      int i;
+     int devStatus;
      for (i = 0; i < savedExcState->s_a2; i++){
          setSTATUS(getSTATUS() & (~IECBITON));
          printerDevAdd->d_data0 = *((char *) (savedExcState->s_a1 + i)); /*calculate address and accessing the current char*/
          printerDevAdd->d_command = 2; /* command PRINTCHR */
-         SYSCALL(5, PRNTINT, devNo, 0); /*call SYSCALL WAITIO to block until interrupt*/
-         if (printerDevAdd->d_status != 1) { /* operation ends with a status other than "Device Ready" */
-            savedExcState->s_v0 = - printerDevAdd->d_status;
-             return;
-         }
+         devStatus = SYSCALL(5, PRNTINT, devNo, 0); /*call SYSCALL WAITIO to block until interrupt*/
          setSTATUS(getSTATUS() | IECBITON);
+         if (devStatus != 1) { /* operation ends with a status other than "Device Ready" -- this is printer, not terminal */
+            savedExcState->s_v0 = - devStatus;
+            break;
+         }
      }
  
-     if (printerDevAdd->d_status == 1) { /* "Device Ready" */
-        savedExcState->s_v0 = savedExcState->s_a2;;
+     if (devStatus == 1) { /* "Device Ready" */
+        savedExcState->s_v0 = i;;
      } else {
-        savedExcState->s_v0 = - printerDevAdd->d_status;
+        savedExcState->s_v0 = - devStatus;
      }
      SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
  }
@@ -159,90 +140,79 @@
  
      int mutexSemIdx = devSemIdx(TERMINT, devNo, FALSE);
      SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
-     /* add dev mutex sema4 once init proc is done*/
      int i;
+     int transmStatus;
      for (i = 0; i < savedExcState->s_a2; i++){
          setSTATUS(getSTATUS() & (~IECBITON));
          termDevAdd->t_transm_command = *((char *) (savedExcState->s_a1 + i)) << 7 + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
-         SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/
-         if (termDevAdd->t_transm_status != 5) { /* operation ends with a status other than "Device Ready" */
-            savedExcState->s_v0 = - termDevAdd->t_transm_status;
-             return;
-         }
+         transmStatus = SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/ 
          setSTATUS(getSTATUS() | IECBITON);
+         if (transmStatus != 5) { /* operation ends with a status other than Character Transmitted */ /* Character Transmitted -- what we return in interrupt*/
+            savedExcState->s_v0 = - transmStatus;
+            break;
+         }
      }
  
-     if (termDevAdd->t_transm_status == 5) { /* "Device Ready" */
-        savedExcState->s_v0 = savedExcState->s_a2;;
+     if (transmStatus == 5) {
+        savedExcState->s_v0 = i;;
      } else {
-        savedExcState->s_v0 = - termDevAdd->t_transm_status;
+        savedExcState->s_v0 = -transmStatus;
      }
      SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
  }
  
  void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
-    /* Access the general exception state */
-    state_t *excState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
+    /* Get the terminal device register
+     * POPS 5.3.1 — devAddrBase(line, devNo) gives address of device register
+     * Pandos assigns terminal device (receive part) per ASID-1
+     */
+    state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
+ 
+    int devNo = passedUpSupportStruct->sup_asid - 1;
+    device_t *termDevAdd = devAddrBase(TERMINT, devNo);
 
-    int asid = passedUpSupportStruct->sup_asid;
-    int termIndex = asid - 1;  /* terminal index for this ASID */
-    device_t *termReg = devAddrBase(TERMINT, termIndex);
+    /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
+    int stringOutsideAddSpace = helper_check_string_outside_addr_space(savedExcState->s_a1);
+    /* Error: length less than 0*/
+    int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
+    /* Error: a length greater than 128*/
+    int oversizeStringLen = (savedExcState->s_a2 > 128)? TRUE:FALSE;
 
-    /* Safety checks on user buffer address and length */
-    int addrInvalid = helper_check_string_outside_addr_space(excState->s_a1);
-    int tooLong = (excState->s_a2 > 128);
-    int tooShort = (excState->s_a2 < 0);
-
-    if (addrInvalid || tooLong || tooShort) {
-        SYSCALL(9, 0, 0, 0);  /* terminate the user process */
+    if (stringOutsideAddSpace || negStringLen || oversizeStringLen){
+        SYSCALL(9, 0, 0, 0);
     }
 
-    /* Lock the terminal receive mutex */
-    int termMutex = devSemIdx(TERMINT, termIndex, TRUE);  /* TRUE = receive */
-    SYSCALL(3, &mutex[termMutex], 0, 0);  /* P() operation */
+    int mutexSemIdx = devSemIdx(TERMINT, devNo, TRUE);
+    SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
 
-    /*Pandos 4.7.5*/
-    char dest = excState->s_a1;    /*buffer address*/
-    int limit = excState->s_a2;
-    int count = 0;
-    unsigned int ioResult;
-    char incomingChar;
-    int statusCode;
+    char *stringAdd = savedExcState->s_a1;
 
-    while (count < limit) {
-        /* Send read command to terminal device */
-        setSTATUS(getSTATUS() & ~IECBITON);      /* disable interrupts */
-        termReg->t_recv_command = 2;             /* issue RECEIVECHAR command */
-        setSTATUS(getSTATUS() | IECBITON);       /* enable interrupts */
-
-        ioResult = SYSCALL(5, TERMINT, termIndex, TRUE);  /* wait for terminal input */
-
-        /* Extract character and status info */
-        incomingChar = (ioResult >> 8) & 0xFF;
-        statusCode = ioResult & 0xFF;
-
-        if (statusCode != 5) {
-            excState->s_v0 = -statusCode;
-            break;
-        }
-
-        dest[count++] = incomingChar;
-
-        if (incomingChar == EOS) {
-            break;
+    int i = 0;
+    int recvStatusField;
+    int recvStatus;
+    char recvChar;
+    while (recvChar != EOS){
+        setSTATUS(getSTATUS() & (~IECBITON));
+        termDevAdd->t_recv_command = 2; /* RECEIVECHAR command*/
+        recvStatusField = SYSCALL(5, TERMINT, devNo, TRUE); /*call SYSCALL WAITIO to block until interrupt*/
+        setSTATUS(getSTATUS() | IECBITON);
+        recvChar = (recvStatusField & 0x0000FF00) >> 8;
+        recvStatus = recvStatusField & 0x000000FF;
+        stringAdd[i] = recvChar; /* write the char into the string buffer array */
+        i++;
+        if (recvStatus != 5) { /* operation ends with a status other than Character Received */ /* Character Received -- what we return in interrupt*/
+           savedExcState->s_v0 = -recvStatus;
+           break;
         }
     }
 
-    /* If status was ok throughout, return number of characters read */
-    if (statusCode == 5) {
-        excState->s_v0 = count;
+    if (recvStatus == 5) {
+       savedExcState->s_v0 = i;
+    } else {
+       savedExcState->s_v0 = - recvStatus;
     }
+    SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
 
-    /* Unlock the terminal receive mutex */
-    SYSCALL(4, &mutex[termMutex], 0, 0);  /* V() operation */
-
-    /* Move the PC to skip the syscall */
-    excState->s_t9 += 4;
 }
 
  void syscall_handler(support_t *passedUpSupportStruct) {
@@ -270,7 +240,10 @@
 
  void general_exception_handler() { 
      support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
-     if (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0 >= 9 && passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0 <= 13){
+     /* like in phase2 how we get the exception code*/
+     int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
+     /* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */
+     if (excCode >= 9 && excCode <= 13){
          syscall_handler(passedUpSupportStruct);
      }
          program_trap_handler(passedUpSupportStruct);
