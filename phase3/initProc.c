@@ -9,19 +9,21 @@
 
 #include "initProc.h"
 
+void debugInit(int a0, int a1, int a2, int a3){
+
+}
 int masterSemaphore = 0;
 
 /**********************************************************
  *  
  **********************************************************/
-void init_Uproc_pgTable() { /* 4.2.1 Pandos - A U-proc’s Page Table*/
-    support_t *currentSupport = SYSCALL(8, 0, 0, 0);
+void init_Uproc_pgTable(support_t *currentSupport) { /* 4.2.1 Pandos - A U-proc’s Page Table*/
     /* To initialize a Page Table one needs to set the VPN, ASID, V, and D bit fields for each Page Table entry*/
     int i;
     for (i = 0; i < 32; i ++){
         /* VPN field will be set to [0x80000..0x8001E] for the first 31 entries => should set up to idx 30 only => will have to reset the idx 31 element after the loop*/
         /* ASID field, for any given Page Table, will all be set to the U-proc’s unique ID*/
-        currentSupport->sup_privatePgTbl[i].EntryHi =  0x80000000 + i*0x1000 + currentSupport->sup_asid << 6;
+        currentSupport->sup_privatePgTbl[i].EntryHi =  0x80000000 + i*0x1000 + (currentSupport->sup_asid << 6);
         /*  D bit field will be set to 1 (on) - bit 10 to 1*/ /* G bit field will be set to 0 (off) - bit 8 to 0*/ /* V bit field will be set to 0 (off) - bit 9 to 0*/
         currentSupport->sup_privatePgTbl[i].EntryLo = currentSupport->sup_privatePgTbl[i].EntryLo | 0x00000400 & 0xFFFFFEFF & 0xFFFFFDFF;
     }
