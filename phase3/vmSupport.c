@@ -9,21 +9,21 @@
  *      Modified by Phuong and Oghap on March 2025
  */
 
-/*#include "/usr/include/umps3/umps/libumps.h"*/
+#include "/usr/include/umps3/umps/libumps.h"
 
+#include "../phase2/initial.h"
 #include "vmSupport.h"
+
 
 /**********************************************************
  *  
- **********************************************************/
+**********************************************************/
 void initSwapStruct(){/* 4.1 -- Address Translation */
     /*
     initSwapStructs which will do the work of initializing both the Swap Pool table and accompanying semaphore [4.11.2 Module Decomposition]
     */
 
-    /* One Page Table per U-proc ..  This array should be added to the Support Structure (support t) that is pointed to by a Uproc’s pcb => added pte_t table in support_t struct in types.h*/
-    swapPoolFrame_t swapPoolTable[8 * 2]; /* The size of the Swap Pool should be set to two times UPROCMAX, where UPROCMAX is defined as the specific degree of multiprogramming to be supported: [1. . .8]*/
-    
+    /* One Page Table per U-proc ..  This array should be added to the Support Structure (support t) that is pointed to by a Uproc’s pcb => added pte_t table in support_t struct in types.h*/    
     /* Pandos Section 4.4.1 (page 48–49) */
     int i;
     for (i = 0; i < 16; i++) {
@@ -34,23 +34,7 @@ void initSwapStruct(){/* 4.1 -- Address Translation */
     swapPoolSema4 = 1;
 
 }
-/**********************************************************
- *  
- **********************************************************/
-void init_Uproc_pgTable() { /* 4.2.1 Pandos - A U-proc’s Page Table*/
-    support_t *currentSupport = SYSCALL(8, 0, 0, 0);
-    /* To initialize a Page Table one needs to set the VPN, ASID, V, and D bit fields for each Page Table entry*/
-    int i;
-    for (i = 0; i < 32; i ++){
-        /* VPN field will be set to [0x80000..0x8001E] for the first 31 entries => should set up to idx 30 only => will have to reset the idx 31 element after the loop*/
-        /* ASID field, for any given Page Table, will all be set to the U-proc’s unique ID*/
-        currentSupport->sup_privatePgTbl[i].EntryHi =  0x80000000 + i*0x1000 + currentSupport->sup_asid << 6;
-        /*  D bit field will be set to 1 (on) - bit 10 to 1*/ /* G bit field will be set to 0 (off) - bit 8 to 0*/ /* V bit field will be set to 0 (off) - bit 9 to 0*/
-        currentSupport->sup_privatePgTbl[i].EntryLo = currentSupport->sup_privatePgTbl[i].EntryLo | 0x00000400 & 0xFFFFFEFF & 0xFFFFFDFF;
-    }
-    /* reset the idx 31 element -- VPN for the stack page entryHi (Page Table entry 31) should be set to 0xBFFFF*/
-    currentSupport->sup_privatePgTbl[i].EntryHi =  0xBFFFF000 + currentSupport->sup_asid;
-}
+
 
 /**********************************************************
  *  

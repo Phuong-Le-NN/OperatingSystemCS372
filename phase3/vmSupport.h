@@ -18,7 +18,7 @@ extern int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphore
 extern void program_trap_handler();
 
 /* global variables */
-swapPoolFrame_t swapPoolTable[8 * 2];
+swapPoolFrame_t swapPoolTable[DEVPERINT * 2];
 int swapPoolSema4;
 
 void initSwapStruct();
