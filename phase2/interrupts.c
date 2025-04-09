@@ -245,7 +245,7 @@ HIDDEN void helper_terminal_write(int intLineNo, int devNo){
 HIDDEN void helper_terminal_read_other_device(int intLineNo, int devNo){
 
     /* Calculate the address for this device’s device register */
-    device_t *intDevRegAdd = (device_t*) devAddrBase(intLineNo, devNo);
+    device_t *intDevRegAdd = devAddrBase(intLineNo, devNo);
 
     /* Save off the status code from the device’s device register*/
     int savedDevRegStatus = intDevRegAdd->d_status;
