@@ -9,7 +9,6 @@
 
 #include "initProc.h"
 
-int mutex[48];
 int masterSemaphore = 0;
 
 /**********************************************************
