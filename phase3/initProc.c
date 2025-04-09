@@ -29,7 +29,7 @@ void init_Uproc_pgTable() { /* 4.2.1 Pandos - A U-proc’s Page Table*/
     currentSupport->sup_privatePgTbl[i].EntryHi =  0xBFFFF000 + currentSupport->sup_asid;
 }
 
-pcb_PTR init_Uproc(support_t *initSupport, int ASID){
+pcb_PTR init_Uproc(support_t *initSupportPTR, int ASID){
     state_t initState;
 
     initState.s_pc = 0x800000B0;
@@ -39,18 +39,18 @@ pcb_PTR init_Uproc(support_t *initSupport, int ASID){
 
     initState.s_entryHI = (ASID << 6) & 0x000003C0;
 
-    initSupport->sup_asid = ASID;
+    initSupportPTR->sup_asid = ASID;
 
-    initSupport->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) TLB_exception_handler;
-    initSupport->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) general_exception_handler;
+    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) TLB_exception_handler;
+    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) general_exception_handler;
 
-    initSupport->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPBITON | TEBITON | IPBITS | KUPBITOFF;
-    initSupport->sup_exceptContext[GENERALEXCEPT].c_status = IEPBITON | TEBITON | IPBITS | KUPBITOFF;
+    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPBITON | TEBITON | IPBITS | KUPBITOFF;
+    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_status = IEPBITON | TEBITON | IPBITS | KUPBITOFF;
 
-    initSupport->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr =  &initSupport->sup_stackGen[499];
-    initSupport->sup_exceptContext[GENERALEXCEPT].c_stackPtr =  &initSupport->sup_stackGen[499];
+    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackGen[499];
+    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackGen[499];
 
-    pcb_PTR newPcb = SYSCALL(1, &initState, initSupport, 0);
+    pcb_PTR newPcb = SYSCALL(1, &initState, initSupportPTR, 0);
     return newPcb;
 }
 
@@ -62,11 +62,11 @@ void test() {
         mutex[i] = 1;
     }
 
-    support_t initSupportArr[8];
+    support_t initSupportPTRArr[8];
 
     pcb_PTR newUproc;
     for (i = 1; i <= 8; i++){
-        newUproc = init_Uproc(&initSupportArr[i-1], i);
+        newUproc = init_Uproc(&initSupportPTRArr[i-1], i);
         SYSCALL(3, &masterSemaphore, 0, 0); /* P operation */
     }
 }
