@@ -12,20 +12,25 @@
 int mutex[48];
 int masterSemaphore = 0;
 
+/* Setting all the fields necessary to support both paging and passed up Syscall services */
 pcb_PTR init_Uproc(support_t *initSupport, int ASID){
     state_t initState;
 
+    /* initializing U-proc's initial processor state */
     initState.s_pc = 0x800000B0;
     initState.s_t9 = 0x800000B0;
     initState.s_sp = 0xC0000000;
-    initState.s_cause = initState.s_cause | IEPBITON | TEBITON | IPBITS | KUPBITON;
+    
+    /* i am not sure if we need this for initialization */
+    /*initState.s_cause = initState.s_cause | IEPBITON | TEBITON | IPBITS | KUPBITON; */
 
-    initState.s_entryHI = (ASID << 6) & 0x000003C0;
+    initState.s_entryHI = (ASID << 6);
 
+    /* process's Address Space ID */
     initSupport->sup_asid = ASID;
 
-    initSupport->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) TLB_exception_handler;
-    initSupport->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) general_exception_handler;
+    initSupport->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) &TLB_exception_handler;
+    initSupport->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) &general_exception_handler;
 
     initSupport->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPBITON | TEBITON | IPBITS | KUPBITOFF;
     initSupport->sup_exceptContext[GENERALEXCEPT].c_status = IEPBITON | TEBITON | IPBITS | KUPBITOFF;
@@ -33,10 +38,12 @@ pcb_PTR init_Uproc(support_t *initSupport, int ASID){
     initSupport->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr =  &initSupport->sup_stackGen[499];
     initSupport->sup_exceptContext[GENERALEXCEPT].c_stackPtr =  &initSupport->sup_stackGen[499];
 
-    pcb_PTR newPcb = SYSCALL(1, &initState, initSupport, 0);
+    /* Create Process SYS1 */
+    pcb_PTR newPcb = SYSCALL(1, &initState, (memaddr) initSupport, 0);
     return newPcb;
 }
 
+/* Initialization of the Support Structure for a U-Proc */
 void test() {
     initSwapStruct();
 
@@ -45,6 +52,7 @@ void test() {
         mutex[i] = 1;
     }
 
+    /* static array of 8 support structures */
     support_t initSupportArr[8];
 
     pcb_PTR newUproc;
