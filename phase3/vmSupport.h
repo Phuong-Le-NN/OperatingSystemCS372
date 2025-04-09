@@ -14,7 +14,7 @@
 #include "../h/types.h"
 #include "../h/const.h"
 
-extern int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphores 49 semaphores in an array */
+extern int mutex[DEVINTNUM*DEVPERINT + DEVPERINT];  /* Mutex semaphores in an array */
 extern void program_trap_handler();
 
 /* global variables */

@@ -114,7 +114,7 @@ void read_write_flash(int pickedSwapPoolFrame, int isRead) {
     /* Get the device register address for the U-proc’s flash device */
     device_t *flashDevRegAdd = devAddrBase(FLASHINT, devNo);
 
-    SYSCALL(3, &(device_sem[flashSemIdx]), 0, 0);
+    SYSCALL(3, &(mutex[flashSemIdx]), 0, 0);
 
     /* Write the physical memory address (start of frame) to DATA0 */ /* swap pool starts at 0x20020000 - pandos pg 48*/
     flashDevRegAdd->d_data0 = (memaddr)(0x20020000 + (pickedSwapPoolFrame * 4096));
@@ -136,7 +136,7 @@ void read_write_flash(int pickedSwapPoolFrame, int isRead) {
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
 
-    SYSCALL(4, &(device_sem[flashSemIdx]), 0, 0);
+    SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
 }
 
 
