@@ -8,11 +8,14 @@
 #ifndef VMSUPPORT_H
 #define VMSUPPORT_H
 
+#include "/usr/include/umps3/umps/libumps.h"
 
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "../h/const.h"
+
+#include "../phase2/initial.h"
 
 extern int mutex[DEVINTNUM*DEVPERINT + DEVPERINT];  /* Mutex semaphores in an array */
 extern void program_trap_handler();

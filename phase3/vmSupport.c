@@ -9,7 +9,6 @@
  *      Modified by Phuong and Oghap on March 2025
  */
 
-/*#include "/usr/include/umps3/umps/libumps.h"*/
 
 #include "vmSupport.h"
 
@@ -22,7 +21,7 @@ void initSwapStruct(){/* 4.1 -- Address Translation */
     */
 
     /* One Page Table per U-proc ..  This array should be added to the Support Structure (support t) that is pointed to by a Uproc’s pcb => added pte_t table in support_t struct in types.h*/
-    swapPoolFrame_t swapPoolTable[8 * 2]; /* The size of the Swap Pool should be set to two times UPROCMAX, where UPROCMAX is defined as the specific degree of multiprogramming to be supported: [1. . .8]*/
+    /* The size of the Swap Pool should be set to two times UPROCMAX, where UPROCMAX is defined as the specific degree of multiprogramming to be supported: [1. . .8] -- this was done in header file*/
     
     /* Pandos Section 4.4.1 (page 48–49) */
     int i;
@@ -50,7 +49,7 @@ void uTLB_RefillHandler() { /* 4.3 -- The TLB-Refill event handler*/
         missingVPN_idx_in_pgTable = 31;
     }
 
-    support_t *currentSupport = SYSCALL(8, 0, 0, 0);
+    support_t *currentSupport = currentP->p_supportStruct;
     pte_t *pte = &(currentSupport->sup_privatePgTbl[missingVPN_idx_in_pgTable]);
 
     /* Write this Page Table entry into the TLB*/

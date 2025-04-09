@@ -44,11 +44,13 @@ pcb_PTR init_Uproc(support_t *initSupportPTR, int ASID){
     initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) TLB_exception_handler;
     initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) general_exception_handler;
 
-    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPBITON | TEBITON | IPBITS | KUPBITOFF;
-    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_status = IEPBITON | TEBITON | IPBITS | KUPBITOFF;
+    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPBITON | TEBITON | IPBITS & KUPBITOFF;
+    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_status = IEPBITON | TEBITON | IPBITS & KUPBITOFF;
 
-    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackGen[499];
+    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackTlb[499];
     initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackGen[499];
+
+    init_Uproc_pgTable(initSupportPTR);
 
     pcb_PTR newPcb = SYSCALL(1, &initState, initSupportPTR, 0);
     return newPcb;
@@ -65,8 +67,13 @@ void test() {
     support_t initSupportPTRArr[8];
 
     pcb_PTR newUproc;
-    for (i = 1; i <= 8; i++){
+    for (i = 1; i <= 1; i++){
         newUproc = init_Uproc(&initSupportPTRArr[i-1], i);
+    }
+
+    for (i = 1; i <= 1; i++){
         SYSCALL(3, &masterSemaphore, 0, 0); /* P operation */
     }
+
+    SYSCALL(2, 0, 0, 0);
 }
