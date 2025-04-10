@@ -163,7 +163,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
 
     /* 7. Determine if frame i is occupied; examine entry i in the Swap Pool table. */
     /* POPS 6.3.2 */
-    if (swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x00000200 == 1){ 
+    if ((swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x00000200) != 0){
         
         /* disable interrupts */
         setSTATUS(getSTATUS() & (~IECBITON));
