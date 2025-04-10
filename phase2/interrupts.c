@@ -279,6 +279,7 @@ HIDDEN void helper_non_terminal_device(int intLineNo, int devNo){
         }
         LDST((state_PTR) BIOSDATAPAGE);
     }
+    softBlock_count --;
 
     /* Place the stored off status code in the newly unblocked pcb’s v0 register.*/
     unblocked_pcb->p_s.s_v0 = savedDevRegStatus;
