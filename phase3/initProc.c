@@ -37,7 +37,7 @@ pcb_PTR init_Uproc(support_t *initSupportPTR, int ASID){
     initState.s_pc = 0x800000B0;
     initState.s_t9 = 0x800000B0;
     initState.s_sp = 0xC0000000;
-    initState.s_cause = initState.s_cause | IEPBITON | TEBITON | IPBITS | KUPBITON;
+    initState.s_status = IEPBITON | TEBITON | IPBITS | KUPBITON;
 
     initState.s_entryHI = (ASID << 6) & 0x000003C0;
 
