@@ -143,7 +143,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     SYSCALL(3, &swapPoolSema4, 0, 0);
     
     /* 5. Determine the missing page number (denoted as p): found in the saved exception state’s EntryHi. */
-    int missingVPN = (((state_PTR) BIOSDATAPAGE)->s_entryHI >> 12) & 0x000FFFFF; 
+    int missingVPN = (currentSupport->sup_exceptState[PGFAULTEXCEPT].s_entryHI >> 12) & 0x000FFFFF; 
 
     /* 6. Pick a frame, i, from the Swap Pool. Which frame is selected is determined by the Pandos page replacement algorithm. [Section 4.5.4]*/
     int pickedFrame = page_replace();
