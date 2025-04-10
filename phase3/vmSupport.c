@@ -9,21 +9,24 @@
  *      Modified by Phuong and Oghap on March 2025
  */
 
-#include "/usr/include/umps3/umps/libumps.h"
 
-#include "../phase2/initial.h"
 #include "vmSupport.h"
 
+void debugVm(int a0, int a1, int a2, int a3){
+
+}
 
 /**********************************************************
  *  
-**********************************************************/
+ **********************************************************/
 void initSwapStruct(){/* 4.1 -- Address Translation */
     /*
     initSwapStructs which will do the work of initializing both the Swap Pool table and accompanying semaphore [4.11.2 Module Decomposition]
     */
 
-    /* One Page Table per U-proc ..  This array should be added to the Support Structure (support t) that is pointed to by a Uproc’s pcb => added pte_t table in support_t struct in types.h*/    
+    /* One Page Table per U-proc ..  This array should be added to the Support Structure (support t) that is pointed to by a Uproc’s pcb => added pte_t table in support_t struct in types.h*/
+    /* The size of the Swap Pool should be set to two times UPROCMAX, where UPROCMAX is defined as the specific degree of multiprogramming to be supported: [1. . .8] -- this was done in header file*/
+    
     /* Pandos Section 4.4.1 (page 48–49) */
     int i;
     for (i = 0; i < 16; i++) {
@@ -34,7 +37,6 @@ void initSwapStruct(){/* 4.1 -- Address Translation */
     swapPoolSema4 = 1;
 
 }
-
 
 /**********************************************************
  *  
@@ -61,7 +63,6 @@ void uTLB_RefillHandler() { /* 4.3 -- The TLB-Refill event handler*/
 
     LDST((state_PTR) BIOSDATAPAGE); 
 }
-
 /**********************************************************
  *  
  **********************************************************/
@@ -89,20 +90,21 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
 /**********************************************************
  * flash I/O function: read or write a page
  **********************************************************/
-void read_write_flash(int pickedSwapPoolFrame, int isRead) {
+void read_write_flash(int pickedSwapPoolFrame, int blockNo, int isRead) {
     support_t *currentSupport = SYSCALL(8, 0, 0, 0);
 
     int devNo = currentSupport->sup_asid - 1;
-    int blockNo = swapPoolTable[pickedSwapPoolFrame].pgNo;
-    int flashSemIdx = devSemIdx(FLASHINT, devNo, isRead)
+    int flashSemIdx = devSemIdx(FLASHINT, devNo, FALSE); /* this is read/write for terminal not flash => FALSE*/
+
+    debugVm(flashSemIdx,FLASHINT, devNo, isRead);
 
     /* Get the device register address for the U-proc’s flash device */
     device_t *flashDevRegAdd = devAddrBase(FLASHINT, devNo);
 
-    SYSCALL(3, &(device_sem[flashSemIdx]), 0, 0);
+    SYSCALL(3, &(mutex[flashSemIdx]), 0, 0);
 
     /* Write the physical memory address (start of frame) to DATA0 */ /* swap pool starts at 0x20020000 - pandos pg 48*/
-    flashDevRegAdd->d_data0 = (memaddr)(0x20020000 + (pickedSwapPoolFrame * 4096));
+    flashDevRegAdd->d_data0 = (0x20020000 + (pickedSwapPoolFrame * 4096));
 
     /* Choose the correct flash command */
     int flashCommand;
@@ -121,7 +123,7 @@ void read_write_flash(int pickedSwapPoolFrame, int isRead) {
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
 
-    SYSCALL(4, &(device_sem[flashSemIdx]), 0, 0);
+    SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
 }
 
 
@@ -146,7 +148,15 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     SYSCALL(3, &swapPoolSema4, 0, 0);
     
     /* 5. Determine the missing page number (denoted as p): found in the saved exception state’s EntryHi. */
-    int missingVPN = (((state_PTR) BIOSDATAPAGE)->s_entryHI >> 12) & 0x000FFFFF; 
+    int missingVPN = (currentSupport->sup_exceptState[PGFAULTEXCEPT].s_entryHI >> 12) & 0x000FFFFF; 
+    /* find page table index for later use */
+    int pgTableIndex;
+
+    if (missingVPN == 0xBFFFF) {
+        pgTableIndex = 31;                              
+    } else {
+        pgTableIndex = (missingVPN - 0x80000) / 0x1;  
+    }
 
     /* 6. Pick a frame, i, from the Swap Pool. Which frame is selected is determined by the Pandos page replacement algorithm. [Section 4.5.4]*/
     int pickedFrame = page_replace();
@@ -183,40 +193,41 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if (occupiedPgTable->EntryLo & 0x00000800) {  /* D bit set */
-            read_write_flash(pickedFrame, 0);  /* isRead = 0 since we are writing */
+            read_write_flash(pickedFrame, pgTableIndex, 0);  /* isRead = 0 since we are writing */
         }
     }
 
     /* 9. Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. [Section 4.5.1] */
-    read_write_flash(pickedFrame, 1);  /* isRead = 1 since we are reading */
+    read_write_flash(pickedFrame, pgTableIndex, 1);  /* isRead = 1 since we are reading */
 
     /* 10. Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID, and a pointer to the Current Process’s Page Table entry for page p. */
     swapPoolTable[pickedFrame].ASID = currentSupport->sup_asid;
     swapPoolTable[pickedFrame].pgNo = missingVPN;
-    int pgTableIndex;
-
-    if (missingVPN == 0xBFFFF) {
-        pgTableIndex = 31;                              
-    } else {
-        pgTableIndex = (missingVPN - 0x80000) / 0x1;  
-    }
 
     swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_privatePgTbl[pgTableIndex]);
 
     /* 11. Update the Current Process’s Page Table entry for page p to indicate it is now present (V bit) and occupying frame i (PFN field).*/
     pte_t *newEntry = swapPoolTable[pickedFrame].matchingPgTableEntry;
-    /* Set V bit */
-    newEntry->EntryLo |= 0x00000200; 
-     /* Clear old PFN */
-    newEntry->EntryLo &= ~0xFFFFF000;
     /* Set new PFN */
-    newEntry->EntryLo |= (pickedFrame << 12);
+    newEntry->EntryLo = (0x20020000 + (pickedFrame * 4096));
+    /* Set V bit */
+    newEntry->EntryLo |= 0x00000200;
+    /* Set D bit */
+    newEntry->EntryLo |= 0x00000400;
 
     /* 12. Update the TLB. */
     setSTATUS(getSTATUS() & (~IECBITON));
     setENTRYHI(newEntry->EntryHi);
     setENTRYLO(newEntry->EntryLo);
-    TLBWR();
+    TLBP();
+
+    /* Extract the index value from the CP0 INDEX register */
+    int index = getINDEX();
+
+    /* Check if the entry is present in the TLB (Index.P == 0) */
+    if ((index & 0x80000000) == 0) {                           
+        TLBWI();
+    }
     setSTATUS(getSTATUS() | IECBITON);
 
     /* 13. Release mutual exclusion over the Swap Pool table. SYS4 */
@@ -225,3 +236,5 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     /* 14. Return control to the Current Process */
     LDST((state_t *) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
 }
+
+

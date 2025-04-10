@@ -8,17 +8,20 @@
 #ifndef VMSUPPORT_H
 #define VMSUPPORT_H
 
+#include "/usr/include/umps3/umps/libumps.h"
 
 #include "../h/pcb.h"
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "../h/const.h"
 
-extern int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphores 49 semaphores in an array */
+#include "../phase2/initial.h"
+
+extern int mutex[DEVINTNUM*DEVPERINT + DEVPERINT];  /* Mutex semaphores in an array */
 extern void program_trap_handler();
 
 /* global variables */
-swapPoolFrame_t swapPoolTable[DEVPERINT * 2];
+swapPoolFrame_t swapPoolTable[8 * 2];
 int swapPoolSema4;
 
 void initSwapStruct();

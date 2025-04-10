@@ -493,23 +493,18 @@ HIDDEN void pass_up_or_die(int exception_constant) {
  *         
  **********************************************************/
 HIDDEN void SYSCALL_handler() {
-
-    /* get syscall number */
-    int syscall_num = ((state_PTR) BIOSDATAPAGE)->s_a0;
     /*int syscall,state_t *statep, support_t * supportp, int arg3*/
     /*check if in kernel mode -- if not, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode_bit() != 0){
-        if (syscall_num <= 8 ){
-            /* only change the cause when it is in user mode and when the syscall is 1-8 */
-            ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause | 0x00000028;
-            ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause & 0xFFFFFFEB;
-        }
+        ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause | 0x00000028;
+        ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause & 0xFFFFFFEB;
+
         /* Program Traps */
         pass_up_or_die(GENERALEXCEPT);
         return;
     }
     
-    switch (syscall_num) {
+    switch (((state_PTR) BIOSDATAPAGE)->s_a0) {
         case 1:
             CREATEPROCESS();
              helper_non_blocking_syscall_handler();

@@ -15,8 +15,6 @@
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "../h/const.h"
-  
-#include "../phase3/initProc.h"
 
 extern int masterSemaphore;
 extern int mutex[48];

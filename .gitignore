@@ -1,9 +1,0 @@
-.vscode
-
-*.o
-
-*.umps
-
-kernel*
-
-.nfs*
