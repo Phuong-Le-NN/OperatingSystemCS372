@@ -12,6 +12,10 @@
 
 #include "vmSupport.h"
 
+void debugVm(int a0, int a1, int a2, int a3){
+
+}
+
 /**********************************************************
  *  
  **********************************************************/
@@ -86,12 +90,13 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
 /**********************************************************
  * flash I/O function: read or write a page
  **********************************************************/
-void read_write_flash(int pickedSwapPoolFrame, int isRead) {
+void read_write_flash(int pickedSwapPoolFrame, int blockNo, int isRead) {
     support_t *currentSupport = SYSCALL(8, 0, 0, 0);
 
     int devNo = currentSupport->sup_asid - 1;
-    int blockNo = swapPoolTable[pickedSwapPoolFrame].pgNo;
-    int flashSemIdx = devSemIdx(FLASHINT, devNo, isRead)
+    int flashSemIdx = devSemIdx(FLASHINT, devNo, isRead);
+
+    debugVm(flashSemIdx,FLASHINT, devNo, isRead);
 
     /* Get the device register address for the U-proc’s flash device */
     device_t *flashDevRegAdd = devAddrBase(FLASHINT, devNo);
@@ -144,6 +149,14 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     
     /* 5. Determine the missing page number (denoted as p): found in the saved exception state’s EntryHi. */
     int missingVPN = (currentSupport->sup_exceptState[PGFAULTEXCEPT].s_entryHI >> 12) & 0x000FFFFF; 
+    /* find page table index for later use */
+    int pgTableIndex;
+
+    if (missingVPN == 0xBFFFF) {
+        pgTableIndex = 31;                              
+    } else {
+        pgTableIndex = (missingVPN - 0x80000) / 0x1;  
+    }
 
     /* 6. Pick a frame, i, from the Swap Pool. Which frame is selected is determined by the Pandos page replacement algorithm. [Section 4.5.4]*/
     int pickedFrame = page_replace();
@@ -180,23 +193,16 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if (occupiedPgTable->EntryLo & 0x00000800) {  /* D bit set */
-            read_write_flash(pickedFrame, 0);  /* isRead = 0 since we are writing */
+            read_write_flash(pickedFrame, pgTableIndex, 0);  /* isRead = 0 since we are writing */
         }
     }
 
     /* 9. Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. [Section 4.5.1] */
-    read_write_flash(pickedFrame, 1);  /* isRead = 1 since we are reading */
+    read_write_flash(pickedFrame, pgTableIndex, 1);  /* isRead = 1 since we are reading */
 
     /* 10. Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID, and a pointer to the Current Process’s Page Table entry for page p. */
     swapPoolTable[pickedFrame].ASID = currentSupport->sup_asid;
     swapPoolTable[pickedFrame].pgNo = missingVPN;
-    int pgTableIndex;
-
-    if (missingVPN == 0xBFFFF) {
-        pgTableIndex = 31;                              
-    } else {
-        pgTableIndex = (missingVPN - 0x80000) / 0x1;  
-    }
 
     swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_privatePgTbl[pgTableIndex]);
 
