@@ -233,7 +233,7 @@
         case 13:
             READ_FROM_TERMINAL(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
-        default: /*should never reach this case*/
+        default: /*the case where the process tried to do SYS 8- in user mode*/
             program_trap_handler(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
     }
