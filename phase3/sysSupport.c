@@ -9,6 +9,10 @@
 
 #include "sysSupport.h"
 
+debugSup(int a0, int a1, int a2, int a3){
+
+}
+
 /**************************************************************************************************************** 
  * return TRUE if string address is NOT valid
 */
@@ -243,8 +247,10 @@
      support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
      /* like in phase2 how we get the exception code*/
      int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
+     debugSup(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause, excCode, 0xaa, 0xaa);
      /* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */
-     if (excCode >= 9 && excCode <= 13){
+     /* 8 is the ExcCode for Sys*/
+     if (excCode == 8){
          syscall_handler(passedUpSupportStruct);
      }
          program_trap_handler(passedUpSupportStruct);
