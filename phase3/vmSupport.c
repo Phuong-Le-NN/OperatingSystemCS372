@@ -118,6 +118,7 @@ void read_write_flash(int pickedSwapPoolFrame, int blockNo, int isRead) {
     setSTATUS(getSTATUS() & (~IECBITON));
     /* Write the command to COMMAND register */
     flashDevRegAdd->d_command = (blockNo << 8) | flashCommand;
+    debugVm((blockNo << 8) | flashCommand, flashCommand, flashDevRegAdd->d_data0, flashDevRegAdd);
     /* Block the process until the flash operation is complete */
     SYSCALL(5, FLASHINT, devNo, 0);
     /* Re-enable interrupts */
@@ -203,7 +204,6 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     /* 10. Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID, and a pointer to the Current Process’s Page Table entry for page p. */
     swapPoolTable[pickedFrame].ASID = currentSupport->sup_asid;
     swapPoolTable[pickedFrame].pgNo = missingVPN;
-
     swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_privatePgTbl[pgTableIndex]);
 
     /* 11. Update the Current Process’s Page Table entry for page p to indicate it is now present (V bit) and occupying frame i (PFN field).*/
@@ -234,7 +234,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     SYSCALL(4, &swapPoolSema4, 0, 0);
 
     /* 14. Return control to the Current Process */
-    LDST((state_t *) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
+    LDST((state_PTR) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
 }
 
 
