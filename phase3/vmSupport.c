@@ -46,7 +46,7 @@ void uTLB_RefillHandler() { /* 4.3 -- The TLB-Refill event handler*/
 
     /* Get the Page Table entry for page number p for the Current Process. This will be located in the Current Process’s Page Table*/
 
-    int missingVPN_idx_in_pgTable = (missingVPN - 0x80000)/0x1000;
+    int missingVPN_idx_in_pgTable = (missingVPN - 0x80000);
 
     /* if missing page is the stack page, finding the page entry indx in the page table like that would not work*/
     if (missingVPN == 0xBFFFF){
