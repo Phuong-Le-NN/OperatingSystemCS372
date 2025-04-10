@@ -99,7 +99,7 @@ void main() {
         SP set to RAMTOP (i.e. use the last RAM frame for its stack)
         PC set to the address of test
     */
-    first_pro->p_s.s_status = ((first_pro->p_s.s_status | IEPBITON) & KUPBITOFF) | TEBITON;
+    first_pro->p_s.s_status = ((IEPBITON) & KUPBITOFF) | TEBITON;
     first_pro->p_s.s_pc = (memaddr) test;
 
     /*technical reasons, assign same value to both PC and general purpose register t9*/
