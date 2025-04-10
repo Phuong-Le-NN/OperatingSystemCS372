@@ -11,8 +11,8 @@
  *  and putting the current process back in the ready queue.
  *  pseudo_clock_interrupts() updates the pseudo-clock and unblocks waiting processes.
  *  non_timer_interrupts() checks which device caused an interrupt and processes it.
- *  It also has special handling for terminal devices using  helper_terminal_write()  and
- *  helper_terminal_read_other_device() .
+ *  It also has special handling for terminal devices using  helper_terminal_device()  and
+ *  helper_non_terminal_device() .
  *
  *  The code uses arrays to store device semaphores and linked lists to manage process queues.
  *  It also updates the process state and may call the scheduler when needed. 
@@ -173,7 +173,7 @@ HIDDEN pcb_PTR helper_unblock_process(int *semdAdd){
 
 
 /**********************************************************
- *  helper_terminal_write()
+ *  helper_terminal_device()
  *
  *  Acknowledge interrupts from terminal read sub-device.
  *  Performs a V operation on the device semaphore
@@ -186,19 +186,28 @@ HIDDEN pcb_PTR helper_unblock_process(int *semdAdd){
  *  Returns:
  *         
  **********************************************************/
-HIDDEN void helper_terminal_write(int intLineNo, int devNo){
+HIDDEN void helper_terminal_device(int intLineNo, int devNo, int termRead){
 
     /* Calculate the address for this device’s device register */
     device_t *intDevRegAdd = devAddrBase(intLineNo, devNo);
+    int savedDevRegStatus;
 
-    /* Save off the status code from the device’s device register*/
-    int savedDevRegStatus = intDevRegAdd->d_data0; /* shoudl be 5 for CHARTRANSMITTED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
-        
-    /* Acknowledge the outstanding interrupt */
-    intDevRegAdd->d_data1 = ACK;
+    if (termRead){
+        /* Save off the status code from the device’s device register*/
+        savedDevRegStatus = intDevRegAdd->t_recv_status; /* should be 5 for CHAR RECEIVED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
+            
+        /* Acknowledge the outstanding interrupt */
+        intDevRegAdd->t_recv_command = ACK;
+    }else {
+        /* Save off the status code from the device’s device register*/
+        savedDevRegStatus = intDevRegAdd->t_transm_status; /* should be 5 for CHAR TRANSMITTED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
+            
+        /* Acknowledge the outstanding interrupt */
+        intDevRegAdd->t_transm_command = ACK;
+    }
 
     /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
-    int devIdx = devSemIdx(intLineNo, devNo, FALSE);
+    int devIdx = devSemIdx(intLineNo, devNo, termRead);
 
     /* put semdAdd into BIOSDATAPAGE state register a1 to call VERHOGEN -- VERHOGEN use the state in currentP*/
     ((state_PTR) BIOSDATAPAGE)->s_a1 = &device_sem[devIdx];
@@ -213,10 +222,7 @@ HIDDEN void helper_terminal_write(int intLineNo, int devNo){
             scheduler();
         }
         LDST((state_PTR) BIOSDATAPAGE);
-        return;     /* By returning it ensures nothing below runs */
     }
-
-    /* Only runs if unblocked_pcb != NULL */
     softBlock_count --;
 
     /* Place the stored off status code in the newly unblocked pcb’s v0 register.*/
@@ -230,7 +236,7 @@ HIDDEN void helper_terminal_write(int intLineNo, int devNo){
 }
 
 /**********************************************************
- *  helper_terminal_read_other_device()
+ *  helper_non_terminal_device()
  *
  *  Aknowledge interrupts from terminal write sub-device 
  *  or other devices. Performs a V operation on the device 
@@ -245,10 +251,10 @@ HIDDEN void helper_terminal_write(int intLineNo, int devNo){
  *  Returns:
  *         
  **********************************************************/
-HIDDEN void helper_terminal_read_other_device(int intLineNo, int devNo){
+HIDDEN void helper_non_terminal_device(int intLineNo, int devNo){
 
     /* Calculate the address for this device’s device register */
-    device_t *intDevRegAdd = (device_t*) devAddrBase(intLineNo, devNo);
+    device_t *intDevRegAdd = devAddrBase(intLineNo, devNo);
 
     /* Save off the status code from the device’s device register*/
     int savedDevRegStatus = intDevRegAdd->d_status;
@@ -257,10 +263,10 @@ HIDDEN void helper_terminal_read_other_device(int intLineNo, int devNo){
     intDevRegAdd->d_command = ACK;
 
     /* Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.*/
-    int devIdx = devSemIdx(intLineNo, devNo, TRUE);
+    int devIdx = devSemIdx(intLineNo, devNo, FALSE);
     
     /* put semdAdd into BIOSDATAPAGE state register a1 to call VERHOGEN -- VERHOGEN use the semdAdd in reg a1 of the state saved*/
-    ((state_PTR) BIOSDATAPAGE)->s_a1 = (int) &device_sem[devIdx];
+    ((state_PTR) BIOSDATAPAGE)->s_a1 = &device_sem[devIdx];
     
     /* putting the process returned by V operation to unblocked_pcb */
     pcb_PTR unblocked_pcb = helper_verhogen();
@@ -273,6 +279,7 @@ HIDDEN void helper_terminal_read_other_device(int intLineNo, int devNo){
         }
         LDST((state_PTR) BIOSDATAPAGE);
     }
+    softBlock_count --;
 
     /* Place the stored off status code in the newly unblocked pcb’s v0 register.*/
     unblocked_pcb->p_s.s_v0 = savedDevRegStatus;
@@ -377,11 +384,12 @@ HIDDEN void non_timer_interrupts(int intLineNo){
             /* address of register of device*/
             intDevRegAdd = devAddrBase(intLineNo, devNo);
 
-            /* What is 0x000000FF? */
-            if ((intLineNo != 7) || ((intLineNo == 7)&&(((intDevRegAdd->d_status) & 0x000000FF) == 5))){ 
-                helper_terminal_read_other_device(intLineNo, devNo);
+            if (intLineNo != 7){ 
+                helper_non_terminal_device(intLineNo, devNo);
+            }else{
+                int termRead = (((intDevRegAdd->d_status) & 0x000000FF) == 5);
+                helper_terminal_device(intLineNo, devNo, termRead);
             }
-            helper_terminal_write(intLineNo, devNo);
         }
     }
 }
