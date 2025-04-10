@@ -94,7 +94,7 @@ void read_write_flash(int pickedSwapPoolFrame, int blockNo, int isRead) {
     support_t *currentSupport = SYSCALL(8, 0, 0, 0);
 
     int devNo = currentSupport->sup_asid - 1;
-    int flashSemIdx = devSemIdx(FLASHINT, devNo, isRead);
+    int flashSemIdx = devSemIdx(FLASHINT, devNo, FALSE); /* this is read/write for terminal not flash => FALSE*/
 
     debugVm(flashSemIdx,FLASHINT, devNo, isRead);
 
@@ -104,7 +104,7 @@ void read_write_flash(int pickedSwapPoolFrame, int blockNo, int isRead) {
     SYSCALL(3, &(mutex[flashSemIdx]), 0, 0);
 
     /* Write the physical memory address (start of frame) to DATA0 */ /* swap pool starts at 0x20020000 - pandos pg 48*/
-    flashDevRegAdd->d_data0 = (memaddr)(0x20020000 + (pickedSwapPoolFrame * 4096));
+    flashDevRegAdd->d_data0 = (0x20020000 + (pickedSwapPoolFrame * 4096));
 
     /* Choose the correct flash command */
     int flashCommand;
@@ -208,18 +208,26 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
 
     /* 11. Update the Current Process’s Page Table entry for page p to indicate it is now present (V bit) and occupying frame i (PFN field).*/
     pte_t *newEntry = swapPoolTable[pickedFrame].matchingPgTableEntry;
-    /* Set V bit */
-    newEntry->EntryLo |= 0x00000200; 
-     /* Clear old PFN */
-    newEntry->EntryLo &= ~0xFFFFF000;
     /* Set new PFN */
-    newEntry->EntryLo |= (pickedFrame << 12);
+    newEntry->EntryLo = (0x20020000 + (pickedFrame * 4096));
+    /* Set V bit */
+    newEntry->EntryLo |= 0x00000200;
+    /* Set D bit */
+    newEntry->EntryLo |= 0x00000400;
 
     /* 12. Update the TLB. */
     setSTATUS(getSTATUS() & (~IECBITON));
     setENTRYHI(newEntry->EntryHi);
     setENTRYLO(newEntry->EntryLo);
-    TLBWR();
+    TLBP();
+
+    /* Extract the index value from the CP0 INDEX register */
+    int index = getINDEX();
+
+    /* Check if the entry is present in the TLB (Index.P == 0) */
+    if ((index & 0x80000000) == 0) {                           
+        TLBWI();
+    }
     setSTATUS(getSTATUS() | IECBITON);
 
     /* 13. Release mutual exclusion over the Swap Pool table. SYS4 */
