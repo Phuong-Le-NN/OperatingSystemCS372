@@ -9,10 +9,6 @@
 
 #include "sysSupport.h"
 
-debugSup(int a0, int a1, int a2, int a3){
-
-}
-
 /**************************************************************************************************************** 
  * return TRUE if string address is NOT valid
 */
@@ -148,16 +144,16 @@ debugSup(int a0, int a1, int a2, int a3){
      int transmStatus;
      for (i = 0; i < savedExcState->s_a2; i++){
          setSTATUS(getSTATUS() & (~IECBITON));
-         termDevAdd->t_transm_command = *((char *) (savedExcState->s_a1 + i)) << 7 + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
+         termDevAdd->t_transm_command = (*((char *) (savedExcState->s_a1 + i)) << 8) + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
          transmStatus = SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/ 
          setSTATUS(getSTATUS() | IECBITON);
-         if (transmStatus != 5) { /* operation ends with a status other than Character Transmitted */ /* Character Transmitted -- what we return in interrupt*/
+         if ((transmStatus & 0xff) != 5) { /* operation ends with a status other than Character Transmitted */ /* Character Transmitted -- what we return in interrupt*/
             savedExcState->s_v0 = - transmStatus;
             break;
          }
      }
  
-     if (transmStatus == 5) {
+     if ((transmStatus & 0xff) == 5) {
         savedExcState->s_v0 = i;;
      } else {
         savedExcState->s_v0 = -transmStatus;
@@ -247,7 +243,6 @@ debugSup(int a0, int a1, int a2, int a3){
      support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
      /* like in phase2 how we get the exception code*/
      int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
-     debugSup(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause, excCode, 0xaa, 0xaa);
      /* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */
      /* 8 is the ExcCode for Sys*/
      if (excCode == 8){
