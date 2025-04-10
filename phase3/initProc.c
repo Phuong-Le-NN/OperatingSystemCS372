@@ -28,7 +28,7 @@ void init_Uproc_pgTable(support_t *currentSupport) { /* 4.2.1 Pandos - A U-procâ
         currentSupport->sup_privatePgTbl[i].EntryLo = ((currentSupport->sup_privatePgTbl[i].EntryLo | 0x00000400) & 0xFFFFFEFF) & 0xFFFFFDFF;
     }
     /* reset the idx 31 element -- VPN for the stack page entryHi (Page Table entry 31) should be set to 0xBFFFF*/
-    currentSupport->sup_privatePgTbl[i].EntryHi =  0xBFFFF000 + currentSupport->sup_asid;
+    currentSupport->sup_privatePgTbl[31].EntryHi = 0xBFFFF000 | (currentSupport->sup_asid << 6);
 }
 
 pcb_PTR init_Uproc(support_t *initSupportPTR, int ASID){
@@ -49,8 +49,8 @@ pcb_PTR init_Uproc(support_t *initSupportPTR, int ASID){
     initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) TLB_exception_handler;
     initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) general_exception_handler;
 
-    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPBITON | TEBITON | IPBITS & KUPBITOFF;
-    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_status = IEPBITON | TEBITON | IPBITS & KUPBITOFF;
+    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPBITON | TEBITON | (IPBITS & KUPBITOFF);
+    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_status = IEPBITON | TEBITON | (IPBITS & KUPBITOFF);    
 
     initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackTlb[499];
     initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackGen[499];
