@@ -37,9 +37,6 @@
 #define INTLINESCOUNT   8       /* number of interrupt lines*/
 #define REGWIDTH        32      /* register width*/
 
-/* Helper Functions */
-
-
 /**********************************************************
  *  helper_verhogen() 
  *
@@ -194,14 +191,12 @@ HIDDEN void helper_terminal_device(int intLineNo, int devNo, int termRead){
 
     if (termRead){
         /* Save off the status code from the device’s device register*/
-        savedDevRegStatus = intDevRegAdd->t_recv_status; /* should be 5 for CHAR RECEIVED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
-            
+        savedDevRegStatus = intDevRegAdd->t_recv_status; /* should be the char and 5 for CHAR RECEIVED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
         /* Acknowledge the outstanding interrupt */
         intDevRegAdd->t_recv_command = ACK;
     }else {
         /* Save off the status code from the device’s device register*/
-        savedDevRegStatus = intDevRegAdd->t_transm_status; /* should be 5 for CHAR TRANSMITTED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
-            
+        savedDevRegStatus = intDevRegAdd->t_transm_status; /* should be the char and 5 for CHAR TRANSMITTED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
         /* Acknowledge the outstanding interrupt */
         intDevRegAdd->t_transm_command = ACK;
     }
