@@ -12,9 +12,10 @@
 /**************************************************************************************************************** 
  * return TRUE if string address is NOT valid
 */
- int helper_check_string_outside_addr_space(int strAdd){
-    return (strAdd < 0x80000000 | strAdd > 0x8001E000 + 0x1000) & (strAdd < 0xBFFFF000 | strAdd > 0xBFFFF000 + 0x1000);
- }
+int helper_check_string_outside_addr_space(int strAdd){
+    return ((strAdd < 0x80000000 || strAdd > 0x8001E000 + 0x1000) &&
+            (strAdd < 0xBFFFF000 || strAdd > 0xBFFFF000 + 0x1000));
+}
  
  void helper_return_control(support_t *passedUpSupportStruct){
     passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_pc += 4;
@@ -144,7 +145,12 @@
      int transmStatus;
      for (i = 0; i < savedExcState->s_a2; i++){
          setSTATUS(getSTATUS() & (~IECBITON));
-         termDevAdd->t_transm_command = *((char *) (savedExcState->s_a1 + i)) << 7 + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
+
+         /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
+         /* POPS 5.7 */
+         /* POPS Table 5.1.5 */
+         termDevAdd->t_transm_command = (*((char *)(savedExcState->s_a1 + i)) << 8) | 2;
+         
          transmStatus = SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/ 
          setSTATUS(getSTATUS() | IECBITON);
          if (transmStatus != 5) { /* operation ends with a status other than Character Transmitted */ /* Character Transmitted -- what we return in interrupt*/
@@ -161,7 +167,7 @@
      SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
  }
  
- void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
+void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     /* Get the terminal device register
      * POPS 5.3.1 — devAddrBase(line, devNo) gives address of device register
      * Pandos assigns terminal device (receive part) per ASID-1
@@ -190,7 +196,7 @@
     int i = 0;
     int recvStatusField;
     int recvStatus;
-    char recvChar;
+    char recvChar = 0;
     while (recvChar != EOS){
         setSTATUS(getSTATUS() & (~IECBITON));
         termDevAdd->t_recv_command = 2; /* RECEIVECHAR command*/
@@ -221,31 +227,37 @@
         case 9:
             TERMINATE(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
+            break;
         case 10:
             GET_TOD(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
+            break;
         case 11:
             WRITE_TO_PRINTER(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
+            break;
         case 12:
             WRITE_TO_TERMINAL(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
+            break;
         case 13:
             READ_FROM_TERMINAL(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
+            break;
         default: /*should never reach this case*/
             program_trap_handler(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
     }
 }
 
- void general_exception_handler() { 
-     support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
-     /* like in phase2 how we get the exception code*/
-     int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
-     /* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */
-     if (excCode >= 9 && excCode <= 13){
-         syscall_handler(passedUpSupportStruct);
-     }
-         program_trap_handler(passedUpSupportStruct);
- }
+void general_exception_handler() { 
+    support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
+    /* like in phase2 how we get the exception code*/
+    int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
+    /* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */
+    if (excCode >= 9 && excCode <= 13){
+        syscall_handler(passedUpSupportStruct);
+    }else{
+        program_trap_handler(passedUpSupportStruct);
+    }
+}
