@@ -120,7 +120,10 @@ void read_write_flash(int pickedSwapPoolFrame, int blockNo, int isRead) {
     flashDevRegAdd->d_command = (blockNo << 8) | flashCommand;
     debugVm((blockNo << 8) | flashCommand, flashCommand, flashDevRegAdd->d_data0, flashDevRegAdd);
     /* Block the process until the flash operation is complete */
-    SYSCALL(5, FLASHINT, devNo, 0);
+    int flashStatus = SYSCALL(5, FLASHINT, devNo, 0);
+    if (flashStatus != READY){
+        SYSCALL(9, 0, 0, 0);
+    }
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
 
