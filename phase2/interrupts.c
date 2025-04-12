@@ -446,4 +446,9 @@ void interrupt_exception_handler(){
             }
         }
     }
+    if (currentP == NULL){
+        scheduler();
+    }
+    /* return control to the current process*/
+    LDST((state_t *) BIOSDATAPAGE);
 }
