@@ -190,8 +190,8 @@
     int i = 0;
     int recvStatusField;
     int recvStatus;
-    char recvChar;
-    while (recvChar != EOS){
+    char recvChar = 'a';
+    while (recvChar != 10){
         setSTATUS(getSTATUS() & (~IECBITON));
         termDevAdd->t_recv_command = 2; /* RECEIVECHAR command*/
         recvStatusField = SYSCALL(5, TERMINT, devNo, TRUE); /*call SYSCALL WAITIO to block until interrupt*/
