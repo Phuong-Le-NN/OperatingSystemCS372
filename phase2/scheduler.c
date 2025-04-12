@@ -58,12 +58,7 @@ void scheduler (){
             /* if Process Count > 0 and the Soft-block Count > 0 */
 
             /* get status, enable interrupt on current enable bit, disable PLT, enable Interrupt Mask */
-            setSTATUS(((getSTATUS() | IECBITON)  & (~TEBITON)) | IPBITS);
-            
-            /* check if soft block count is 0, in case interrupt happen while setting status*/
-            if (softBlock_count == 0 || emptyProcQ(readyQ) == FALSE){
-                scheduler();
-            }
+            setSTATUS(0x0000ff01);
             WAIT();
         }else{
             /* if ProcessCount > 0 and softBlock_count = 0 */
