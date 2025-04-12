@@ -61,7 +61,7 @@ void scheduler (){
             setSTATUS(((getSTATUS() | IECBITON)  & (~TEBITON)) | IPBITS);
             
             /* check if soft block count is 0, in case interrupt happen while setting status*/
-            if (softBlock_count == 0){
+            if (softBlock_count == 0 || emptyProcQ(readyQ) == FALSE){
                 scheduler();
             }
             WAIT();

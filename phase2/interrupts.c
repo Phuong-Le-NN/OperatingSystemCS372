@@ -225,7 +225,10 @@ HIDDEN void helper_terminal_device(int intLineNo, int devNo, int termRead){
 
     /* Insert the newly unblocked pcb on the Ready Queue*/
     /* Done in helper_verhogen()*/
-
+    /* if there is no current process to return to either, call scheduler*/
+    if (currentP == NULL){
+        scheduler();
+    }
     /* Perform a LDST on the saved exception state*/
     LDST((state_PTR) BIOSDATAPAGE);
 }
@@ -282,6 +285,9 @@ HIDDEN void helper_non_terminal_device(int intLineNo, int devNo){
     /* Insert the newly unblocked pcb on the Ready Queue*/
     /* Done in helper_verhogen()*/
 
+    if (currentP == NULL){
+        scheduler();
+    }
     /* Perform a LDST on the saved exception state*/
     LDST((state_PTR) BIOSDATAPAGE);  
 }
@@ -305,7 +311,9 @@ HIDDEN void process_local_timer_interrupts(){
     /* load new time into timer for PLT*/
     setTIMER(5000); 
     /* copy the processor state at the time of the exception into current process*/
-    deep_copy_state_t(&(currentP->p_s), (state_PTR) BIOSDATAPAGE);
+    if (currentP != NULL){
+        deep_copy_state_t(&(currentP->p_s), (state_PTR) BIOSDATAPAGE);
+    }
     /* update accumulated CPU time for the current process*/
     currentP->p_time += 5000 - getTIMER();
     /* place current process on ready queue*/
