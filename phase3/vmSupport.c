@@ -96,8 +96,6 @@ void read_write_flash(int pickedSwapPoolFrame, int blockNo, int isRead) {
     int devNo = currentSupport->sup_asid - 1;
     int flashSemIdx = devSemIdx(FLASHINT, devNo, FALSE); /* this is read/write for terminal not flash => FALSE*/
 
-    debugVm(flashSemIdx,FLASHINT, devNo, isRead);
-
     /* Get the device register address for the U-proc’s flash device */
     device_t *flashDevRegAdd = devAddrBase(FLASHINT, devNo);
 
@@ -118,7 +116,6 @@ void read_write_flash(int pickedSwapPoolFrame, int blockNo, int isRead) {
     setSTATUS(getSTATUS() & (~IECBITON));
     /* Write the command to COMMAND register */
     flashDevRegAdd->d_command = (blockNo << 8) | flashCommand;
-    debugVm((blockNo << 8) | flashCommand, flashCommand, flashDevRegAdd->d_data0, flashDevRegAdd);
     /* Block the process until the flash operation is complete */
     int flashStatus = SYSCALL(5, FLASHINT, devNo, 0);
     /* Re-enable interrupts */
@@ -165,17 +162,18 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     /* 6. Pick a frame, i, from the Swap Pool. Which frame is selected is determined by the Pandos page replacement algorithm. [Section 4.5.4]*/
     int pickedFrame = page_replace();
 
+    debugVm(pickedFrame, currentSupport->sup_asid, &(currentSupport->sup_privatePgTbl), 0xbb);
     /* 7. Determine if frame i is occupied; examine entry i in the Swap Pool table. */
     /* POPS 6.3.2 */
-    if (swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x00000200 == 1){ 
-        
+    if ((swapPoolTable[pickedFrame].ASID != -1) && (swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo) & 0x200 == 0x200){ 
+        debugVm(0xdd, 0xdd, 0xdd, 0xdd);
         /* disable interrupts */
         setSTATUS(getSTATUS() & (~IECBITON));
- 
+        debugVm(0xee, 0xee, 0xee, 0xee);
         /* (a) Update process x’s Page Table: mark Page Table entry k as not valid. This entry is easily accessible, since the Swap Pool table’s entry i contains a pointer to this Page Table entry. */
         pte_t *occupiedPgTable = swapPoolTable[pickedFrame].matchingPgTableEntry;
         occupiedPgTable->EntryLo &= ~0x00000200; 
-
+        debugVm(occupiedPgTable, 0xef, 0xef, 0xef);
         /* (b) Update the TLB, if needed. */
         setENTRYHI(occupiedPgTable->EntryHi);
         TLBP();
@@ -196,7 +194,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
 
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
-        if (occupiedPgTable->EntryLo & 0x00000800) {  /* D bit set */
+        if ((occupiedPgTable->EntryLo & 0x00000400) != 0) {  /* D bit set */
             read_write_flash(pickedFrame, pgTableIndex, 0);  /* isRead = 0 since we are writing */
         }
     }
