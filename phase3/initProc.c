@@ -39,7 +39,7 @@ pcb_PTR init_Uproc(support_t *initSupportPTR, int ASID){
     initState.s_sp = 0xC0000000;
     initState.s_status = IEPBITON | TEBITON | IPBITS | KUPBITON;
 
-    initState.s_entryHI = (ASID << 6) & 0x000003C0;
+    initState.s_entryHI = (ASID << 6);
 
     initSupportPTR->sup_asid = ASID;
 
@@ -69,11 +69,11 @@ void test() {
     support_t initSupportPTRArr[8];
 
     pcb_PTR newUproc;
-    for (i = 1; i <= 1; i++){
+    for (i = 1; i <= 2; i++){
         newUproc = init_Uproc(&initSupportPTRArr[i-1], i);
     }
 
-    for (i = 1; i <= 1; i++){
+    for (i = 1; i <= 2; i++){
         SYSCALL(3, &masterSemaphore, 0, 0); /* P operation */
     }
 
