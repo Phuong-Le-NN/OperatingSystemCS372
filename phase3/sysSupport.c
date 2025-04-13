@@ -13,7 +13,7 @@
  * return TRUE if string address is NOT valid
 */
  int helper_check_string_outside_addr_space(int strAdd){
-    return (strAdd < 0x80000000 | strAdd > 0x8001E000 + 0x1000) && (strAdd < 0xBFFFF000 | strAdd > 0xBFFFF000 + 0x1000);
+    return (strAdd < 0x80000000 | strAdd > (0x8001E000 + 0x1000)) && (strAdd < 0xBFFFF000 | strAdd > (0xBFFFF000 + 0x1000));
  }
  
  void helper_return_control(support_t *passedUpSupportStruct){
