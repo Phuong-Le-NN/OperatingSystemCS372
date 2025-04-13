@@ -52,9 +52,7 @@
 
     /* Mark pages as invalid (clear VALID bit) */
     for (i = 0; i < 32; i++) {
-        if (passedUpSupportStruct->sup_privatePgTbl[i].EntryLo & 0x00000200) {
-            passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~0x00000200;
-        }
+        passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~0x00000200;
     }    
 
     /* Re-enable interrupts */
