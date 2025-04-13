@@ -38,9 +38,9 @@
     /* Disable interrupts before touching shared structures */
     setSTATUS(getSTATUS() & (~IECBITON));
 
-    /* mark all of the frames it occupied as unoccupied */
-    SYSCALL(3, &swapPoolSema4, 0, 0);
     int i;
+    /* mark all of the frames it occupied as unoccupied */
+    /* SYSCALL(3, &swapPoolSema4, 0, 0);
     for (i = 0; i < 8 * 2; i++){
         if (swapPoolTable[i].ASID == (passedUpSupportStruct->sup_privatePgTbl[i].EntryHi >> 6) & 0x000000FF){
             swapPoolTable[i].ASID = -1;
@@ -48,7 +48,7 @@
             swapPoolTable[i].matchingPgTableEntry = NULL;
         }
     }
-    SYSCALL(4, &swapPoolSema4, 0, 0);
+    SYSCALL(4, &swapPoolSema4, 0, 0); */
 
     /* Mark pages as invalid (clear VALID bit) */
     for (i = 0; i < 32; i++) {
