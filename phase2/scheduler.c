@@ -46,9 +46,8 @@
  **********************************************************/
 void scheduler (){
     
-    currentP = NULL;
-    /* if the ready Q is empty */
-    if (emptyProcQ(readyQ)){ 
+    currentP = removeProcQ(&readyQ);    /* if the ready Q is empty */
+    if (currentP == NULL){ 
 
         /* if the Process Count is zero */
         if (process_count == 0) {
@@ -65,9 +64,7 @@ void scheduler (){
             PANIC();
         }
     }
-    
-    /* remove from the Ready Queue */
-    currentP = removeProcQ(&readyQ);
+
 
     /*Load 5 milisec on the PLT*/ 
     setTIMER(5000);
