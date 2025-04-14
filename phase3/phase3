@@ -12,30 +12,30 @@
         },
         "flash1": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/swapStress.umps"
+            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/timeOfDay.umps"
         },
         "flash2": {
             "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/fibTen.umps"
         },
         "flash3": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/fibEleven.umps"
         },
         "flash4": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/asciiArt.umps"
         },
         "flash5": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/terminalReader.umps"
         },
         "flash6": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/strConcat.umps"
         },
         "flash7": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/printerTest.umps"
         },
         "printer0": {
@@ -51,28 +51,28 @@
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print2.umps"
         },
         "printer3": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print3.umps"
         },
         "printer4": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print4.umps"
         },
         "printer5": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print5.umps"
         },
         "printer6": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print6.umps"
         },
         "printer7": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print7.umps"
         },
         "terminal0": {
             "enabled": true,
-            "file": "term0.umps"
+            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term0.umps"
         },
         "terminal1": {
             "enabled": true,
@@ -83,29 +83,29 @@
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term2.umps"
         },
         "terminal3": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term3.umps"
         },
         "terminal4": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term4.umps"
         },
         "terminal5": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term5.umps"
         },
         "terminal6": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term6.umps"
         },
         "terminal7": {
-            "enabled": true,
+            "enabled": false,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term7.umps"
         }
     },
     "execution-rom": "/usr/share/umps3/exec.rom.umps",
     "num-processors": 1,
-    "num-ram-frames": 128,
+    "num-ram-frames": 512,
     "symbol-table": {
         "asid": 64,
         "file": "kernel.stab.umps"

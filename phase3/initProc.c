@@ -69,14 +69,14 @@ void test() {
     support_t initSupportPTRArr[8];
 
     int newUprocStat;
-    for (i = 1; i <= 2; i++){
+    for (i = 1; i <= 3; i++){
         newUprocStat = init_Uproc(&initSupportPTRArr[i-1], i);
         if (newUprocStat == -1){
             SYSCALL(2, 0, 0, 0);
         }
     }
 
-    for (i = 1; i <= 2; i++){
+    for (i = 1; i <= 3; i++){
         SYSCALL(3, &masterSemaphore, 0, 0); /* P operation */
     }
 

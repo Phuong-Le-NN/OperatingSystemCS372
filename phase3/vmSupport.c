@@ -175,11 +175,17 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         /* enable interrupts */
         /*  Pandos 4.5.3, 4.4.2, and POPS 6.4.*/
         setSTATUS(getSTATUS() | IECBITON);
+        int write_out_pg_tbl;
+        if (swapPoolTable[pickedFrame].pgNo == 0xBFFFF) {
+            write_out_pg_tbl = 31;                              
+        } else {
+            write_out_pg_tbl = (swapPoolTable[pickedFrame].pgNo - 0x80000) / 0x1;  
+        }
 
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if ((occupiedPgTable->EntryLo & 0x00000400) != 0) {  /* D bit set */
-            read_write_flash(pickedFrame, swapPoolTable[pickedFrame].ASID - 1, pgTableIndex, 0);  /* isRead = 0 since we are writing */
+            read_write_flash(pickedFrame, swapPoolTable[pickedFrame].ASID - 1, write_out_pg_tbl, 0);  /* isRead = 0 since we are writing */
         }
     }
 

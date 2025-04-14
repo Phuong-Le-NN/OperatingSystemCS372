@@ -103,7 +103,7 @@ void debugStrAdd(int a0, int a1){
      int devStatus;
      for (i = 0; i < savedExcState->s_a2; i++){
          setSTATUS(getSTATUS() & (~IECBITON));
-         printerDevAdd->d_data0 = *((char *) (savedExcState->s_a1 + i)); /*calculate address and accessing the current char*/
+         printerDevAdd->d_data0 = *(((char *)savedExcState->s_a1) + i); /*calculate address and accessing the current char*/
          printerDevAdd->d_command = 2; /* command PRINTCHR */
          devStatus = SYSCALL(5, PRNTINT, devNo, 0); /*call SYSCALL WAITIO to block until interrupt*/
          setSTATUS(getSTATUS() | IECBITON);
@@ -139,6 +139,7 @@ void debugStrAdd(int a0, int a1){
      int oversizeStringLen = (savedExcState->s_a2 > 128)? TRUE:FALSE;
  
      if (stringOutsideAddSpace || negStringLen || oversizeStringLen){
+        debugStrAdd(negStringLen, oversizeStringLen);
          SYSCALL(9, 0, 0, 0);
      }
  
@@ -148,7 +149,7 @@ void debugStrAdd(int a0, int a1){
      int transmStatus;
      for (i = 0; i < savedExcState->s_a2; i++){
          setSTATUS(getSTATUS() & (~IECBITON));
-         termDevAdd->t_transm_command = (*((char *) (savedExcState->s_a1 + i)) << 8) + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
+         termDevAdd->t_transm_command = (*(((char *) savedExcState->s_a1) + i) << 8) + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
          transmStatus = SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/ 
          setSTATUS(getSTATUS() | IECBITON);
          if ((transmStatus & 0xff) != 5) { /* operation ends with a status other than Character Transmitted */ /* Character Transmitted -- what we return in interrupt*/
