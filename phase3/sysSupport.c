@@ -8,12 +8,18 @@
  */
 
 #include "sysSupport.h"
+void debugStrAdd(int a0, int a1){
+
+}
 
 /**************************************************************************************************************** 
  * return TRUE if string address is NOT valid
 */
  int helper_check_string_outside_addr_space(int strAdd){
-    return (strAdd < 0x80000000 | strAdd > (0x8001E000 + 0x1000)) && (strAdd < 0xBFFFF000 | strAdd > (0xBFFFF000 + 0x1000));
+    if (strAdd < 0x80000000){
+        return TRUE;
+    }
+    return FALSE;
  }
  
  void helper_return_control(support_t *passedUpSupportStruct){
@@ -40,15 +46,15 @@
 
     int i;
     /* mark all of the frames it occupied as unoccupied */
-    /* SYSCALL(3, &swapPoolSema4, 0, 0);
+    SYSCALL(3, &swapPoolSema4, 0, 0);
     for (i = 0; i < 8 * 2; i++){
-        if (swapPoolTable[i].ASID == (passedUpSupportStruct->sup_privatePgTbl[i].EntryHi >> 6) & 0x000000FF){
+        if (swapPoolTable[i].ASID == passedUpSupportStruct->sup_asid){
             swapPoolTable[i].ASID = -1;
             swapPoolTable[i].pgNo = -1;
             swapPoolTable[i].matchingPgTableEntry = NULL;
         }
     }
-    SYSCALL(4, &swapPoolSema4, 0, 0); */
+    SYSCALL(4, &swapPoolSema4, 0, 0);
 
     /* Mark pages as invalid (clear VALID bit) */
     for (i = 0; i < 32; i++) {

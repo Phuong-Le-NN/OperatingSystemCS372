@@ -15,6 +15,9 @@
 void debugVm(int a0, int a1, int a2, int a3){
 
 }
+void debugReplacePg(){
+
+}
 
 /**********************************************************
  *  
@@ -162,31 +165,16 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     /* 6. Pick a frame, i, from the Swap Pool. Which frame is selected is determined by the Pandos page replacement algorithm. [Section 4.5.4]*/
     int pickedFrame = page_replace();
 
-    debugVm(pickedFrame, currentSupport->sup_asid, &(currentSupport->sup_privatePgTbl), 0xbb);
     /* 7. Determine if frame i is occupied; examine entry i in the Swap Pool table. */
     /* POPS 6.3.2 */
-    if ((swapPoolTable[pickedFrame].ASID != -1) && (swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo) & 0x200 == 0x200){ 
-        debugVm(0xdd, 0xdd, 0xdd, 0xdd);
+    if (swapPoolTable[pickedFrame].ASID != -1){ 
         /* disable interrupts */
         setSTATUS(getSTATUS() & (~IECBITON));
-        debugVm(0xee, 0xee, 0xee, 0xee);
         /* (a) Update process x’s Page Table: mark Page Table entry k as not valid. This entry is easily accessible, since the Swap Pool table’s entry i contains a pointer to this Page Table entry. */
         pte_t *occupiedPgTable = swapPoolTable[pickedFrame].matchingPgTableEntry;
         occupiedPgTable->EntryLo &= ~0x00000200; 
-        debugVm(occupiedPgTable, 0xef, 0xef, 0xef);
         /* (b) Update the TLB, if needed. */
-        setENTRYHI(occupiedPgTable->EntryHi);
-        TLBP();
-
-        /* Extract the index value from the CP0 INDEX register */
-        int index = getINDEX();
-
-        /* Check if the entry is present in the TLB (Index.P == 0) */
-         /* POPS 6.4 */
-        if ((index & 0x80000000) == 0) {                           
-            setENTRYLO(occupiedPgTable->EntryLo);
-            TLBWI();
-        }
+        TLBCLR();
 
         /* enable interrupts */
         /*  Pandos 4.5.3, 4.4.2, and POPS 6.4.*/
@@ -208,18 +196,17 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_privatePgTbl[pgTableIndex]);
 
     /* 11. Update the Current Process’s Page Table entry for page p to indicate it is now present (V bit) and occupying frame i (PFN field).*/
-    pte_t *newEntry = swapPoolTable[pickedFrame].matchingPgTableEntry;
     /* Set new PFN */
-    newEntry->EntryLo = (0x20020000 + (pickedFrame * 4096));
+    swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo = (0x20020000 + (pickedFrame * 4096));
     /* Set V bit */
-    newEntry->EntryLo |= 0x00000200;
+    swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo |= 0x00000200;
     /* Set D bit */
-    newEntry->EntryLo |= 0x00000400;
+    swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo |= 0x00000400;
 
     /* 12. Update the TLB. */
     setSTATUS(getSTATUS() & (~IECBITON));
-    setENTRYHI(newEntry->EntryHi);
-    setENTRYLO(newEntry->EntryLo);
+    setENTRYHI(swapPoolTable[pickedFrame].matchingPgTableEntry->EntryHi);
+    setENTRYLO(swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo);
     TLBP();
 
     /* Extract the index value from the CP0 INDEX register */
