@@ -31,13 +31,13 @@ void init_Uproc_pgTable(support_t *currentSupport) { /* 4.2.1 Pandos - A U-procâ
     currentSupport->sup_privatePgTbl[31].EntryHi =  0xBFFFF000 + (currentSupport->sup_asid << 6);
 }
 
-pcb_PTR init_Uproc(support_t *initSupportPTR, int ASID){
+int init_Uproc(support_t *initSupportPTR, int ASID){
     state_t initState;
 
     initState.s_pc = 0x800000B0;
     initState.s_t9 = 0x800000B0;
     initState.s_sp = 0xC0000000;
-    initState.s_status = IEPBITON | TEBITON | IPBITS | KUPBITON;
+    initState.s_status = ((IEPBITON | TEBITON) | IPBITS) | KUPBITON;
 
     initState.s_entryHI = (ASID << 6);
 
@@ -46,16 +46,16 @@ pcb_PTR init_Uproc(support_t *initSupportPTR, int ASID){
     initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) TLB_exception_handler;
     initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) general_exception_handler;
 
-    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPBITON | TEBITON | IPBITS & KUPBITOFF;
-    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_status = IEPBITON | TEBITON | IPBITS & KUPBITOFF;
+    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_status = ((IEPBITON | TEBITON) | IPBITS) & KUPBITOFF;
+    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_status = ((IEPBITON | TEBITON) | IPBITS) & KUPBITOFF;
 
     initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackTlb[499];
     initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackGen[499];
 
     init_Uproc_pgTable(initSupportPTR);
 
-    pcb_PTR newPcb = SYSCALL(1, &initState, initSupportPTR, 0);
-    return newPcb;
+    int newPcbStat = SYSCALL(1, &initState, initSupportPTR, 0);
+    return newPcbStat;
 }
 
 void test() {
@@ -68,9 +68,12 @@ void test() {
 
     support_t initSupportPTRArr[8];
 
-    pcb_PTR newUproc;
+    int newUprocStat;
     for (i = 1; i <= 2; i++){
-        newUproc = init_Uproc(&initSupportPTRArr[i-1], i);
+        newUprocStat = init_Uproc(&initSupportPTRArr[i-1], i);
+        if (newUprocStat == -1){
+            SYSCALL(2, 0, 0, 0);
+        }
     }
 
     for (i = 1; i <= 2; i++){

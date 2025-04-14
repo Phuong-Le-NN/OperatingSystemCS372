@@ -93,10 +93,7 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
 /**********************************************************
  * flash I/O function: read or write a page
  **********************************************************/
-void read_write_flash(int pickedSwapPoolFrame, int blockNo, int isRead) {
-    support_t *currentSupport = SYSCALL(8, 0, 0, 0);
-
-    int devNo = currentSupport->sup_asid - 1;
+void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRead) {
     int flashSemIdx = devSemIdx(FLASHINT, devNo, FALSE); /* this is read/write for terminal not flash => FALSE*/
 
     /* Get the device register address for the U-proc’s flash device */
@@ -183,12 +180,12 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if ((occupiedPgTable->EntryLo & 0x00000400) != 0) {  /* D bit set */
-            read_write_flash(pickedFrame, pgTableIndex, 0);  /* isRead = 0 since we are writing */
+            read_write_flash(pickedFrame, swapPoolTable[pickedFrame].ASID - 1, pgTableIndex, 0);  /* isRead = 0 since we are writing */
         }
     }
 
     /* 9. Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. [Section 4.5.1] */
-    read_write_flash(pickedFrame, pgTableIndex, 1);  /* isRead = 1 since we are reading */
+    read_write_flash(pickedFrame, currentSupport->sup_asid - 1, pgTableIndex, 1);  /* isRead = 1 since we are reading */
 
     /* 10. Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID, and a pointer to the Current Process’s Page Table entry for page p. */
     swapPoolTable[pickedFrame].ASID = currentSupport->sup_asid;
