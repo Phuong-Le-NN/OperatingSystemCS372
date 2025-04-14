@@ -172,7 +172,6 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         occupiedPgTable->EntryLo &= ~0x00000200; 
         /* (b) Update the TLB, if needed. */
         TLBCLR();
-
         /* enable interrupts */
         /*  Pandos 4.5.3, 4.4.2, and POPS 6.4.*/
         setSTATUS(getSTATUS() | IECBITON);
@@ -192,6 +191,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     swapPoolTable[pickedFrame].pgNo = missingVPN;
     swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_privatePgTbl[pgTableIndex]);
 
+    setSTATUS(getSTATUS() & (~IECBITON));
     /* 11. Update the Current Process’s Page Table entry for page p to indicate it is now present (V bit) and occupying frame i (PFN field).*/
     /* Set new PFN */
     swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo = (0x20020000 + (pickedFrame * 4096));
@@ -201,18 +201,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo |= 0x00000400;
 
     /* 12. Update the TLB. */
-    setSTATUS(getSTATUS() & (~IECBITON));
-    setENTRYHI(swapPoolTable[pickedFrame].matchingPgTableEntry->EntryHi);
-    setENTRYLO(swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo);
-    TLBP();
-
-    /* Extract the index value from the CP0 INDEX register */
-    int index = getINDEX();
-
-    /* Check if the entry is present in the TLB (Index.P == 0) */
-    if ((index & 0x80000000) == 0) {                           
-        TLBWI();
-    }
+    TLBCLR();
     setSTATUS(getSTATUS() | IECBITON);
 
     /* 13. Release mutual exclusion over the Swap Pool table. SYS4 */
