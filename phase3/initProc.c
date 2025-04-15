@@ -25,7 +25,7 @@ void init_Uproc_pgTable(support_t *currentSupport) { /* 4.2.1 Pandos - A U-procâ
         /* ASID field, for any given Page Table, will all be set to the U-procâ€™s unique ID*/
         currentSupport->sup_privatePgTbl[i].EntryHi =  0x80000000 + (i*0x1000) + (currentSupport->sup_asid << 6);
         /*  D bit field will be set to 1 (on) - bit 10 to 1*/ /* G bit field will be set to 0 (off) - bit 8 to 0*/ /* V bit field will be set to 0 (off) - bit 9 to 0*/
-        currentSupport->sup_privatePgTbl[i].EntryLo = ((0x0 | 0x00000400) & 0xFFFFFEFF) & 0xFFFFFDFF;
+        currentSupport->sup_privatePgTbl[i].EntryLo = (0x00000400 & 0xFFFFFEFF) & 0xFFFFFDFF;
     }
     /* reset the idx 31 element -- VPN for the stack page entryHi (Page Table entry 31) should be set to 0xBFFFF*/
     currentSupport->sup_privatePgTbl[31].EntryHi =  0xBFFFF000 + (currentSupport->sup_asid << 6);
@@ -69,14 +69,14 @@ void test() {
     support_t initSupportPTRArr[8];
 
     int newUprocStat;
-    for (i = 1; i <= 3; i++){
+    for (i = 1; i <= 8; i++){
         newUprocStat = init_Uproc(&initSupportPTRArr[i-1], i);
         if (newUprocStat == -1){
             SYSCALL(2, 0, 0, 0);
         }
     }
 
-    for (i = 1; i <= 3; i++){
+    for (i = 1; i <= 8; i++){
         SYSCALL(3, &masterSemaphore, 0, 0); /* P operation */
     }
 

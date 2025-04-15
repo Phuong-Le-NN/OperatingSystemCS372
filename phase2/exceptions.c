@@ -39,10 +39,6 @@
 
 #define pseudo_clock_idx    48
 
-void debugException(int a0){
-
-}
-
 /* Helper Functions*/
 
 /**********************************************************
@@ -501,7 +497,6 @@ HIDDEN void SYSCALL_handler() {
     /*check if in kernel mode -- if not and not SYSCALL 9+ either, put 10 for RI into exec code field in cause register and call program trap exception*/
     if (check_KU_mode_bit() != 0){
         if (((state_PTR) BIOSDATAPAGE)->s_a0 <= 8){
-            debugException(currentP->p_supportStruct->sup_asid);
             ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause | 0x00000028;
             ((state_PTR) BIOSDATAPAGE)->s_cause = ((state_PTR) BIOSDATAPAGE)->s_cause & 0xFFFFFFEB;
         }
