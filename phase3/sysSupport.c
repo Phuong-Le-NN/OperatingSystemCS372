@@ -80,7 +80,7 @@ void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
     /* Error: length less than 0*/
     /* Error: a length greater than 128*/
 
-    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || savedExcState->s_a2 < 0 || savedExcState->s_a2 > 128){
+    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < 0) || (savedExcState->s_a2 > 128)){
         SYSCALL(9, 0, 0, 0);
     }
 
