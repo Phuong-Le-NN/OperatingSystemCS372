@@ -123,11 +123,10 @@ void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRea
     int flashStatus = SYSCALL(5, FLASHINT, devNo, 0);
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
+    SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
     if (flashStatus != READY){
-        SYSCALL(4, &swapPoolSema4, 0, 0);
         SYSCALL(9, 0, 0, 0);
     }
-    SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
 }
 
 
@@ -145,7 +144,6 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     /* from POPS Table 3.2, page 19 and from PANDOS 3.7.2 */
     if (TLBcause == 1){
         /* PANDOS 4.8 */
-        debugProgTrapVm();
         program_trap_handler();
     }
 
@@ -154,13 +152,13 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     
     /* 5. Determine the missing page number (denoted as p): found in the saved exception state’s EntryHi. */
     int missingVPN = (currentSupport->sup_exceptState[PGFAULTEXCEPT].s_entryHI >> 12) & 0x000FFFFF; 
+    
     /* find page table index for later use */
     int pgTableIndex;
-
     if (missingVPN == 0xBFFFF) {
         pgTableIndex = 31;                              
     } else {
-        pgTableIndex = (missingVPN - 0x80000) / 0x1;  
+        pgTableIndex = (missingVPN - 0x80000);  
     }
 
     /* 6. Pick a frame, i, from the Swap Pool. Which frame is selected is determined by the Pandos page replacement algorithm. [Section 4.5.4]*/
@@ -168,7 +166,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
 
     /* 7. Determine if frame i is occupied; examine entry i in the Swap Pool table. */
     /* POPS 6.3.2 */
-    if (swapPoolTable[pickedFrame].ASID != -1){ 
+    if (swapPoolTable[pickedFrame].ASID != -1 && swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x200 == 0x200){ 
         /* disable interrupts */
         setSTATUS(getSTATUS() & (~IECBITON));
         /* (a) Update process x’s Page Table: mark Page Table entry k as not valid. This entry is easily accessible, since the Swap Pool table’s entry i contains a pointer to this Page Table entry. */

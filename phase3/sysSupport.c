@@ -8,16 +8,6 @@
  */
 
 #include "sysSupport.h"
-void debugStrAdd(int a0, int a1){
-
-}
-void debugTrapSup(int a0){
-
-}
-void debugTerminate(int a0){
-    
-}
-
 /**************************************************************************************************************** 
  * return TRUE if string address is NOT valid
 */
@@ -35,11 +25,6 @@ void debugTerminate(int a0){
  
  void program_trap_handler(support_t *passedUpSupportStruct){
     /*
-    What causes a program trap.
-    That the handler should terminate the process.
-    If the process holds any mutual exclusion semaphores (like for flash or swap), they must be released first.
-
-    this should:
     1. release any mutexes the U-proc might be holding.
     2. perform SYS9 (terminate) the process cleanly.
     */
@@ -49,7 +34,6 @@ void debugTerminate(int a0){
  void TERMINATE(support_t *passedUpSupportStruct){
     /* Disable interrupts before touching shared structures */
     setSTATUS(getSTATUS() & (~IECBITON));
-    debugTerminate(passedUpSupportStruct->sup_asid);
     int i;
     /* mark all of the frames it occupied as unoccupied */
     SYSCALL(3, &swapPoolSema4, 0, 0);
@@ -64,7 +48,7 @@ void debugTerminate(int a0){
 
     /* Mark pages as invalid (clear VALID bit) */
     for (i = 0; i < 32; i++) {
-        passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~0x00000200;
+        passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~0xFFFFF200;
     }    
 
     /* Re-enable interrupts */
@@ -76,120 +60,108 @@ void debugTerminate(int a0){
     /* Terminate the process */
     SYSCALL(2, 0, 0, 0);  /* SYS2 */
 }
- 
+
  void GET_TOD(support_t *passedUpSupportStruct){
-     /* POPS 4.1.2 */
-     STCK(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0);
- }
- 
+    /* POPS 4.1.2 */
+    STCK(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0);
+}
+
  void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
-     /*
-     virtual address of the first character of the string to be transmitted in a1,
-     the length of this string in a2
-     */
-     state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
- 
-     int devNo = passedUpSupportStruct->sup_asid - 1;
-     device_t *printerDevAdd = devAddrBase(PRNTINT, devNo);
- 
-     /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-     int stringOutsideAddSpace = helper_check_string_outside_addr_space(savedExcState->s_a1);
-     /* Error: length less than 0*/
-     int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
-     /* Error: a length greater than 128*/
-     int oversizeStringLen = (savedExcState->s_a2 > 128)? TRUE:FALSE;
- 
-     if (stringOutsideAddSpace || negStringLen || oversizeStringLen){
-         SYSCALL(9, 0, 0, 0);
-     }
- 
-     int mutexSemIdx = devSemIdx(PRNTINT, devNo, FALSE);
-     SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
-     int i;
-     int devStatus;
-     for (i = 0; i < savedExcState->s_a2; i++){
-         setSTATUS(getSTATUS() & (~IECBITON));
-         printerDevAdd->d_data0 = *(((char *)savedExcState->s_a1) + i); /*calculate address and accessing the current char*/
-         printerDevAdd->d_command = 2; /* command PRINTCHR */
-         devStatus = SYSCALL(5, PRNTINT, devNo, 0); /*call SYSCALL WAITIO to block until interrupt*/
-         setSTATUS(getSTATUS() | IECBITON);
-         if (devStatus != 1) { /* operation ends with a status other than "Device Ready" -- this is printer, not terminal */
+    /*
+    virtual address of the first character of the string to be transmitted in a1,
+    the length of this string in a2
+    */
+    state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
+
+    int devNo = passedUpSupportStruct->sup_asid - 1;
+    device_t *printerDevAdd = devAddrBase(PRNTINT, devNo);
+
+    /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
+    /* Error: length less than 0*/
+    /* Error: a length greater than 128*/
+
+    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || savedExcState->s_a2 < 0 || savedExcState->s_a2 > 128){
+        SYSCALL(9, 0, 0, 0);
+    }
+
+    int mutexSemIdx = devSemIdx(PRNTINT, devNo, FALSE);
+    SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
+    int i;
+    int devStatus;
+    for (i = 0; i < savedExcState->s_a2; i++){
+        setSTATUS(getSTATUS() & (~IECBITON));
+        printerDevAdd->d_data0 = *(((char *)savedExcState->s_a1) + i); /*calculate address and accessing the current char*/
+        printerDevAdd->d_command = 2; /* command PRINTCHR */
+        devStatus = SYSCALL(5, PRNTINT, devNo, 0); /*call SYSCALL WAITIO to block until interrupt*/
+        setSTATUS(getSTATUS() | IECBITON);
+        if (devStatus != 1) { /* operation ends with a status other than "Device Ready" -- this is printer, not terminal */
             savedExcState->s_v0 = - devStatus;
             break;
-         }
-     }
- 
-     if (devStatus == 1) { /* "Device Ready" */
+        }
+    }
+
+    if (devStatus == 1) { /* "Device Ready" */
         savedExcState->s_v0 = i;;
-     } else {
+    } else {
         savedExcState->s_v0 = - devStatus;
-     }
-     SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
- }
- 
- void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
-     /*
-     virtual address of the first character of the string to be transmitted in a1,
-     the length of this string in a2
-     */
-     state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
- 
-     int devNo = passedUpSupportStruct->sup_asid - 1;
-     device_t *termDevAdd = devAddrBase(TERMINT, devNo);
- 
-     /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-     int stringOutsideAddSpace = helper_check_string_outside_addr_space(savedExcState->s_a1);
-     /* Error: length less than 0*/
-     int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
-     /* Error: a length greater than 128*/
-     int oversizeStringLen = (savedExcState->s_a2 > 128)? TRUE:FALSE;
- 
-     if (stringOutsideAddSpace || negStringLen || oversizeStringLen){
-        debugStrAdd(negStringLen, oversizeStringLen);
-         SYSCALL(9, 0, 0, 0);
-     }
- 
-     int mutexSemIdx = devSemIdx(TERMINT, devNo, FALSE);
-     SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
-     int i;
-     int transmStatus;
-     for (i = 0; i < savedExcState->s_a2; i++){
-         setSTATUS(getSTATUS() & (~IECBITON));
-         termDevAdd->t_transm_command = (*(((char *) savedExcState->s_a1) + i) << 8) + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
-         transmStatus = SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/ 
-         setSTATUS(getSTATUS() | IECBITON);
-         if ((transmStatus & 0xff) != 5) { /* operation ends with a status other than Character Transmitted */ /* Character Transmitted -- what we return in interrupt*/
+    }
+    SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
+}
+
+void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
+    /*
+    virtual address of the first character of the string to be transmitted in a1,
+    the length of this string in a2
+    */
+    state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
+
+    int devNo = passedUpSupportStruct->sup_asid - 1;
+    device_t *termDevAdd = devAddrBase(TERMINT, devNo);
+
+    /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
+    /* Error: length less than 0*/
+    /* Error: a length greater than 128*/
+    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || savedExcState->s_a2 < 0 || savedExcState->s_a2 > 128){
+        SYSCALL(9, 0, 0, 0);
+    }
+
+    int mutexSemIdx = devSemIdx(TERMINT, devNo, FALSE);
+    SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
+    int i;
+    int transmStatus;
+    for (i = 0; i < savedExcState->s_a2; i++){
+        setSTATUS(getSTATUS() & (~IECBITON));
+        termDevAdd->t_transm_command = (*(((char *) savedExcState->s_a1) + i) << 8) + 2; /*calculate address and accessing the current char, shift to the right position and add the TRANSMITCHAR command*/
+        transmStatus = SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/ 
+        setSTATUS(getSTATUS() | IECBITON);
+        if ((transmStatus & 0xff) != 5) { /* operation ends with a status other than Character Transmitted */ /* Character Transmitted -- what we return in interrupt*/
             savedExcState->s_v0 = - transmStatus;
             break;
-         }
-     }
- 
-     if ((transmStatus & 0xff) == 5) {
+        }
+    }
+
+    if ((transmStatus & 0xff) == 5) {
         savedExcState->s_v0 = i;;
-     } else {
+    } else {
         savedExcState->s_v0 = -transmStatus;
-     }
-     SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
- }
- 
- void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
+    }
+    SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
+}
+
+void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     /* Get the terminal device register
      * POPS 5.3.1 — devAddrBase(line, devNo) gives address of device register
      * Pandos assigns terminal device (receive part) per ASID-1
      */
     state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
- 
+
     int devNo = passedUpSupportStruct->sup_asid - 1;
     device_t *termDevAdd = devAddrBase(TERMINT, devNo);
 
     /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-    int stringOutsideAddSpace = helper_check_string_outside_addr_space(savedExcState->s_a1);
     /* Error: length less than 0*/
-    int negStringLen = (savedExcState->s_a2 < 0)? TRUE:FALSE;
     /* Error: a length greater than 128*/
-    int oversizeStringLen = (savedExcState->s_a2 > 128)? TRUE:FALSE;
-
-    if (stringOutsideAddSpace || negStringLen || oversizeStringLen){
+    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || savedExcState->s_a2 < 0 || savedExcState->s_a2 > 128){
         SYSCALL(9, 0, 0, 0);
     }
 
@@ -212,15 +184,15 @@ void debugTerminate(int a0){
         stringAdd[i] = recvChar; /* write the char into the string buffer array */
         i++;
         if (recvStatus != 5) { /* operation ends with a status other than Character Received */ /* Character Received -- what we return in interrupt*/
-           savedExcState->s_v0 = -recvStatus;
-           break;
+            savedExcState->s_v0 = -recvStatus;
+            break;
         }
     }
 
     if (recvStatus == 5) {
-       savedExcState->s_v0 = i;
+        savedExcState->s_v0 = i;
     } else {
-       savedExcState->s_v0 = - recvStatus;
+        savedExcState->s_v0 = - recvStatus;
     }
     SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
 
@@ -231,7 +203,6 @@ void debugTerminate(int a0){
     switch (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0){
         case 9:
             TERMINATE(passedUpSupportStruct);
-            helper_return_control(passedUpSupportStruct);
         case 10:
             GET_TOD(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
@@ -246,19 +217,17 @@ void debugTerminate(int a0){
             helper_return_control(passedUpSupportStruct);
         default: /*the case where the process tried to do SYS 8- in user mode*/
             program_trap_handler(passedUpSupportStruct);
-            helper_return_control(passedUpSupportStruct);
     }
 }
 
- void general_exception_handler() { 
-     support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
-     /* like in phase2 how we get the exception code*/
-     int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
-     /* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */
-     /* 8 is the ExcCode for Sys*/
-     if (excCode == 8){
-         syscall_handler(passedUpSupportStruct);
-     }
-         debugTrapSup(passedUpSupportStruct->sup_asid);
-         program_trap_handler(passedUpSupportStruct);
- }
+void general_exception_handler() { 
+    support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
+    /* like in phase2 how we get the exception code*/
+    int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
+    /* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */
+    /* 8 is the ExcCode for Sys*/
+    if (excCode == 8){
+        syscall_handler(passedUpSupportStruct);
+    }
+        program_trap_handler(passedUpSupportStruct);
+}
