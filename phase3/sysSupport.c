@@ -11,6 +11,12 @@
 void debugStrAdd(int a0, int a1){
 
 }
+void debugTrapSup(int a0){
+
+}
+void debugTerminate(int a0){
+    
+}
 
 /**************************************************************************************************************** 
  * return TRUE if string address is NOT valid
@@ -43,11 +49,11 @@ void debugStrAdd(int a0, int a1){
  void TERMINATE(support_t *passedUpSupportStruct){
     /* Disable interrupts before touching shared structures */
     setSTATUS(getSTATUS() & (~IECBITON));
-
+    debugTerminate(passedUpSupportStruct->sup_asid);
     int i;
     /* mark all of the frames it occupied as unoccupied */
     SYSCALL(3, &swapPoolSema4, 0, 0);
-    for (i = 0; i < 8 * 2; i++){
+    for (i = 0; i < SWAP_POOL_SIZE; i++){
         if (swapPoolTable[i].ASID == passedUpSupportStruct->sup_asid){
             swapPoolTable[i].ASID = -1;
             swapPoolTable[i].pgNo = -1;
@@ -253,5 +259,6 @@ void debugStrAdd(int a0, int a1){
      if (excCode == 8){
          syscall_handler(passedUpSupportStruct);
      }
+         debugTrapSup(passedUpSupportStruct->sup_asid);
          program_trap_handler(passedUpSupportStruct);
  }

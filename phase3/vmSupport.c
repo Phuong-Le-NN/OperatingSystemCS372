@@ -18,6 +18,9 @@ void debugVm(int a0, int a1, int a2, int a3){
 void debugReplacePg(){
 
 }
+void debugProgTrapVm(){
+
+}
 
 /**********************************************************
  *  
@@ -32,7 +35,7 @@ void initSwapStruct(){/* 4.1 -- Address Translation */
     
     /* Pandos Section 4.4.1 (page 48–49) */
     int i;
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < SWAP_POOL_SIZE; i++) {
         swapPoolTable[i].ASID = -1;
         swapPoolTable[i].pgNo = -1;
         swapPoolTable[i].matchingPgTableEntry = NULL;
@@ -74,10 +77,10 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
     
     /* Look for an empty frame */
     int i;
-    for (i = 0; i < (2 * 8); i = i + 1){
+    for (i = 0; i < SWAP_POOL_SIZE; i = i + 1){
         if (swapPoolTable[i].ASID == -1) {  /* from PANDOS 4.4.1 Technical Point */
             if (i == nextFrame){ /* so that frame i doesn't get replace right away next time but only after cirulated*/
-                nextFrame = (nextFrame + 1) % (2 * 8);
+                nextFrame = (nextFrame + 1) % SWAP_POOL_SIZE;
             }
             return i;
         }
@@ -120,11 +123,11 @@ void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRea
     int flashStatus = SYSCALL(5, FLASHINT, devNo, 0);
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
-    SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
     if (flashStatus != READY){
         SYSCALL(4, &swapPoolSema4, 0, 0);
         SYSCALL(9, 0, 0, 0);
     }
+    SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
 }
 
 
@@ -142,6 +145,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     /* from POPS Table 3.2, page 19 and from PANDOS 3.7.2 */
     if (TLBcause == 1){
         /* PANDOS 4.8 */
+        debugProgTrapVm();
         program_trap_handler();
     }
 

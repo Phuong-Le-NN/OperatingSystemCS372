@@ -129,6 +129,9 @@
 #define INSTALLED_DEV_REG   0x1000002C
 #define INT_DEV_REG         0x10000040
 
+/* Support level data structures related constants */
+#define SWAP_POOL_SIZE      16
+
 /* operations */
 #define	MIN(A,B)		((A) < (B) ? A : B)
 #define MAX(A,B)		((A) < (B) ? B : A)

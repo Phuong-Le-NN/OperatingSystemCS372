@@ -19,7 +19,7 @@
 extern int masterSemaphore;
 extern int mutex[48];
 extern int swapPoolSema4;
-extern swapPoolFrame_t swapPoolTable[8 * 2];
+extern swapPoolFrame_t swapPoolTable[SWAP_POOL_SIZE];
 
 void general_exception_handler();
 

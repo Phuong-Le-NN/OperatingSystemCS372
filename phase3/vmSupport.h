@@ -21,7 +21,7 @@ extern int mutex[DEVINTNUM*DEVPERINT + DEVPERINT];  /* Mutex semaphores in an ar
 extern void program_trap_handler();
 
 /* global variables */
-swapPoolFrame_t swapPoolTable[8 * 2];
+swapPoolFrame_t swapPoolTable[SWAP_POOL_SIZE];
 int swapPoolSema4;
 
 void initSwapStruct();
