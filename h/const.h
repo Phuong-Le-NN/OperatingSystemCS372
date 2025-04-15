@@ -130,7 +130,7 @@
 #define INT_DEV_REG         0x10000040
 
 /* Support level data structures related constants */
-#define SWAP_POOL_SIZE      32
+#define SWAP_POOL_SIZE      100
 
 /* operations */
 #define	MIN(A,B)		((A) < (B) ? A : B)
