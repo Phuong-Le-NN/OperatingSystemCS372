@@ -11,8 +11,7 @@
 
 
 #include "vmSupport.h"
-
-void debugVm(int a0, int a1, int a2, int a3){
+void debugRefreshBackingStore(){
 
 }
 
@@ -46,12 +45,7 @@ void uTLB_RefillHandler() { /* 4.3 -- The TLB-Refill event handler*/
 
     /* Get the Page Table entry for page number p for the Current Process. This will be located in the Current Process’s Page Table*/
 
-    int missingVPN_idx_in_pgTable = (missingVPN - 0x80000);
-
-    /* if missing page is the stack page, finding the page entry indx in the page table like that would not work*/
-    if (missingVPN == 0xBFFFF){
-        missingVPN_idx_in_pgTable = 31;
-    }
+    int missingVPN_idx_in_pgTable = missingVPN % 32;
 
     support_t *currentSupport = currentP->p_supportStruct;
     pte_t *pte = &(currentSupport->sup_privatePgTbl[missingVPN_idx_in_pgTable]);
@@ -82,7 +76,7 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
     
     /* If no free frame, select the oldest one (FIFO) */ 
     int selectedFrame = nextFrame;
-    nextFrame = (nextFrame + 1) % (2 * 8);  /* Move to next in circular order */
+    nextFrame = (nextFrame + 1) % (SWAP_POOL_SIZE);  /* Move to next in circular order */
 
     return selectedFrame;
 }
@@ -91,7 +85,7 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
  * flash I/O function: read or write a page
  **********************************************************/
 void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRead) {
-    int flashSemIdx = devSemIdx(FLASHINT, devNo, FALSE); /* this is read/write for terminal not flash => FALSE*/
+    int flashSemIdx = 8+devNo; /* this is read/write for terminal not flash => FALSE*/
 
     /* Get the device register address for the U-proc’s flash device */
     device_t *flashDevRegAdd = devAddrBase(FLASHINT, devNo);
@@ -120,7 +114,7 @@ void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRea
 
     SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
 
-    if (flashStatus == 0 || flashStatus == 2 || flashStatus == 4 || flashStatus == 5 || flashStatus == 6){
+    if (flashStatus != 1){
         SYSCALL(9, 0, 0, 0);
     }
 }
@@ -161,7 +155,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
 
     /* 7. Determine if frame i is occupied; examine entry i in the Swap Pool table. */
     /* POPS 6.3.2 */
-    if (swapPoolTable[pickedFrame].ASID != -1 && swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x200 == 0x200){ 
+    if ((swapPoolTable[pickedFrame].ASID != -1) && ((swapPoolTable[pickedFrame].matchingPgTableEntry->EntryLo & 0x200) == 0x200)){ 
         /* disable interrupts */
         setSTATUS(getSTATUS() & (~IECBITON));
         /* (a) Update process x’s Page Table: mark Page Table entry k as not valid. This entry is easily accessible, since the Swap Pool table’s entry i contains a pointer to this Page Table entry. */
@@ -178,6 +172,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if ((occupiedPgTable->EntryLo & 0x00000400) == 0x400) {  /* D bit set */
+            debugRefreshBackingStore();
             read_write_flash(pickedFrame, swapPoolTable[pickedFrame].ASID - 1, write_out_pg_tbl, 0);  /* isRead = 0 since we are writing */
         }
         /* enable interrupts */

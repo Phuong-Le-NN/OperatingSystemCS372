@@ -11,27 +11,27 @@
 /**************************************************************************************************************** 
  * return TRUE if string address is NOT valid
 */
- int helper_check_string_outside_addr_space(int strAdd){
-    if (strAdd < 0x80000000){
+int helper_check_string_outside_addr_space(int strAdd){
+    if ((strAdd < 0x80000000 | strAdd > 0x8001E000 + 0x1000) & (strAdd < 0xBFFFF000 | strAdd > 0xBFFFF000 + 0x1000)){
         return TRUE;
     }
     return FALSE;
- }
- 
- void helper_return_control(support_t *passedUpSupportStruct){
+}
+
+void helper_return_control(support_t *passedUpSupportStruct){
     passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_pc += 4;
     LDST(&(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]));
- }
- 
- void program_trap_handler(support_t *passedUpSupportStruct){
+}
+
+void program_trap_handler(support_t *passedUpSupportStruct){
     /*
     1. release any mutexes the U-proc might be holding.
     2. perform SYS9 (terminate) the process cleanly.
     */
     TERMINATE(passedUpSupportStruct);
- }
+}
 
- void TERMINATE(support_t *passedUpSupportStruct){
+void TERMINATE(support_t *passedUpSupportStruct){
     /* Disable interrupts before touching shared structures */
     setSTATUS(getSTATUS() & (~IECBITON));
     int i;
@@ -61,12 +61,12 @@
     SYSCALL(2, 0, 0, 0);  /* SYS2 */
 }
 
- void GET_TOD(support_t *passedUpSupportStruct){
+void GET_TOD(support_t *passedUpSupportStruct){
     /* POPS 4.1.2 */
     STCK(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0);
 }
 
- void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
+void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
     /*
     virtual address of the first character of the string to be transmitted in a1,
     the length of this string in a2
@@ -192,14 +192,14 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     if (recvStatus == 5) {
         savedExcState->s_v0 = i;
     } else {
-        savedExcState->s_v0 = - recvStatus;
+        savedExcState->s_v0 = -recvStatus;
     }
     SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
 
 }
 
 
- void syscall_handler(support_t *passedUpSupportStruct) {
+void syscall_handler(support_t *passedUpSupportStruct) {
     switch (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0){
         case 9:
             TERMINATE(passedUpSupportStruct);

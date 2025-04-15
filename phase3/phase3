@@ -8,35 +8,35 @@
     "devices": {
         "flash0": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/strConcat.umps"
+            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/terminalTest8.umps"
         },
         "flash1": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/swapStress.umps"
+            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/fibEleven.umps"
         },
         "flash2": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/fibTen.umps"
+            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/timeOfDay.umps"
         },
         "flash3": {
-            "enabled": false,
-            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/fibEleven.umps"
-        },
-        "flash4": {
-            "enabled": false,
-            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/asciiArt.umps"
-        },
-        "flash5": {
-            "enabled": false,
-            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/terminalReader.umps"
-        },
-        "flash6": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/strConcat.umps"
         },
-        "flash7": {
-            "enabled": false,
+        "flash4": {
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/printerTest.umps"
+        },
+        "flash5": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/asciiArt.umps"
+        },
+        "flash6": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/swapStress1.umps"
+        },
+        "flash7": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/testers/fibSeven.umps"
         },
         "printer0": {
             "enabled": true,
@@ -51,23 +51,23 @@
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print2.umps"
         },
         "printer3": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print3.umps"
         },
         "printer4": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print4.umps"
         },
         "printer5": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print5.umps"
         },
         "printer6": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print6.umps"
         },
         "printer7": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/print7.umps"
         },
         "terminal0": {
@@ -83,23 +83,23 @@
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term2.umps"
         },
         "terminal3": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term3.umps"
         },
         "terminal4": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term4.umps"
         },
         "terminal5": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term5.umps"
         },
         "terminal6": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term6.umps"
         },
         "terminal7": {
-            "enabled": false,
+            "enabled": true,
             "file": "/Users/le_p2/Documents/PandosOperatingSystem/phase3/term7.umps"
         }
     },
