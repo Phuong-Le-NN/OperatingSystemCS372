@@ -174,13 +174,13 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         } else {
             write_out_pg_tbl = (swapPoolTable[pickedFrame].pgNo - 0x80000);  
         }
+        /* enable interrupts */
+        setSTATUS(getSTATUS() | IECBITON);
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if ((occupiedPgTable->EntryLo & 0x00000400) == 0x400) {  /* D bit set */
             read_write_flash(pickedFrame, swapPoolTable[pickedFrame].ASID - 1, write_out_pg_tbl, 0);  /* isRead = 0 since we are writing */
         }
-        /* enable interrupts */
-        setSTATUS(getSTATUS() | IECBITON);
     }
 
     /* 9. Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. [Section 4.5.1] */
