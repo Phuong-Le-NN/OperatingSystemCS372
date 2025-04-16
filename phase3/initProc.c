@@ -1,11 +1,22 @@
 /*********************************INITPROC.C*******************************
+ *
+ *  Implementation of the User Process Initialization Module
  * 
- *  This module implements test and exports the Support Level’s global 
- *  variables. 
+ *  This module is responsible for initializing the user level support
+ *  structures and page tables required for U-proc execution. It sets
+ *  up the exception contexts, ASIDs, and program states for up to
+ *  8 user processes, enabling virtual memory support and TLB handling.
+ *
+ *  The user process setup includes:
+ *  - Initializing each U-proc’s private page table with proper VPN,
+ *    ASID, and valid/dirty bits.
+ *  - Assigning stack pointers and exception handlers for both TLB and
+ *    general exceptions.
+ *  - Creating the initial state for each process and invoking SYSCALL
+ *    to create the PCB and insert it into the Ready Queue.
  *
  *      Modified by Phuong and Oghap on March 2025
  */
-
 
 #include "initProc.h"
 
