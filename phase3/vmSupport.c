@@ -89,7 +89,11 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
 /**********************************************************
  * flash I/O function: read or write a page
  **********************************************************/
-void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRead) {
+void read_write_flash(int pickedSwapPoolFrame, support_t *currentSupport, int blockNo, int isRead) {
+    int devNo = swapPoolTable[pickedSwapPoolFrame].ASID - 1;
+    if (isRead == TRUE){
+        devNo = currentSupport->sup_asid - 1;
+    }
     int flashSemIdx = devSemIdx(FLASHINT, devNo, FALSE); /* this is read/write for terminal not flash => FALSE*/
 
     /* Get the device register address for the U-proc’s flash device */
@@ -120,7 +124,7 @@ void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRea
     SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
 
     if (flashStatus != 1){
-        SYSCALL(9, 0, 0, 0);
+        program_trap_handler(currentSupport, &swapPoolSema4);
     }
 }
 
@@ -138,7 +142,7 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
     /* 3. If the Cause is a TLB-Modification exception, treat this exception as a program trap [Section 4.8] */
     /* from POPS Table 3.2, page 19 and from PANDOS 3.7.2 */
     if (TLBcause == 1){
-        program_trap_handler();
+        program_trap_handler(currentSupport, NULL);
     }
 
     /* 4. Gain mutual exclusion over the Swap Pool table. (SYS3 – P operation on the Swap Pool semaphore) */
@@ -179,12 +183,12 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if ((occupiedPgTable->EntryLo & 0x00000400) == 0x400) {  /* D bit set */
-            read_write_flash(pickedFrame, swapPoolTable[pickedFrame].ASID - 1, write_out_pg_tbl, 0);  /* isRead = 0 since we are writing */
+            read_write_flash(pickedFrame, currentSupport, write_out_pg_tbl, 0);  /* isRead = 0 since we are writing */
         }
     }
 
     /* 9. Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. [Section 4.5.1] */
-    read_write_flash(pickedFrame, currentSupport->sup_asid - 1, pgTableIndex, 1);  /* isRead = 1 since we are reading */
+    read_write_flash(pickedFrame, currentSupport, pgTableIndex, 1);  /* isRead = 1 since we are reading */
 
     /* 10. Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID, and a pointer to the Current Process’s Page Table entry for page p. */
     swapPoolTable[pickedFrame].ASID = currentSupport->sup_asid;
