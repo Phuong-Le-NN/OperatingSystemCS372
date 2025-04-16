@@ -59,3 +59,13 @@ clean:
 
 distclean: clean
 	-rm kernel.*.umps tape0.umps
+
+TERMS = term0.umps term1.umps term2.umps term3.umps term4.umps term5.umps term6.umps term7.umps
+PRINTS = print0.umps print1.umps print2.umps print3.umps print4.umps print5.umps print6.umps print7.umps
+
+# Target to create all term files
+# Combined target
+devices: $(TERMS) $(PRINTS)
+# Generic rule for both termX.umps and printX.umps
+%.umps:
+	touch $@

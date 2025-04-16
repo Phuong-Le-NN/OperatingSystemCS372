@@ -46,9 +46,8 @@
  **********************************************************/
 void scheduler (){
     
-    currentP = NULL;
-    /* if the ready Q is empty */
-    if (emptyProcQ(readyQ)){ 
+    currentP = removeProcQ(&readyQ);    /* if the ready Q is empty */
+    if (currentP == NULL){ 
 
         /* if the Process Count is zero */
         if (process_count == 0) {
@@ -58,21 +57,14 @@ void scheduler (){
             /* if Process Count > 0 and the Soft-block Count > 0 */
 
             /* get status, enable interrupt on current enable bit, disable PLT, enable Interrupt Mask */
-            setSTATUS(((getSTATUS() | IECBITON)  & (~TEBITON)) | IPBITS);
-            
-            /* check if soft block count is 0, in case interrupt happen while setting status*/
-            if (softBlock_count == 0){
-                scheduler();
-            }
+            setSTATUS(0x0000ff01);
             WAIT();
         }else{
             /* if ProcessCount > 0 and softBlock_count = 0 */
             PANIC();
         }
     }
-    
-    /* remove from the Ready Queue */
-    currentP = removeProcQ(&readyQ);
+
 
     /*Load 5 milisec on the PLT*/ 
     setTIMER(5000);

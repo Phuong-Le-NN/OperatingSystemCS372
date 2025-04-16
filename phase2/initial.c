@@ -1,21 +1,22 @@
-/*********************************INITIAL.C*******************************
+/*********************************INITPROC.C*******************************
  *
- *  Implementation of the Initialization Handling Module
+ *  Implementation of the User Process Initialization Module
  * 
- *  This module is responsible for initializing global data structures
- *  used in the Nucleus. It sets up the process count, ready queue,
- *  device semaphores, and other essential system variables.
+ *  This module is responsible for initializing the user level support
+ *  structures and page tables required for U-proc execution. It sets
+ *  up the exception contexts, ASIDs, and program states for up to
+ *  8 user processes, enabling virtual memory support and TLB handling.
  *
- *  The initialization process includes:
- *  - Setting up the Pass Up Vector for handling exceptions.
- *  - Initializing the Active Semaphore List (ASL) and Process Queue.
- *  - Instantiating the first process and placing it in the Ready Queue.
- *  - Loading the system-wide Interval Timer.
- *  - Ensuring the system enters the scheduler for process execution.
+ *  The user process setup includes:
+ *  - Initializing each U-proc’s private page table with proper VPN,
+ *    ASID, and valid/dirty bits.
+ *  - Assigning stack pointers and exception handlers for both TLB and
+ *    general exceptions.
+ *  - Creating the initial state for each process and invoking SYSCALL
+ *    to create the PCB and insert it into the Ready Queue.
  *
- *      Modified by Phuong and Oghap on Feb 2025
+ *      Modified by Phuong and Oghap on March 2025
  */
-
 
 #include "/usr/include/umps3/umps/libumps.h"
 
@@ -99,7 +100,7 @@ void main() {
         SP set to RAMTOP (i.e. use the last RAM frame for its stack)
         PC set to the address of test
     */
-    first_pro->p_s.s_status = ((first_pro->p_s.s_status | IEPBITON) & KUPBITOFF) | TEBITON;
+    first_pro->p_s.s_status = ((IEPBITON) & KUPBITOFF) | TEBITON;
     first_pro->p_s.s_pc = (memaddr) test;
 
     /*technical reasons, assign same value to both PC and general purpose register t9*/

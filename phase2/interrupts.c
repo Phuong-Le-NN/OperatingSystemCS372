@@ -37,9 +37,6 @@
 #define INTLINESCOUNT   8       /* number of interrupt lines*/
 #define REGWIDTH        32      /* register width*/
 
-/* Helper Functions */
-
-
 /**********************************************************
  *  helper_verhogen() 
  *
@@ -194,14 +191,12 @@ HIDDEN void helper_terminal_device(int intLineNo, int devNo, int termRead){
 
     if (termRead){
         /* Save off the status code from the device’s device register*/
-        savedDevRegStatus = intDevRegAdd->t_recv_status; /* should be 5 for CHAR RECEIVED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
-            
+        savedDevRegStatus = intDevRegAdd->t_recv_status; /* should be the char and 5 for CHAR RECEIVED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
         /* Acknowledge the outstanding interrupt */
         intDevRegAdd->t_recv_command = ACK;
     }else {
         /* Save off the status code from the device’s device register*/
-        savedDevRegStatus = intDevRegAdd->t_transm_status; /* should be 5 for CHAR TRANSMITTED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
-            
+        savedDevRegStatus = intDevRegAdd->t_transm_status; /* should be the char and 5 for CHAR TRANSMITTED*/ /* we want this because after acknowledged, anything will become Device Ready, even if the action did not succeed*/
         /* Acknowledge the outstanding interrupt */
         intDevRegAdd->t_transm_command = ACK;
     }
@@ -230,7 +225,10 @@ HIDDEN void helper_terminal_device(int intLineNo, int devNo, int termRead){
 
     /* Insert the newly unblocked pcb on the Ready Queue*/
     /* Done in helper_verhogen()*/
-
+    /* if there is no current process to return to either, call scheduler*/
+    if (currentP == NULL){
+        scheduler();
+    }
     /* Perform a LDST on the saved exception state*/
     LDST((state_PTR) BIOSDATAPAGE);
 }
@@ -287,6 +285,9 @@ HIDDEN void helper_non_terminal_device(int intLineNo, int devNo){
     /* Insert the newly unblocked pcb on the Ready Queue*/
     /* Done in helper_verhogen()*/
 
+    if (currentP == NULL){
+        scheduler();
+    }
     /* Perform a LDST on the saved exception state*/
     LDST((state_PTR) BIOSDATAPAGE);  
 }
@@ -310,7 +311,9 @@ HIDDEN void process_local_timer_interrupts(){
     /* load new time into timer for PLT*/
     setTIMER(5000); 
     /* copy the processor state at the time of the exception into current process*/
-    deep_copy_state_t(&(currentP->p_s), (state_PTR) BIOSDATAPAGE);
+    if (currentP != NULL){
+        deep_copy_state_t(&(currentP->p_s), (state_PTR) BIOSDATAPAGE);
+    }
     /* update accumulated CPU time for the current process*/
     currentP->p_time += 5000 - getTIMER();
     /* place current process on ready queue*/
@@ -443,4 +446,9 @@ void interrupt_exception_handler(){
             }
         }
     }
+    if (currentP == NULL){
+        scheduler();
+    }
+    /* return control to the current process*/
+    LDST((state_t *) BIOSDATAPAGE);
 }
