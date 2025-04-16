@@ -48,7 +48,7 @@ void TERMINATE(support_t *passedUpSupportStruct){
 
     /* Mark pages as invalid (clear VALID bit) */
     for (i = 0; i < 32; i++) {
-        passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~0xFFFFF200;
+        passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~(0xFFFFF000 + 0x00000200);
     }    
 
     /* Re-enable interrupts */
