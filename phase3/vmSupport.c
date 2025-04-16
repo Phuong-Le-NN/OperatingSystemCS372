@@ -90,15 +90,12 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
  * flash I/O function: read or write a page
  **********************************************************/
 void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRead) {
-    int flashSemIdx = 8+devNo; /* this is read/write for terminal not flash => FALSE*/
+    int flashSemIdx = devSemIdx(FLASHINT, devNo, FALSE); /* this is read/write for terminal not flash => FALSE*/
 
     /* Get the device register address for the U-proc’s flash device */
     device_t *flashDevRegAdd = devAddrBase(FLASHINT, devNo);
 
     SYSCALL(3, &(mutex[flashSemIdx]), 0, 0);
-
-    /* Disable interrupts to ensure to do atomically */
-    setSTATUS(getSTATUS() & (~IECBITON));
     
     /* Write the physical memory address (start of frame) to DATA0 */ /* swap pool starts at 0x20020000 - pandos pg 48*/
     flashDevRegAdd->d_data0 = (0x20020000 + (pickedSwapPoolFrame * 4096));
@@ -110,6 +107,9 @@ void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRea
     } else {
         flashCommand = 2;  /* FLASHREAD */
     }
+
+    /* Disable interrupts to ensure to do atomically */
+    setSTATUS(getSTATUS() & (~IECBITON));
     /* Write the command to COMMAND register */
     flashDevRegAdd->d_command = (blockNo << 8) | flashCommand;
     /* Block the process until the flash operation is complete */
