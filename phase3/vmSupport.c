@@ -11,9 +11,6 @@
 
 
 #include "vmSupport.h"
-void debugRefreshBackingStore(){
-
-}
 
 /**********************************************************
  *  
@@ -64,13 +61,13 @@ int page_replace() {   /* PANDOS 4.5.4 Replacement Algorithm */
     static int nextFrame = 0;
     
     /* Look for an empty frame */
-    int i;
-    for (i = 0; i < SWAP_POOL_SIZE; i = i + 1){
-        if (swapPoolTable[i].ASID == -1) {  /* from PANDOS 4.4.1 Technical Point */
-            if (i == nextFrame){ /* so that frame i doesn't get replace right away next time but only after cirulated*/
+    int pickedFrame;
+    for (pickedFrame = 0; pickedFrame < SWAP_POOL_SIZE; pickedFrame = pickedFrame + 1){
+        if (swapPoolTable[pickedFrame].ASID == -1) {  /* from PANDOS 4.4.1 Technical Point */
+            if (pickedFrame == nextFrame){ /* so that frame i doesn't get replace right away next time but only after cirulated*/
                 nextFrame = (nextFrame + 1) % SWAP_POOL_SIZE;
             }
-            return i;
+            return pickedFrame;
         }
     }
     
@@ -172,7 +169,6 @@ void TLB_exception_handler() { /* 4.4.2 The Pager, Page Fault */
         /* (c) Update process x’s backing store. [Section 4.5.1]
         Treat any error status from the write operation as a program trap. [Section 4.8]*/
         if ((occupiedPgTable->EntryLo & 0x00000400) == 0x400) {  /* D bit set */
-            debugRefreshBackingStore();
             read_write_flash(pickedFrame, swapPoolTable[pickedFrame].ASID - 1, write_out_pg_tbl, 0);  /* isRead = 0 since we are writing */
         }
         /* enable interrupts */
