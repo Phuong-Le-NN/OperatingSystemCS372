@@ -130,7 +130,7 @@
 #define INT_DEV_REG         0x10000040
 
 /* Support level data structures related constants */
-#define OFFSET              12
+#define VPN_SHIFT           12
 #define VPN_MASK            0x000FFFFF 
 #define SWAP_POOL_SIZE      32
 #define SWAP_POOL_START     0x20020000
@@ -156,7 +156,7 @@
 /* U-PROC constants */
 #define UPROCSTARTADDR       0x800000B0
 #define UPROCSTACK           0xC0000000
-#define UPROC_PGM_BASE_VPN   0x80000
+#define STARTVPN             0x80000
 #define UPROC_STACK_VPN      0xBFFFF
 
 
