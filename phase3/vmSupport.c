@@ -291,4 +291,3 @@ void TLB_exception_handler() {
    /* Return control to the Current Process */
    LDST((state_PTR) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
 }
-s
