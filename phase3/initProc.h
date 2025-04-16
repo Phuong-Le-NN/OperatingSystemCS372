@@ -19,7 +19,7 @@ extern void TLB_exception_handler();
 extern void general_exception_handler();
 
 void test();
-int mutex[48];
+int mutex[DEVINTNUM*DEVPERINT + DEVPERINT];
 int masterSemaphore;
 
 #endif

@@ -130,7 +130,48 @@
 #define INT_DEV_REG         0x10000040
 
 /* Support level data structures related constants */
+#define OFFSET              12
+#define VPN_MASK            0x000FFFFF 
 #define SWAP_POOL_SIZE      32
+#define SWAP_POOL_START     0x20020000
+#define PAGE_TABLE_SIZE     32
+#define ASID_SHIFT          6
+#define UPROC_NUM           8
+#define UPROC_STACK_AREA    0xBFFFF000
+#define LAST_USER_PAGE      0x8001E000
+#define TLB_STACK_AREA      499
+#define GEN_EXC_STACK_AREA  499
+
+
+/* Constant bits for ENTRYHI and ENTRYLOW */
+#define DBITON              0x00000400
+#define VBITON              0x00000200
+#define GBITON              0x00000100
+#define DBITOFF             0xFFFFFBFF
+#define GBITOFF             0xFFFFFEFF
+#define VBITOFF             0xFFFFFDFF
+#define PFN_MASK		       0xFFFFF000
+
+
+/* U-PROC constants */
+#define UPROCSTARTADDR       0x800000B0
+#define UPROCSTACK           0xC0000000
+#define UPROC_PGM_BASE_VPN   0x80000
+#define UPROC_STACK_VPN      0xBFFFF
+
+
+/* READ/WRITE constants */
+#define NEW_LINE             10
+#define STR_MIN              0
+#define STR_MAX              128
+#define STATUS_CODE_MASK     0x000000FF
+#define CHAR_TRANSMITTED     5
+#define TRANSMITCHAR         2
+#define RECEIVECHAR          2
+#define CHAR_MASK            0x0000FF00
+#define CHAR_SHIFT           8
+#define FLASHWRITE           3
+#define FLASHREAD            2
 
 /* operations */
 #define	MIN(A,B)		((A) < (B) ? A : B)
