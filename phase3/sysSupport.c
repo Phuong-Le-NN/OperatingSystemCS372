@@ -1,8 +1,19 @@
 /*********************************SYSSUPPORT.C*******************************
- * 
- *  General exception handler. 
- *  SYSCALL exception handler. 
- *  Program Trap exception handler.
+ *
+ *  Implementation of the System Support Exception Handlers Module
+ *
+ *  This module defines exception handlers used by user processes
+ *  to manage system calls, general exceptions, and program traps.
+ *  It supports pass-up handling and interaction with the
+ *  operating system kernel through the support structure.
+ *
+ *  The system support includes:
+ *  - A SYSCALL exception handler that differentiates between valid
+ *    system calls and illegal operations from user processes.
+ *  - A Program Trap handler that deals with undefined or illegal
+ *    instructions executed by a user process.
+ *  - A General Exception handler that dispatches to appropriate
+ *    handlers or terminates the process if the exception is unhandled.
  *
  *      Modified by Phuong and Oghap on March 2025
  */

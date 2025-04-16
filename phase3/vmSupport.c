@@ -1,14 +1,22 @@
 /*********************************VMSUPPORT.C*******************************
- * 
- *  This module implements the TLB exception handler (The Pager). 
- *  Since reading and writing to each U-proc’s flash device is limited to supporting paging, 
- *  this module should also contain the function(s) for reading and writing flash devices.
- * 
- *  The Swap Pool table and Swap Pool semaphore are local to this module. 
+ *
+ *  Virtual Memory Support Module 
+ *
+ *  This module implements the TLB exception handler which handles page faults
+ *  for U-procs. When a page is not in memory, the Pager loads it from secondary 
+ *  storage (flash device).
+ *
+ *  Because U-procs can only access flash devices for paging purposes, this 
+ *  module also includes functions to handle read and write operations 
+ *  between memory and flash storage.
+ *
+ *  Additionally, this module maintains:
+ *  - A swap pool table that tracks which physical frames are currently in use
+ *  - A swap pool semaphore used to ensure synchronized access to the swap pool
+ *
  *
  *      Modified by Phuong and Oghap on March 2025
  */
-
 
 #include "vmSupport.h"
 
