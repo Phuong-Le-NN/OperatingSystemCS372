@@ -116,13 +116,13 @@ void test() {
     for (i = 1; i <= UPROC_NUM; i++){
         newUprocStat = init_Uproc(&initSupportPTRArr[i-1], i);
         if (newUprocStat == -1){
-            SYSCALL(2, 0, 0, 0);
+            SYSCALL(TERMINATETHREAD, 0, 0, 0);
         }
     }
 
     for (i = 1; i <= UPROC_NUM; i++){
-        SYSCALL(3, &masterSemaphore, 0, 0); /* P operation */
+        SYSCALL(PASSERN, &masterSemaphore, 0, 0); /* P operation */
     }
 
-    SYSCALL(2, 0, 0, 0);
+    SYSCALL(TERMINATETHREAD, 0, 0, 0);
 }

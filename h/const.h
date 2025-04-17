@@ -80,6 +80,15 @@
 #define	PGFAULTEXCEPT	    0
 #define  GENERALEXCEPT	    1
 
+#define CREATETHREAD        1
+#define TERMINATETHREAD     2
+#define PASSERN            3
+#define VERHO              4
+#define IOWAIT              5
+#define CPUTIMEGET          6
+#define CLOCKWAIT           7
+#define SUPPORTGET          8
+
 #define TLB_MOD             1
 #define INT                 0       /* External Device Interrupt*/
 #define MOD                 1       /* TLB-Modification Exception*/

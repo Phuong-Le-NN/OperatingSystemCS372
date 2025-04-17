@@ -72,7 +72,7 @@ void program_trap_handler(support_t *passedUpSupportStruct, semd_t *heldSemd){
     /*release any mutexes the U-proc might be holding.
     perform SYS9 (terminate) the process cleanly.*/
     if (heldSemd != NULL){
-        SYSCALL(4, heldSemd, 0, 0);
+        SYSCALL(VERHO, heldSemd, 0, 0);
     }
     TERMINATE(passedUpSupportStruct);
 }
@@ -94,7 +94,7 @@ void TERMINATE(support_t *passedUpSupportStruct){
     setSTATUS(getSTATUS() & (~IECBITON));
     int i;
     /* mark all of the frames it occupied as unoccupied */
-    SYSCALL(3, &swapPoolSema4, 0, 0);
+    SYSCALL(PASSERN, &swapPoolSema4, 0, 0);
     for (i = 0; i < SWAP_POOL_SIZE; i++){
         if (swapPoolTable[i].ASID == passedUpSupportStruct->sup_asid){
             swapPoolTable[i].ASID = -1;
@@ -102,7 +102,7 @@ void TERMINATE(support_t *passedUpSupportStruct){
             swapPoolTable[i].matchingPgTableEntry = NULL;
         }
     }
-    SYSCALL(4, &swapPoolSema4, 0, 0);
+    SYSCALL(VERHO, &swapPoolSema4, 0, 0);
 
     /* Mark pages as invalid (clear VALID bit) */
     for (i = 0; i < PAGE_TABLE_SIZE; i++) {
@@ -112,10 +112,10 @@ void TERMINATE(support_t *passedUpSupportStruct){
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
 
-    SYSCALL(4, &masterSemaphore, 0, 0);
+    SYSCALL(VERHO, &masterSemaphore, 0, 0);
 
     /* Terminate the process */
-    SYSCALL(2, 0, 0, 0);  /* SYS2 */
+    SYSCALL(TERMINATETHREAD, 0, 0, 0);  /* SYS2 */
 }
 
 /**********************************************************
@@ -165,14 +165,14 @@ void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
     }
 
     int mutexSemIdx = devSemIdx(PRNTINT, devNo, FALSE);
-    SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
+    SYSCALL(PASSERN, &(mutex[mutexSemIdx]), 0, 0);
     int i;
     int devStatus;
     for (i = 0; i < savedExcState->s_a2; i++){
         setSTATUS(getSTATUS() & (~IECBITON));
         printerDevAdd->d_data0 = *(((char *)savedExcState->s_a1) + i); /*calculate address and accessing the current char*/
         printerDevAdd->d_command = PRINTCHR;
-        devStatus = SYSCALL(5, PRNTINT, devNo, 0); /*call SYSCALL WAITIO to block until interrupt*/
+        devStatus = SYSCALL(IOWAIT, PRNTINT, devNo, 0); /*call SYSCALL IOWAIT to block until interrupt*/
         setSTATUS(getSTATUS() | IECBITON);
         if (devStatus != READY) { /* operation ends with a status other than "Device Ready" -- this is printer, not terminal */
             savedExcState->s_v0 = - devStatus;
@@ -185,7 +185,7 @@ void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
     } else {
         savedExcState->s_v0 = - devStatus;
     }
-    SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
+    SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
 }
 
 /**********************************************************
@@ -218,13 +218,13 @@ void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
     }
 
     int mutexSemIdx = devSemIdx(TERMINT, devNo, FALSE);
-    SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
+    SYSCALL(PASSERN, &(mutex[mutexSemIdx]), 0, 0);
     int i;
     int transmStatus;
     for (i = 0; i < savedExcState->s_a2; i++){
         setSTATUS(getSTATUS() & (~IECBITON));
         termDevAdd->t_transm_command = (*(((char *) savedExcState->s_a1) + i) << TRANS_COMMAND_SHIFT) + TRANSMIT_COMMAND;
-        transmStatus = SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/ 
+        transmStatus = SYSCALL(IOWAIT, TERMINT, devNo, FALSE); /*call SYSCALL IOWAIT to block until interrupt*/ 
         setSTATUS(getSTATUS() | IECBITON);
         if ((transmStatus & STATUS_CHAR_MASK) != CHAR_TRANSMITTED) { /* operation ends with a status other than Character Transmitted */ 
             savedExcState->s_v0 = - transmStatus;
@@ -237,7 +237,7 @@ void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
     } else {
         savedExcState->s_v0 = -transmStatus;
     }
-    SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
+    SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
 }
 
 /**********************************************************
@@ -267,7 +267,7 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     }
 
     int mutexSemIdx = devSemIdx(TERMINT, devNo, TRUE);
-    SYSCALL(3, &(mutex[mutexSemIdx]), 0, 0);
+    SYSCALL(PASSERN, &(mutex[mutexSemIdx]), 0, 0);
 
     char *stringAdd = savedExcState->s_a1;
 
@@ -278,7 +278,7 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     while (recvChar != NEW_LINE){
         setSTATUS(getSTATUS() & (~IECBITON));
         termDevAdd->t_recv_command = RECEIVE_COMMAND;
-        recvStatusField = SYSCALL(5, TERMINT, devNo, TRUE); /*call SYSCALL WAITIO to block until interrupt*/
+        recvStatusField = SYSCALL(IOWAIT, TERMINT, devNo, TRUE); /*call SYSCALL IOWAIT to block until interrupt*/
         setSTATUS(getSTATUS() | IECBITON);
         recvChar = (recvStatusField & RECEIVE_CHAR_MASK) >> RECEIVE_COMMAND_SHIFT;
         recvStatus = recvStatusField & STATUS_CHAR_MASK;
@@ -295,7 +295,7 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     } else {
         savedExcState->s_v0 = -recvStatus;
     }
-    SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
+    SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
 
 }
 
@@ -345,7 +345,7 @@ void syscall_handler(support_t *passedUpSupportStruct) {
  *         
  **********************************************************/
 void general_exception_handler() { 
-    support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
+    support_t *passedUpSupportStruct = SYSCALL(SUPPORTGET, 0, 0, 0);
     /* like in phase2 how we get the exception code*/
     int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
     /* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */

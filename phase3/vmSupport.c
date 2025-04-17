@@ -148,7 +148,7 @@ void read_write_flash(int pickedSwapPoolFrame, support_t *currentSupport, int bl
    device_t *flashDevRegAdd = devAddrBase(FLASHINT, devNo);
 
 
-   SYSCALL(3, &(mutex[flashSemIdx]), 0, 0);
+   SYSCALL(PASSERN, &(mutex[flashSemIdx]), 0, 0);
   
    /* Write the physical memory address (start of frame) to DATA0 */
    flashDevRegAdd->d_data0 = (SWAP_POOL_START + (pickedSwapPoolFrame * PAGESIZE));
@@ -168,12 +168,12 @@ void read_write_flash(int pickedSwapPoolFrame, support_t *currentSupport, int bl
    /* Write the command to COMMAND register */
    flashDevRegAdd->d_command = (blockNo << COMMAND_SHIFT) | flashCommand;
    /* Block the process until the flash operation is complete */
-   int flashStatus = SYSCALL(5, FLASHINT, devNo, 0);
+   int flashStatus = SYSCALL(IOWAIT, FLASHINT, devNo, 0);
    /* Re-enable interrupts */
    setSTATUS(getSTATUS() | IECBITON);
 
 
-   SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
+   SYSCALL(VERHO, &(mutex[flashSemIdx]), 0, 0);
 
 
    if (flashStatus != READY){
@@ -198,7 +198,7 @@ void read_write_flash(int pickedSwapPoolFrame, support_t *currentSupport, int bl
 **********************************************************/
 void TLB_exception_handler() {
    /* Obtain the pointer to the Current Process’s Support Structure. */
-   support_t *currentSupport = SYSCALL(8, 0, 0, 0);
+   support_t *currentSupport = SYSCALL(SUPPORTGET, 0, 0, 0);
 
 
    /* Determine the cause of the TLB exception. )*/
@@ -212,7 +212,7 @@ void TLB_exception_handler() {
 
 
    /* Gain mutual exclusion over the Swap Pool table. */
-   SYSCALL(3, &swapPoolSema4, 0, 0);
+   SYSCALL(PASSERN, &swapPoolSema4, 0, 0);
   
    /* Determine the missing page number which is found in the saved exception state’s EntryHi */
    int missingVPN = (currentSupport->sup_exceptState[PGFAULTEXCEPT].s_entryHI >> VPN_SHIFT) & VPN_MASK;
@@ -289,7 +289,7 @@ void TLB_exception_handler() {
 
 
    /* Release mutual exclusion over the Swap Pool table. SYS4 */
-   SYSCALL(4, &swapPoolSema4, 0, 0);
+   SYSCALL(VERHO, &swapPoolSema4, 0, 0);
 
 
    /* Return control to the Current Process */
