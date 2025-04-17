@@ -112,7 +112,6 @@ void TERMINATE(support_t *passedUpSupportStruct){
     /* Re-enable interrupts */
     setSTATUS(getSTATUS() | IECBITON);
 
-    /* 4.10 Small Support Level Optimizations */
     SYSCALL(4, &masterSemaphore, 0, 0);
 
     /* Terminate the process */
@@ -224,7 +223,7 @@ void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
     int transmStatus;
     for (i = 0; i < savedExcState->s_a2; i++){
         setSTATUS(getSTATUS() & (~IECBITON));
-        termDevAdd->t_transm_command = (*(((char *) savedExcState->s_a1) + i) << TRANS_COMMAND_SHIFT) + TRANSMITCHAR;
+        termDevAdd->t_transm_command = (*(((char *) savedExcState->s_a1) + i) << TRANS_COMMAND_SHIFT) + TRANSMIT_COMMAND;
         transmStatus = SYSCALL(5, TERMINT, devNo, FALSE); /*call SYSCALL WAITIO to block until interrupt*/ 
         setSTATUS(getSTATUS() | IECBITON);
         if ((transmStatus & STATUS_CHAR_MASK) != CHAR_TRANSMITTED) { /* operation ends with a status other than Character Transmitted */ 
@@ -278,7 +277,7 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     char recvChar = 'a';
     while (recvChar != NEW_LINE){
         setSTATUS(getSTATUS() & (~IECBITON));
-        termDevAdd->t_recv_command = RECEIVECHAR;
+        termDevAdd->t_recv_command = RECEIVE_COMMAND;
         recvStatusField = SYSCALL(5, TERMINT, devNo, TRUE); /*call SYSCALL WAITIO to block until interrupt*/
         setSTATUS(getSTATUS() | IECBITON);
         recvChar = (recvStatusField & RECEIVE_CHAR_MASK) >> RECEIVE_COMMAND_SHIFT;

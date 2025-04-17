@@ -7,13 +7,18 @@
 void main() {
 	
     int status, i;
-	char buf[20];
-	char buf2[20];
+	char buf[100];
+	char buf2[100];
 
 	print(WRITETERMINAL, "Simple Printer Test starts\n");
 	print(WRITETERMINAL, "Write something to print: ");
 		
 	status = SYSCALL(READTERMINAL, (int)&buf[0], 0, 0);
+
+	if (status > 100){
+		SYSCALL(TERMINATE, 0, 0, 0);
+	}
+
 	buf[status] = EOS;
 	
 	print(WRITETERMINAL, "\n");
@@ -24,7 +29,7 @@ void main() {
 		buf2[i] = buf[i];
 	}
 
-    buf2[status - 1] = EOS;
+    buf2[status] = EOS;
 
     print(WRITETERMINAL, &buf2[0]);
 	
