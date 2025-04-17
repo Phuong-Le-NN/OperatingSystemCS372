@@ -19,29 +19,73 @@
  */
 
 #include "sysSupport.h"
-/**************************************************************************************************************** 
- * return TRUE if string address is NOT valid
-*/
+
+/**********************************************************
+ *  helper_check_string_outside_addr_space
+ *
+ *  Returns TRUE if the given string address falls outside
+ *  the allowed logical address space for the user process.
+ *
+ *  Parameters:
+ *         int strAdd – virtual address of the string
+ *
+ *  Returns:
+ *         int – TRUE if address is invalid, FALSE otherwise
+ **********************************************************/
 int helper_check_string_outside_addr_space(int strAdd){
-    if ((strAdd < 0x80000000 | strAdd > 0x8001E000 + 0x1000) & (strAdd < 0xBFFFF000 | strAdd > 0xBFFFF000 + 0x1000)){
+    if ((strAdd < KUSEG | strAdd > LAST_USER_PAGE + PAGESIZE) & (strAdd < UPROC_STACK_AREA | strAdd > UPROC_STACK_AREA + PAGESIZE)){
         return TRUE;
     }
     return FALSE;
 }
 
+/**********************************************************
+ *  helper_return_control
+ *
+ *  Advances the program counter and returns control to the
+ *  user process by restoring its exception state.
+ *
+ *  Parameters:
+ *         support_t *passedUpSupportStruct – pointer to the support struct
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void helper_return_control(support_t *passedUpSupportStruct){
     passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_pc += 4;
     LDST(&(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]));
 }
 
+/**********************************************************
+ *  program_trap_handler
+ *
+ *  Handles program trap exceptions by terminating the user
+ *  process cleanly.
+ *
+ *  Parameters:
+ *         support_t *passedUpSupportStruct – pointer to the support struct
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void program_trap_handler(support_t *passedUpSupportStruct){
-    /*
-    1. release any mutexes the U-proc might be holding.
-    2. perform SYS9 (terminate) the process cleanly.
-    */
+    /*release any mutexes the U-proc might be holding.
+    perform SYS9 (terminate) the process cleanly.*/
     TERMINATE(passedUpSupportStruct);
 }
 
+/**********************************************************
+ *  TERMINATE
+ *
+ *  Terminates a user process. Releases its occupied frames,
+ *  marks pages invalid, and performs SYS2 to kill the process.
+ *
+ *  Parameters:
+ *         support_t *passedUpSupportStruct – pointer to the support struct
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void TERMINATE(support_t *passedUpSupportStruct){
     /* Disable interrupts before touching shared structures */
     setSTATUS(getSTATUS() & (~IECBITON));
@@ -59,7 +103,7 @@ void TERMINATE(support_t *passedUpSupportStruct){
 
     /* Mark pages as invalid (clear VALID bit) */
     for (i = 0; i < 32; i++) {
-        passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~(0xFFFFF000 + 0x00000200);
+        passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~(PFN_MASK + VBITON);
     }    
 
     /* Re-enable interrupts */
@@ -72,11 +116,35 @@ void TERMINATE(support_t *passedUpSupportStruct){
     SYSCALL(2, 0, 0, 0);  /* SYS2 */
 }
 
+/**********************************************************
+ *  GET_TOD
+ *
+ *  Retrieves the current time-of-day from the system clock
+ *  and stores it in the user process's return register.
+ *
+ *  Parameters:
+ *         support_t *passedUpSupportStruct – pointer to the support struct
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void GET_TOD(support_t *passedUpSupportStruct){
     /* POPS 4.1.2 */
     STCK(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0);
 }
 
+/**********************************************************
+ *  WRITE_TO_PRINTER
+ *
+ *  Writes a string to the printer device character by character.
+ *  Handles errors for invalid addresses or invalid string length.
+ *
+ *  Parameters:
+ *         support_t *passedUpSupportStruct – pointer to the support struct
+ *
+ *  Returns:
+ *         Sets return value in s_v0 (number of characters printed or negative status)
+ **********************************************************/
 void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
     /*
     virtual address of the first character of the string to be transmitted in a1,
@@ -119,6 +187,18 @@ void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
     SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
 }
 
+/**********************************************************
+ *  WRITE_TO_TERMINAL
+ *
+ *  Writes a string to the terminal device. Sends each character
+ *  one at a time using the TRANSMITCHAR command.
+ *
+ *  Parameters:
+ *         support_t *passedUpSupportStruct – pointer to the support struct
+ *
+ *  Returns:
+ *         Sets return value in s_v0 (number of characters sent or negative status)
+ **********************************************************/
 void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
     /*
     virtual address of the first character of the string to be transmitted in a1,
@@ -159,6 +239,18 @@ void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
     SYSCALL(4, &(mutex[mutexSemIdx]), 0, 0);
 }
 
+/**********************************************************
+ *  READ_FROM_TERMINAL
+ *
+ *  Reads characters from the terminal input device until newline.
+ *  Stores characters in the buffer provided by the user process.
+ *
+ *  Parameters:
+ *         support_t *passedUpSupportStruct – pointer to the support struct
+ *
+ *  Returns:
+ *         Sets return value in s_v0 (number of characters read or negative status)
+ **********************************************************/
 void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     /* Get the terminal device register
      * POPS 5.3.1 — devAddrBase(line, devNo) gives address of device register
@@ -209,7 +301,18 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
 
 }
 
-
+/**********************************************************
+ *  syscall_handler
+ *
+ *  Dispatches system calls from user processes. Handles SYS9 to SYS13.
+ *  If an unknown system call is encountered, invokes the trap handler.
+ *
+ *  Parameters:
+ *         support_t *passedUpSupportStruct – pointer to the support struct
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void syscall_handler(support_t *passedUpSupportStruct) {
     switch (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0){
         case 9:
@@ -231,6 +334,18 @@ void syscall_handler(support_t *passedUpSupportStruct) {
     }
 }
 
+/**********************************************************
+ *  general_exception_handler
+ *
+ *  Determines the type of general exception and routes it to
+ *  either the syscall handler or program trap handler.
+ *
+ *  Parameters:
+ *        
+ *
+ *  Returns:
+ *         
+ **********************************************************/
 void general_exception_handler() { 
     support_t *passedUpSupportStruct = SYSCALL(8, 0, 0, 0);
     /* like in phase2 how we get the exception code*/
