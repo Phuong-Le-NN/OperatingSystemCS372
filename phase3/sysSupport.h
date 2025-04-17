@@ -17,7 +17,7 @@
 #include "../h/const.h"
 
 extern int masterSemaphore;
-extern int mutex[48];
+extern int mutex[DEVINTNUM*DEVPERINT + DEVPERINT];
 extern int swapPoolSema4;
 extern swapPoolFrame_t swapPoolTable[SWAP_POOL_SIZE];
 

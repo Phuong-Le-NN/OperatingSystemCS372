@@ -168,8 +168,8 @@
 #define STATUS_CHAR_MASK     0x000000FF
 #define CHAR_TRANSMITTED     5
 #define CHAR_RECIEVED        5
-#define TRANSMITCHAR         2
-#define RECEIVECHAR          2
+#define TRANSMIT_COMMAND     2
+#define RECEIVE_COMMAND      2
 #define RECEIVE_CHAR_MASK    0x0000FF00
 #define CHAR_SHIFT           8
 #define FLASHWRITE           3
