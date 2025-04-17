@@ -136,7 +136,11 @@ int page_replace() {
 *  Returns:
 *        
 **********************************************************/
-void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRead) {
+void read_write_flash(int pickedSwapPoolFrame, support_t *currentSupport, int blockNo, int isRead) {
+    int devNo = swapPoolTable[pickedSwapPoolFrame].ASID - 1;
+    if (isRead == TRUE){
+        devNo = currentSupport->sup_asid - 1;
+    }
    int flashSemIdx = devSemIdx(FLASHINT, devNo, FALSE);
 
 
@@ -173,7 +177,7 @@ void read_write_flash(int pickedSwapPoolFrame, int devNo, int blockNo, int isRea
 
 
    if (flashStatus != 1){
-       SYSCALL(9, 0, 0, 0);
+       program_trap_handler(currentSupport, &swapPoolSema4);
    }
 }
 
@@ -252,14 +256,14 @@ void TLB_exception_handler() {
 
 
            /* isRead = 0 since we are writing */
-           read_write_flash(pickedFrame, swapPoolTable[pickedFrame].ASID - 1, write_out_pg_tbl, 0); 
+           read_write_flash(pickedFrame, currentSupport, write_out_pg_tbl, 0); 
        }
    }
 
 
    /* Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. */
    /* isRead = 1 since we are reading */
-   read_write_flash(pickedFrame, currentSupport->sup_asid - 1, pgTableIndex, 1);
+   read_write_flash(pickedFrame, currentSupport, pgTableIndex, 1);
 
 
    /* Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID,

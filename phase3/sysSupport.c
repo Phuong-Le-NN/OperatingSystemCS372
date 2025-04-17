@@ -33,7 +33,7 @@
  *         int – TRUE if address is invalid, FALSE otherwise
  **********************************************************/
 int helper_check_string_outside_addr_space(int strAdd){
-    if ((strAdd < KUSEG | strAdd > LAST_USER_PAGE + PAGESIZE) & (strAdd < UPROC_STACK_AREA | strAdd > UPROC_STACK_AREA + PAGESIZE)){
+    if ((strAdd < KUSEG || strAdd > (LAST_USER_PAGE + PAGESIZE)) && (strAdd < UPROC_STACK_AREA || strAdd > (UPROC_STACK_AREA + PAGESIZE))){
         return TRUE;
     }
     return FALSE;
@@ -68,9 +68,12 @@ void helper_return_control(support_t *passedUpSupportStruct){
  *  Returns:
  *         
  **********************************************************/
-void program_trap_handler(support_t *passedUpSupportStruct){
+void program_trap_handler(support_t *passedUpSupportStruct, semd_t *heldSemd){
     /*release any mutexes the U-proc might be holding.
     perform SYS9 (terminate) the process cleanly.*/
+    if (heldSemd != NULL){
+        SYSCALL(4, heldSemd, 0, 0);
+    }
     TERMINATE(passedUpSupportStruct);
 }
 
@@ -160,7 +163,7 @@ void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
     /* Error: a length greater than 128*/
 
     if (helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < 0) || (savedExcState->s_a2 > 128)){
-        SYSCALL(9, 0, 0, 0);
+        program_trap_handler(passedUpSupportStruct, NULL);
     }
 
     int mutexSemIdx = devSemIdx(PRNTINT, devNo, FALSE);
@@ -212,8 +215,8 @@ void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
     /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
     /* Error: length less than 0*/
     /* Error: a length greater than 128*/
-    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || savedExcState->s_a2 < 0 || savedExcState->s_a2 > 128){
-        SYSCALL(9, 0, 0, 0);
+    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < 0) || (savedExcState->s_a2 > 128)){
+        program_trap_handler(passedUpSupportStruct, NULL);
     }
 
     int mutexSemIdx = devSemIdx(TERMINT, devNo, FALSE);
@@ -264,8 +267,8 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
     /* Error: length less than 0*/
     /* Error: a length greater than 128*/
-    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || savedExcState->s_a2 < 0 || savedExcState->s_a2 > 128){
-        SYSCALL(9, 0, 0, 0);
+    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || savedExcState->s_a2 < 0 || (savedExcState->s_a2 > 128)){
+        program_trap_handler(passedUpSupportStruct, NULL);
     }
 
     int mutexSemIdx = devSemIdx(TERMINT, devNo, TRUE);
@@ -330,7 +333,7 @@ void syscall_handler(support_t *passedUpSupportStruct) {
             READ_FROM_TERMINAL(passedUpSupportStruct);
             helper_return_control(passedUpSupportStruct);
         default: /*the case where the process tried to do SYS 8- in user mode*/
-            program_trap_handler(passedUpSupportStruct);
+            program_trap_handler(passedUpSupportStruct, NULL);
     }
 }
 
@@ -355,5 +358,5 @@ void general_exception_handler() {
     if (excCode == 8){
         syscall_handler(passedUpSupportStruct);
     }
-        program_trap_handler(passedUpSupportStruct);
+        program_trap_handler(passedUpSupportStruct, NULL);
 }
