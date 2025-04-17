@@ -179,7 +179,7 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
     /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
     /* Error: length less than 0*/
     /* Error: a length greater than 128*/
-    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || savedExcState->s_a2 < 0 || (savedExcState->s_a2 > 128)){
+    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < 0) || (savedExcState->s_a2 > 128)){
         program_trap_handler(passedUpSupportStruct, NULL);
     }
 
