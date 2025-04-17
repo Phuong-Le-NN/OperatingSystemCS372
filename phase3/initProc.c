@@ -110,7 +110,7 @@ void test() {
         mutex[i] = 1;
     }
 
-    support_t initSupportPTRArr[UPROC_NUM];
+    support_t initSupportPTRArr[UPROC_NUM + 1]; /*1 extra sentinel node*/
 
     int newUprocStat;
     for (i = 1; i <= UPROC_NUM; i++){
