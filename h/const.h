@@ -80,6 +80,7 @@
 #define	PGFAULTEXCEPT	    0
 #define  GENERALEXCEPT	    1
 
+#define TLB_MOD             1
 #define INT                 0       /* External Device Interrupt*/
 #define MOD                 1       /* TLB-Modification Exception*/
 #define TLBL                2       /* TLB Invalid Exception: on a Load instr. or instruction fetch*/
@@ -164,14 +165,18 @@
 #define NEW_LINE             10
 #define STR_MIN              0
 #define STR_MAX              128
-#define STATUS_CODE_MASK     0x000000FF
+#define STATUS_CHAR_MASK     0x000000FF
 #define CHAR_TRANSMITTED     5
+#define CHAR_RECIEVED        5
 #define TRANSMITCHAR         2
 #define RECEIVECHAR          2
-#define CHAR_MASK            0x0000FF00
+#define RECEIVE_CHAR_MASK    0x0000FF00
 #define CHAR_SHIFT           8
 #define FLASHWRITE           3
 #define FLASHREAD            2
+#define TRANS_COMMAND_SHIFT  8
+#define RECEIVE_COMMAND_SHIFT  8    
+#define COMMAND_SHIFT  8        
 
 /* operations */
 #define	MIN(A,B)		((A) < (B) ? A : B)

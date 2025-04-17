@@ -62,7 +62,7 @@ void initSwapStruct(){
 *  Returns:
 *        
 **********************************************************/
-void uTLB_RefillHandler() { /* 4.3 -- The TLB-Refill event handler*/
+void uTLB_RefillHandler() { 
    int missingVPN = (((state_PTR) BIOSDATAPAGE)->s_entryHI >> VPN_SHIFT) & VPN_MASK;
 
 
@@ -156,7 +156,7 @@ void read_write_flash(int pickedSwapPoolFrame, support_t *currentSupport, int bl
 
    /* Choose the correct flash command */
    int flashCommand;
-   if (isRead == 0) {
+   if (isRead == FALSE) {
        flashCommand = FLASHWRITE; 
    } else {
        flashCommand = FLASHREAD;
@@ -166,7 +166,7 @@ void read_write_flash(int pickedSwapPoolFrame, support_t *currentSupport, int bl
    /* Disable interrupts to ensure to do atomically */
    setSTATUS(getSTATUS() & (~IECBITON));
    /* Write the command to COMMAND register */
-   flashDevRegAdd->d_command = (blockNo << DEVPERINT) | flashCommand;
+   flashDevRegAdd->d_command = (blockNo << COMMAND_SHIFT) | flashCommand;
    /* Block the process until the flash operation is complete */
    int flashStatus = SYSCALL(5, FLASHINT, devNo, 0);
    /* Re-enable interrupts */
@@ -176,7 +176,7 @@ void read_write_flash(int pickedSwapPoolFrame, support_t *currentSupport, int bl
    SYSCALL(4, &(mutex[flashSemIdx]), 0, 0);
 
 
-   if (flashStatus != 1){
+   if (flashStatus != READY){
        program_trap_handler(currentSupport, &swapPoolSema4);
    }
 }
@@ -205,8 +205,8 @@ void TLB_exception_handler() {
    int TLBcause = CauseExcCode(currentSupport->sup_exceptState[PGFAULTEXCEPT].s_cause);
 
 
-   /* If the Cause is a TLB-Modification exception, treat this exception as a program trap [Section 4.8] */
-   if (TLBcause == 1){
+   /* If the Cause is a TLB-Modification exception, treat this exception as a program trap */
+   if (TLBcause == TLB_MOD){
        program_trap_handler(currentSupport, NULL);
    }
 
@@ -214,7 +214,7 @@ void TLB_exception_handler() {
    /* Gain mutual exclusion over the Swap Pool table. */
    SYSCALL(3, &swapPoolSema4, 0, 0);
   
-   /* Determine the missing page number which is found in the saved exception state’s EntryHi. */
+   /* Determine the missing page number which is found in the saved exception state’s EntryHi */
    int missingVPN = (currentSupport->sup_exceptState[PGFAULTEXCEPT].s_entryHI >> VPN_SHIFT) & VPN_MASK;
   
    /* find page table index for later use */
@@ -256,14 +256,14 @@ void TLB_exception_handler() {
 
 
            /* isRead = 0 since we are writing */
-           read_write_flash(pickedFrame, currentSupport, write_out_pg_tbl, 0); 
+           read_write_flash(pickedFrame, currentSupport, write_out_pg_tbl, FALSE); 
        }
    }
 
 
    /* Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. */
    /* isRead = 1 since we are reading */
-   read_write_flash(pickedFrame, currentSupport, pgTableIndex, 1);
+   read_write_flash(pickedFrame, currentSupport, pgTableIndex, TRUE);
 
 
    /* Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID,
