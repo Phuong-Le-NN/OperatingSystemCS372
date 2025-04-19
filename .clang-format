@@ -1,0 +1,55 @@
+BasedOnStyle: GNU
+
+# Indentation & tabs
+IndentWidth: 4
+UseTab: ForIndentation
+TabWidth: 4
+ContinuationIndentWidth: 2
+
+# Braces
+BreakBeforeBraces: Attach
+BraceWrapping:
+  AfterControlStatement: false
+  AfterFunction: false
+  AfterClass: false
+  AfterEnum: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: true
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+# Switch/case formatting
+AllowShortCaseLabelsOnASingleLine: false  # Force multi-line case statements
+IndentCaseLabels: true                    # Indent 'case' inside 'switch'
+
+# One-liner behavior
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Formatting preferences
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+AlignAfterOpenBracket: Align
+Cpp11BracedListStyle: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: All
+PointerAlignment: Right
+SpaceBeforeParens: Never
+SpacesInContainerLiterals: false
+
+# Others
+SortIncludes: false
+PenaltyExcessCharacter: 100
+PenaltyReturnTypeOnItsOwnLine: 1
+Standard: Cpp11
+ColumnLimit: 500
+Language: Cpp
