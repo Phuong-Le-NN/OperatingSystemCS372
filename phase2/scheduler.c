@@ -2,13 +2,13 @@
  *  Scheduler Module
  *
  *  This module manages the scheduling of processes in the system. It manages
- *  scheduling the processes gets a chance to run using a round-robin scheduling 
+ *  scheduling the processes gets a chance to run using a round-robin scheduling
  *  method.
  *  The function scheduler() selects the next process from the ready queue
  *  and gives it control.
  *
- *  The scheduler uses a queue to manage ready processes. When a process is selected to 
- *  run, its state is loaded using `LDST()`, and the processor timer is set to 5 
+ *  The scheduler uses a queue to manage ready processes. When a process is selected to
+ *  run, its state is loaded using `LDST()`, and the processor timer is set to 5
  *  milliseconds to ensure proper execution.
  *
  *  Modified by Phuong and Oghap on Feb 2025
@@ -25,7 +25,6 @@
 
 #include "scheduler.h"
 
-
 /**********************************************************
  *  scheduler()
  *
@@ -39,36 +38,33 @@
  *  the processor timer to 5 milliseconds.
  *
  *  Parameters:
- *         
+ *
  *
  *  Returns:
  *
  **********************************************************/
-void scheduler (){
-    
-    currentP = removeProcQ(&readyQ);    /* if the ready Q is empty */
-    if (currentP == NULL){ 
+void scheduler() {
+	currentP = removeProcQ(&readyQ); /* if the ready Q is empty */
+	if(currentP == NULL) {
+		/* if the Process Count is zero */
+		if(process_count == 0) {
+			HALT();
 
-        /* if the Process Count is zero */
-        if (process_count == 0) {
-            HALT();
+		} else if(softBlock_count > 0) {
+			/* if Process Count > 0 and the Soft-block Count > 0 */
 
-        } else if (softBlock_count > 0){
-            /* if Process Count > 0 and the Soft-block Count > 0 */
+			/* get status, enable interrupt on current enable bit, disable PLT, enable Interrupt Mask */
+			setSTATUS(0x0000ff01);
+			WAIT();
+		} else {
+			/* if ProcessCount > 0 and softBlock_count = 0 */
+			PANIC();
+		}
+	}
 
-            /* get status, enable interrupt on current enable bit, disable PLT, enable Interrupt Mask */
-            setSTATUS(0x0000ff01);
-            WAIT();
-        }else{
-            /* if ProcessCount > 0 and softBlock_count = 0 */
-            PANIC();
-        }
-    }
+	/*Load 5 milisec on the PLT*/
+	setTIMER(5000);
 
-
-    /*Load 5 milisec on the PLT*/ 
-    setTIMER(5000);
-
-    /* pass in the address of current process processor state */
-    LDST(&(currentP->p_s));
+	/* pass in the address of current process processor state */
+	LDST(&(currentP->p_s));
 }

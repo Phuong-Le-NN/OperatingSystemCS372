@@ -6,8 +6,8 @@
 
 void main() {
 	print(WRITETERMINAL, "printTest is ok\n");
-	
+
 	print(WRITEPRINTER, "printTest is ok\n");
-	
+
 	SYSCALL(TERMINATE, 0, 0, 0);
 }

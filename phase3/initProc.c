@@ -1,7 +1,7 @@
 /*********************************INITPROC.C*******************************
  *
  *  Implementation of the User Process Initialization Module
- * 
+ *
  *  This module is responsible for initializing the user level support
  *  structures and page tables required for U-proc execution. It sets
  *  up the exception contexts, ASIDs, and program states for up to
@@ -33,25 +33,25 @@ int masterSemaphore = 0;
  *         support_t *currentSupport – pointer to U-proc's support structure
  *
  *  Returns:
- *         
+ *
  **********************************************************/
-void init_Uproc_pgTable(support_t *currentSupport) { 
-    /* To initialize a Page Table one needs to set the VPN, ASID, V, and D bit fields for each Page Table entry*/
-    int i;
-    for (i = 0; i < PAGE_TABLE_SIZE; i ++){
-        /* ASID field, for any given Page Table, will all be set to the U-proc’s unique ID*/
-        currentSupport->sup_privatePgTbl[i].EntryHi =  KUSEG + (i*PAGESIZE) + (currentSupport->sup_asid << ASID_SHIFT);
-        currentSupport->sup_privatePgTbl[i].EntryLo = (DBITON & GBITOFF) & VBITOFF;
-    }
-    /* reset the idx 31 element */
-    currentSupport->sup_privatePgTbl[PAGE_TABLE_SIZE - 1].EntryHi =  UPROC_STACK_AREA + (currentSupport->sup_asid << ASID_SHIFT);
+void init_Uproc_pgTable(support_t *currentSupport) {
+	/* To initialize a Page Table one needs to set the VPN, ASID, V, and D bit fields for each Page Table entry*/
+	int i;
+	for(i = 0; i < PAGE_TABLE_SIZE; i++) {
+		/* ASID field, for any given Page Table, will all be set to the U-proc’s unique ID*/
+		currentSupport->sup_privatePgTbl[i].EntryHi = KUSEG + (i * PAGESIZE) + (currentSupport->sup_asid << ASID_SHIFT);
+		currentSupport->sup_privatePgTbl[i].EntryLo = (DBITON & GBITOFF) & VBITOFF;
+	}
+	/* reset the idx 31 element */
+	currentSupport->sup_privatePgTbl[PAGE_TABLE_SIZE - 1].EntryHi = UPROC_STACK_AREA + (currentSupport->sup_asid << ASID_SHIFT);
 }
 
 /**********************************************************
  *  init_Uproc
  *
  *  Initializes a U-proc's state, support structure, and
- *  exception contexts. Also sets up its page table and 
+ *  exception contexts. Also sets up its page table and
  *  creates a new PCB by calling SYS1.
  *
  *  Parameters:
@@ -59,33 +59,33 @@ void init_Uproc_pgTable(support_t *currentSupport) {
  *         int ASID – unique ID of the user process
  *
  *  Returns:
- * 
+ *
  **********************************************************/
-int init_Uproc(support_t *initSupportPTR, int ASID){
-    state_t initState;
+int init_Uproc(support_t *initSupportPTR, int ASID) {
+	state_t initState;
 
-    initState.s_pc = UPROCSTARTADDR;
-    initState.s_t9 = UPROCSTARTADDR;
-    initState.s_sp = UPROCSTACK;
-    initState.s_status = ((IEPBITON | TEBITON) | IPBITS) | KUPBITON;
+	initState.s_pc = UPROCSTARTADDR;
+	initState.s_t9 = UPROCSTARTADDR;
+	initState.s_sp = UPROCSTACK;
+	initState.s_status = ((IEPBITON | TEBITON) | IPBITS) | KUPBITON;
 
-    initState.s_entryHI = (ASID << ASID_SHIFT);
+	initState.s_entryHI = (ASID << ASID_SHIFT);
 
-    initSupportPTR->sup_asid = ASID;
+	initSupportPTR->sup_asid = ASID;
 
-    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) TLB_exception_handler;
-    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) general_exception_handler;
+	initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr)TLB_exception_handler;
+	initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr)general_exception_handler;
 
-    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_status = ((IEPBITON | TEBITON) | IPBITS) & KUPBITOFF;
-    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_status = ((IEPBITON | TEBITON) | IPBITS) & KUPBITOFF;
+	initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_status = ((IEPBITON | TEBITON) | IPBITS) & KUPBITOFF;
+	initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_status = ((IEPBITON | TEBITON) | IPBITS) & KUPBITOFF;
 
-    initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackTlb[TLB_STACK_AREA];
-    initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_stackPtr =  &initSupportPTR->sup_stackGen[GEN_EXC_STACK_AREA];
+	initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr = &initSupportPTR->sup_stackTlb[TLB_STACK_AREA];
+	initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_stackPtr = &initSupportPTR->sup_stackGen[GEN_EXC_STACK_AREA];
 
-    init_Uproc_pgTable(initSupportPTR);
+	init_Uproc_pgTable(initSupportPTR);
 
-    int newPcbStat = SYSCALL(1, &initState, initSupportPTR, 0);
-    return newPcbStat;
+	int newPcbStat = SYSCALL(1, &initState, initSupportPTR, 0);
+	return newPcbStat;
 }
 
 /**********************************************************
@@ -97,32 +97,32 @@ int init_Uproc(support_t *initSupportPTR, int ASID){
  *  - Waits for all user processes to finish
  *
  *  Parameters:
- *         
+ *
  *
  *  Returns:
- *         
+ *
  **********************************************************/
 void test() {
-    initSwapStruct();
+	initSwapStruct();
 
-    int i;
-    for (i = 0; i < (DEVINTNUM*DEVPERINT + DEVPERINT); i++){
-        mutex[i] = 1;
-    }
+	int i;
+	for(i = 0; i < (DEVINTNUM * DEVPERINT + DEVPERINT); i++) {
+		mutex[i] = 1;
+	}
 
-    support_t initSupportPTRArr[UPROC_NUM + 1]; /*1 extra sentinel node*/
+	support_t initSupportPTRArr[UPROC_NUM + 1]; /*1 extra sentinel node*/
 
-    int newUprocStat;
-    for (i = 1; i <= UPROC_NUM; i++){
-        newUprocStat = init_Uproc(&initSupportPTRArr[i-1], i);
-        if (newUprocStat == -1){
-            SYSCALL(TERMINATETHREAD, 0, 0, 0);
-        }
-    }
+	int newUprocStat;
+	for(i = 1; i <= UPROC_NUM; i++) {
+		newUprocStat = init_Uproc(&initSupportPTRArr[i - 1], i);
+		if(newUprocStat == -1) {
+			SYSCALL(TERMINATETHREAD, 0, 0, 0);
+		}
+	}
 
-    for (i = 1; i <= UPROC_NUM; i++){
-        SYSCALL(PASSERN, &masterSemaphore, 0, 0); /* P operation */
-    }
+	for(i = 1; i <= UPROC_NUM; i++) {
+		SYSCALL(PASSERN, &masterSemaphore, 0, 0); /* P operation */
+	}
 
-    SYSCALL(TERMINATETHREAD, 0, 0, 0);
+	SYSCALL(TERMINATETHREAD, 0, 0, 0);
 }

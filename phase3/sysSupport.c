@@ -32,11 +32,11 @@
  *  Returns:
  *         int – TRUE if address is invalid, FALSE otherwise
  **********************************************************/
-int helper_check_string_outside_addr_space(int strAdd){
-    if ((strAdd < KUSEG || strAdd > (LAST_USER_PAGE + PAGESIZE)) && (strAdd < UPROC_STACK_AREA || strAdd > (UPROC_STACK_AREA + PAGESIZE))){
-        return TRUE;
-    }
-    return FALSE;
+int helper_check_string_outside_addr_space(int strAdd) {
+	if((strAdd < KUSEG || strAdd > (LAST_USER_PAGE + PAGESIZE)) && (strAdd < UPROC_STACK_AREA || strAdd > (UPROC_STACK_AREA + PAGESIZE))) {
+		return TRUE;
+	}
+	return FALSE;
 }
 
 /**********************************************************
@@ -49,11 +49,11 @@ int helper_check_string_outside_addr_space(int strAdd){
  *         support_t *passedUpSupportStruct – pointer to the support struct
  *
  *  Returns:
- *         
+ *
  **********************************************************/
-void helper_return_control(support_t *passedUpSupportStruct){
-    passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_pc += 4;
-    LDST(&(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]));
+void helper_return_control(support_t *passedUpSupportStruct) {
+	passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_pc += 4;
+	LDST(&(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]));
 }
 
 /**********************************************************
@@ -66,15 +66,15 @@ void helper_return_control(support_t *passedUpSupportStruct){
  *         support_t *passedUpSupportStruct – pointer to the support struct
  *
  *  Returns:
- *         
+ *
  **********************************************************/
-void program_trap_handler(support_t *passedUpSupportStruct, semd_t *heldSemd){
-    /*release any mutexes the U-proc might be holding.
-    perform SYS9 (terminate) the process cleanly.*/
-    if (heldSemd != NULL){
-        SYSCALL(VERHO, heldSemd, 0, 0);
-    }
-    TERMINATE(passedUpSupportStruct);
+void program_trap_handler(support_t *passedUpSupportStruct, semd_t *heldSemd) {
+	/*release any mutexes the U-proc might be holding.
+	perform SYS9 (terminate) the process cleanly.*/
+	if(heldSemd != NULL) {
+		SYSCALL(VERHO, heldSemd, 0, 0);
+	}
+	TERMINATE(passedUpSupportStruct);
 }
 
 /**********************************************************
@@ -87,35 +87,35 @@ void program_trap_handler(support_t *passedUpSupportStruct, semd_t *heldSemd){
  *         support_t *passedUpSupportStruct – pointer to the support struct
  *
  *  Returns:
- *         
+ *
  **********************************************************/
-void TERMINATE(support_t *passedUpSupportStruct){
-    /* Disable interrupts before touching shared structures */
-    setSTATUS(getSTATUS() & (~IECBITON));
-    int i;
-    /* mark all of the frames it occupied as unoccupied */
-    SYSCALL(PASSERN, &swapPoolSema4, 0, 0);
-    for (i = 0; i < SWAP_POOL_SIZE; i++){
-        if (swapPoolTable[i].ASID == passedUpSupportStruct->sup_asid){
-            swapPoolTable[i].ASID = -1;
-            swapPoolTable[i].pgNo = -1;
-            swapPoolTable[i].matchingPgTableEntry = NULL;
-        }
-    }
-    SYSCALL(VERHO, &swapPoolSema4, 0, 0);
+void TERMINATE(support_t *passedUpSupportStruct) {
+	/* Disable interrupts before touching shared structures */
+	setSTATUS(getSTATUS() & (~IECBITON));
+	int i;
+	/* mark all of the frames it occupied as unoccupied */
+	SYSCALL(PASSERN, &swapPoolSema4, 0, 0);
+	for(i = 0; i < SWAP_POOL_SIZE; i++) {
+		if(swapPoolTable[i].ASID == passedUpSupportStruct->sup_asid) {
+			swapPoolTable[i].ASID = -1;
+			swapPoolTable[i].pgNo = -1;
+			swapPoolTable[i].matchingPgTableEntry = NULL;
+		}
+	}
+	SYSCALL(VERHO, &swapPoolSema4, 0, 0);
 
-    /* Mark pages as invalid (clear VALID bit) */
-    for (i = 0; i < PAGE_TABLE_SIZE; i++) {
-        passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~(PFN_MASK + VBITON);
-    }    
+	/* Mark pages as invalid (clear VALID bit) */
+	for(i = 0; i < PAGE_TABLE_SIZE; i++) {
+		passedUpSupportStruct->sup_privatePgTbl[i].EntryLo &= ~(PFN_MASK + VBITON);
+	}
 
-    /* Re-enable interrupts */
-    setSTATUS(getSTATUS() | IECBITON);
+	/* Re-enable interrupts */
+	setSTATUS(getSTATUS() | IECBITON);
 
-    SYSCALL(VERHO, &masterSemaphore, 0, 0);
+	SYSCALL(VERHO, &masterSemaphore, 0, 0);
 
-    /* Terminate the process */
-    SYSCALL(TERMINATETHREAD, 0, 0, 0);  /* SYS2 */
+	/* Terminate the process */
+	SYSCALL(TERMINATETHREAD, 0, 0, 0); /* SYS2 */
 }
 
 /**********************************************************
@@ -128,10 +128,10 @@ void TERMINATE(support_t *passedUpSupportStruct){
  *         support_t *passedUpSupportStruct – pointer to the support struct
  *
  *  Returns:
- *         
+ *
  **********************************************************/
-void GET_TOD(support_t *passedUpSupportStruct){
-    STCK(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0);
+void GET_TOD(support_t *passedUpSupportStruct) {
+	STCK(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_v0);
 }
 
 /**********************************************************
@@ -144,48 +144,49 @@ void GET_TOD(support_t *passedUpSupportStruct){
  *         support_t *passedUpSupportStruct – pointer to the support struct
  *
  *  Returns:
- *         
+ *
  **********************************************************/
 void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
-    /*
-    virtual address of the first character of the string to be transmitted in a1,
-    the length of this string in a2
-    */
-    state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
+	/*
+	virtual address of the first character of the string to be transmitted in a1,
+	the length of this string in a2
+	*/
+	state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
 
-    int devNo = passedUpSupportStruct->sup_asid - 1;
-    device_t *printerDevAdd = devAddrBase(PRNTINT, devNo);
+	int devNo = passedUpSupportStruct->sup_asid - 1;
+	device_t *printerDevAdd = devAddrBase(PRNTINT, devNo);
 
-    /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-    /* Error: length less than 0*/
-    /* Error: a length greater than 128*/
+	/* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
+	/* Error: length less than 0*/
+	/* Error: a length greater than 128*/
 
-    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < STR_MIN) || (savedExcState->s_a2 > STR_MAX)){
-        program_trap_handler(passedUpSupportStruct, NULL);
-    }
+	if(helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < STR_MIN) || (savedExcState->s_a2 > STR_MAX)) {
+		program_trap_handler(passedUpSupportStruct, NULL);
+	}
 
-    int mutexSemIdx = devSemIdx(PRNTINT, devNo, FALSE);
-    SYSCALL(PASSERN, &(mutex[mutexSemIdx]), 0, 0);
-    int i;
-    int devStatus;
-    for (i = 0; i < savedExcState->s_a2; i++){
-        setSTATUS(getSTATUS() & (~IECBITON));
-        printerDevAdd->d_data0 = *(((char *)savedExcState->s_a1) + i); /*calculate address and accessing the current char*/
-        printerDevAdd->d_command = PRINTCHR;
-        devStatus = SYSCALL(IOWAIT, PRNTINT, devNo, 0); /*call SYSCALL IOWAIT to block until interrupt*/
-        setSTATUS(getSTATUS() | IECBITON);
-        if (devStatus != READY) { /* operation ends with a status other than "Device Ready" -- this is printer, not terminal */
-            savedExcState->s_v0 = - devStatus;
-            break;
-        }
-    }
+	int mutexSemIdx = devSemIdx(PRNTINT, devNo, FALSE);
+	SYSCALL(PASSERN, &(mutex[mutexSemIdx]), 0, 0);
+	int i;
+	int devStatus;
+	for(i = 0; i < savedExcState->s_a2; i++) {
+		setSTATUS(getSTATUS() & (~IECBITON));
+		printerDevAdd->d_data0 = *(((char *)savedExcState->s_a1) + i); /*calculate address and accessing the current char*/
+		printerDevAdd->d_command = PRINTCHR;
+		devStatus = SYSCALL(IOWAIT, PRNTINT, devNo, 0); /*call SYSCALL IOWAIT to block until interrupt*/
+		setSTATUS(getSTATUS() | IECBITON);
+		if(devStatus != READY) { /* operation ends with a status other than "Device Ready" -- this is printer, not terminal */
+			savedExcState->s_v0 = -devStatus;
+			break;
+		}
+	}
 
-    if (devStatus == READY) { 
-        savedExcState->s_v0 = i;;
-    } else {
-        savedExcState->s_v0 = - devStatus;
-    }
-    SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
+	if(devStatus == READY) {
+		savedExcState->s_v0 = i;
+		;
+	} else {
+		savedExcState->s_v0 = -devStatus;
+	}
+	SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
 }
 
 /**********************************************************
@@ -198,46 +199,47 @@ void WRITE_TO_PRINTER(support_t *passedUpSupportStruct) {
  *         support_t *passedUpSupportStruct – pointer to the support struct
  *
  *  Returns:
- *         
+ *
  **********************************************************/
 void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
-    /*
-    virtual address of the first character of the string to be transmitted in a1,
-    the length of this string in a2
-    */
-    state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
+	/*
+	virtual address of the first character of the string to be transmitted in a1,
+	the length of this string in a2
+	*/
+	state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
 
-    int devNo = passedUpSupportStruct->sup_asid - 1;
-    device_t *termDevAdd = devAddrBase(TERMINT, devNo);
+	int devNo = passedUpSupportStruct->sup_asid - 1;
+	device_t *termDevAdd = devAddrBase(TERMINT, devNo);
 
-    /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-    /* Error: length less than 0*/
-    /* Error: a length greater than 128*/
-    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < STR_MIN) || (savedExcState->s_a2 > STR_MAX)){
-        program_trap_handler(passedUpSupportStruct, NULL);
-    }
+	/* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
+	/* Error: length less than 0*/
+	/* Error: a length greater than 128*/
+	if(helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < STR_MIN) || (savedExcState->s_a2 > STR_MAX)) {
+		program_trap_handler(passedUpSupportStruct, NULL);
+	}
 
-    int mutexSemIdx = devSemIdx(TERMINT, devNo, FALSE);
-    SYSCALL(PASSERN, &(mutex[mutexSemIdx]), 0, 0);
-    int i;
-    int transmStatus;
-    for (i = 0; i < savedExcState->s_a2; i++){
-        setSTATUS(getSTATUS() & (~IECBITON));
-        termDevAdd->t_transm_command = (*(((char *) savedExcState->s_a1) + i) << TRANS_COMMAND_SHIFT) + TRANSMIT_COMMAND;
-        transmStatus = SYSCALL(IOWAIT, TERMINT, devNo, FALSE); /*call SYSCALL IOWAIT to block until interrupt*/ 
-        setSTATUS(getSTATUS() | IECBITON);
-        if ((transmStatus & STATUS_CHAR_MASK) != CHAR_TRANSMITTED) { /* operation ends with a status other than Character Transmitted */ 
-            savedExcState->s_v0 = - transmStatus;
-            break;
-        }
-    }
+	int mutexSemIdx = devSemIdx(TERMINT, devNo, FALSE);
+	SYSCALL(PASSERN, &(mutex[mutexSemIdx]), 0, 0);
+	int i;
+	int transmStatus;
+	for(i = 0; i < savedExcState->s_a2; i++) {
+		setSTATUS(getSTATUS() & (~IECBITON));
+		termDevAdd->t_transm_command = (*(((char *)savedExcState->s_a1) + i) << TRANS_COMMAND_SHIFT) + TRANSMIT_COMMAND;
+		transmStatus = SYSCALL(IOWAIT, TERMINT, devNo, FALSE); /*call SYSCALL IOWAIT to block until interrupt*/
+		setSTATUS(getSTATUS() | IECBITON);
+		if((transmStatus & STATUS_CHAR_MASK) != CHAR_TRANSMITTED) { /* operation ends with a status other than Character Transmitted */
+			savedExcState->s_v0 = -transmStatus;
+			break;
+		}
+	}
 
-    if ((transmStatus & STATUS_CHAR_MASK) == CHAR_TRANSMITTED) {
-        savedExcState->s_v0 = i;;
-    } else {
-        savedExcState->s_v0 = -transmStatus;
-    }
-    SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
+	if((transmStatus & STATUS_CHAR_MASK) == CHAR_TRANSMITTED) {
+		savedExcState->s_v0 = i;
+		;
+	} else {
+		savedExcState->s_v0 = -transmStatus;
+	}
+	SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
 }
 
 /**********************************************************
@@ -250,53 +252,52 @@ void WRITE_TO_TERMINAL(support_t *passedUpSupportStruct) {
  *         support_t *passedUpSupportStruct – pointer to the support struct
  *
  *  Returns:
- *         
+ *
  **********************************************************/
 void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
-    /* Get the terminal device register */
-    state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
+	/* Get the terminal device register */
+	state_t *savedExcState = &(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT]);
 
-    int devNo = passedUpSupportStruct->sup_asid - 1;
-    device_t *termDevAdd = devAddrBase(TERMINT, devNo);
+	int devNo = passedUpSupportStruct->sup_asid - 1;
+	device_t *termDevAdd = devAddrBase(TERMINT, devNo);
 
-    /* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
-    /* Error: length less than 0*/
-    /* Error: a length greater than 128*/
-    if (helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < STR_MIN) || (savedExcState->s_a2 > STR_MAX)){
-        program_trap_handler(passedUpSupportStruct, NULL);
-    }
+	/* Error: to write to a printer device from an address outside of the requesting U-proc’s logical address space*/
+	/* Error: length less than 0*/
+	/* Error: a length greater than 128*/
+	if(helper_check_string_outside_addr_space(savedExcState->s_a1) || (savedExcState->s_a2 < STR_MIN) || (savedExcState->s_a2 > STR_MAX)) {
+		program_trap_handler(passedUpSupportStruct, NULL);
+	}
 
-    int mutexSemIdx = devSemIdx(TERMINT, devNo, TRUE);
-    SYSCALL(PASSERN, &(mutex[mutexSemIdx]), 0, 0);
+	int mutexSemIdx = devSemIdx(TERMINT, devNo, TRUE);
+	SYSCALL(PASSERN, &(mutex[mutexSemIdx]), 0, 0);
 
-    char *stringAdd = savedExcState->s_a1;
+	char *stringAdd = savedExcState->s_a1;
 
-    int i = 0;
-    int recvStatusField;
-    int recvStatus;
-    char recvChar = 'a';
-    while (recvChar != NEW_LINE){
-        setSTATUS(getSTATUS() & (~IECBITON));
-        termDevAdd->t_recv_command = RECEIVE_COMMAND;
-        recvStatusField = SYSCALL(IOWAIT, TERMINT, devNo, TRUE); /*call SYSCALL IOWAIT to block until interrupt*/
-        setSTATUS(getSTATUS() | IECBITON);
-        recvChar = (recvStatusField & RECEIVE_CHAR_MASK) >> RECEIVE_COMMAND_SHIFT;
-        recvStatus = recvStatusField & STATUS_CHAR_MASK;
-        stringAdd[i] = recvChar; /* write the char into the string buffer array */
-        i++;
-        if (recvStatus != CHAR_RECIEVED) { /* operation ends with a status other than Character Received */ 
-            savedExcState->s_v0 = -recvStatus;
-            break;
-        }
-    }
+	int i = 0;
+	int recvStatusField;
+	int recvStatus;
+	char recvChar = 'a';
+	while(recvChar != NEW_LINE) {
+		setSTATUS(getSTATUS() & (~IECBITON));
+		termDevAdd->t_recv_command = RECEIVE_COMMAND;
+		recvStatusField = SYSCALL(IOWAIT, TERMINT, devNo, TRUE); /*call SYSCALL IOWAIT to block until interrupt*/
+		setSTATUS(getSTATUS() | IECBITON);
+		recvChar = (recvStatusField & RECEIVE_CHAR_MASK) >> RECEIVE_COMMAND_SHIFT;
+		recvStatus = recvStatusField & STATUS_CHAR_MASK;
+		stringAdd[i] = recvChar; /* write the char into the string buffer array */
+		i++;
+		if(recvStatus != CHAR_RECIEVED) { /* operation ends with a status other than Character Received */
+			savedExcState->s_v0 = -recvStatus;
+			break;
+		}
+	}
 
-    if (recvStatus == CHAR_RECIEVED) {
-        savedExcState->s_v0 = i;
-    } else {
-        savedExcState->s_v0 = -recvStatus;
-    }
-    SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
-
+	if(recvStatus == CHAR_RECIEVED) {
+		savedExcState->s_v0 = i;
+	} else {
+		savedExcState->s_v0 = -recvStatus;
+	}
+	SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
 }
 
 /**********************************************************
@@ -309,27 +310,27 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
  *         support_t *passedUpSupportStruct – pointer to the support struct
  *
  *  Returns:
- *         
+ *
  **********************************************************/
 void syscall_handler(support_t *passedUpSupportStruct) {
-    switch (passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0){
-        case 9:
-            TERMINATE(passedUpSupportStruct);
-        case 10:
-            GET_TOD(passedUpSupportStruct);
-            helper_return_control(passedUpSupportStruct);
-        case 11:
-            WRITE_TO_PRINTER(passedUpSupportStruct);
-            helper_return_control(passedUpSupportStruct);
-        case 12:
-            WRITE_TO_TERMINAL(passedUpSupportStruct);
-            helper_return_control(passedUpSupportStruct);
-        case 13:
-            READ_FROM_TERMINAL(passedUpSupportStruct);
-            helper_return_control(passedUpSupportStruct);
-        default: /*the case where the process tried to do SYS 8- in user mode*/
-            program_trap_handler(passedUpSupportStruct, NULL);
-    }
+	switch(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_a0) {
+		case 9:
+			TERMINATE(passedUpSupportStruct);
+		case 10:
+			GET_TOD(passedUpSupportStruct);
+			helper_return_control(passedUpSupportStruct);
+		case 11:
+			WRITE_TO_PRINTER(passedUpSupportStruct);
+			helper_return_control(passedUpSupportStruct);
+		case 12:
+			WRITE_TO_TERMINAL(passedUpSupportStruct);
+			helper_return_control(passedUpSupportStruct);
+		case 13:
+			READ_FROM_TERMINAL(passedUpSupportStruct);
+			helper_return_control(passedUpSupportStruct);
+		default: /*the case where the process tried to do SYS 8- in user mode*/
+			program_trap_handler(passedUpSupportStruct, NULL);
+	}
 }
 
 /**********************************************************
@@ -339,18 +340,18 @@ void syscall_handler(support_t *passedUpSupportStruct) {
  *  either the syscall handler or program trap handler.
  *
  *  Parameters:
- *        
+ *
  *
  *  Returns:
- *         
+ *
  **********************************************************/
-void general_exception_handler() { 
-    support_t *passedUpSupportStruct = SYSCALL(SUPPORTGET, 0, 0, 0);
-    /* like in phase2 how we get the exception code*/
-    int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
-    /* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */
-    if (excCode == SYS){
-        syscall_handler(passedUpSupportStruct);
-    }
-        program_trap_handler(passedUpSupportStruct, NULL);
+void general_exception_handler() {
+	support_t *passedUpSupportStruct = SYSCALL(SUPPORTGET, 0, 0, 0);
+	/* like in phase2 how we get the exception code*/
+	int excCode = CauseExcCode(passedUpSupportStruct->sup_exceptState[GENERALEXCEPT].s_cause);
+	/* examine the sup_exceptState's Cause register ... pass control to either the Support Level's SYSCALL exception handler, or the support Level's Program Trap exception handler */
+	if(excCode == SYS) {
+		syscall_handler(passedUpSupportStruct);
+	}
+	program_trap_handler(passedUpSupportStruct, NULL);
 }

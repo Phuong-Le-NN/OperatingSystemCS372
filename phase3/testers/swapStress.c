@@ -4,11 +4,9 @@
 #include "h/tconst.h"
 #include "h/print.h"
 
-
-void main () {
+void main() {
 	char i;
 	int corrupt;
 
 	print(WRITETERMINAL, "swapTest starts\n");
-
 }
