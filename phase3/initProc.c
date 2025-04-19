@@ -82,6 +82,8 @@ int init_Uproc(support_t *initSupportPTR, int ASID) {
 	initSupportPTR->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr = &initSupportPTR->sup_stackTlb[TLB_STACK_AREA];
 	initSupportPTR->sup_exceptContext[GENERALEXCEPT].c_stackPtr = &initSupportPTR->sup_stackGen[GEN_EXC_STACK_AREA];
 
+	initSupportPTR->delaySem = 0;
+
 	init_Uproc_pgTable(initSupportPTR);
 
 	int newPcbStat = SYSCALL(1, &initState, initSupportPTR, 0);

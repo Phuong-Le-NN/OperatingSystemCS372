@@ -34,9 +34,6 @@ pcb_PTR readyQ;                                        /* Tail ptr to a queue of
 pcb_PTR currentP;                                      /* Current Process */
 int device_sem[DEVINTNUM * DEVPERINT + DEVPERINT + 1]; /* Device Semaphores 49 semaphores in an array */
 
-extern void debug(pcb_PTR a0, int a1, int a2, int a3) {
-}
-
 /**********************************************************
  *  main()
  *

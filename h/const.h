@@ -26,6 +26,10 @@
 
 #define NULL ((void *)0xFFFFFFFF)
 
+/**********************************************************************************************
+ * Interrupts related constants
+ */
+
 /* high precedence interrupts */
 #define INTERPROCESSORINT 0
 #define PLTINT 1
@@ -43,6 +47,9 @@
 #define DEVREGLEN 4   /* device register field length in bytes, and regs per dev */
 #define DEVREGSIZE 16 /* device register size in bytes */
 
+/***********************************************************************************************
+ * Device related constants
+ */
 /* device register field number for non-terminal devices */
 #define STATUS 0
 #define COMMAND 1
@@ -64,7 +71,10 @@
 #define RESET 0
 #define ACK 1
 
-/* Memory related constants */
+/**********************************************************************************************
+ * Memory related constants
+ */
+
 #define KSEG0 0x00000000
 #define KSEG1 0x20000000
 #define KSEG2 0x40000000
@@ -73,18 +83,13 @@
 #define BIOSDATAPAGE 0x0FFFF000
 #define PASSUPVECTOR 0x0FFFF900
 
-/* Exceptions related constants */
+#define BADADDR 0xFFFFFFFF
+
+/**********************************************************************************************
+ *  Exceptions related constants
+ */
 #define PGFAULTEXCEPT 0
 #define GENERALEXCEPT 1
-
-#define CREATETHREAD 1
-#define TERMINATETHREAD 2
-#define PASSERN 3
-#define VERHO 4
-#define IOWAIT 5
-#define CPUTIMEGET 6
-#define CLOCKWAIT 7
-#define SUPPORTGET 8
 
 #define TLB_MOD 1
 #define INT 0  /* External Device Interrupt*/
@@ -101,26 +106,43 @@
 #define CPU 11 /* Coprocessor Unusable Exception*/
 #define OV 12  /* Arithmetic Overflow Exception*/
 
-/* hardware constants */
-#define PRINTCHR 2
-#define BYTELEN 8
-#define RECVD 5
-
-#define CLOCKINTERVAL 100000UL /* interval to V clock semaphore */
-
-#define TERMSTATMASK 0xFF
-#define CAUSEMASK 0xFF
-#define VMOFF 0xF8FFFFFF
-
-#define SYSCAUSE (0x8 << 2)
 #define BUSERROR 6
 #define RESVINSTR 10
 #define ADDRERROR 4
 #define SYSCALLEXCPT 8
 
+/**********************************************************************************************
+ * SYSCALL relted constants
+ */
+
+#define CREATETHREAD 1
+#define TERMINATETHREAD 2
+#define PASSERN 3
+#define VERHO 4
+#define IOWAIT 5
+#define CPUTIMEGET 6
+#define CLOCKWAIT 7
+#define SUPPORTGET 8
+
+#define CLOCKINTERVAL 100000UL /* interval to V clock semaphore */
+#define SYSCAUSE (0x8 << 2)
+
+/**********************************************************************************************
+ *  hardware constants
+ */
+#define PRINTCHR 2
+#define BYTELEN 8
+#define RECVD 5
+
+#define TERMSTATMASK 0xFF
+#define CAUSEMASK 0xFF
+#define VMOFF 0xF8FFFFFF
+
 #define QPAGE 1024
 
-/* Cause register bit fields */
+/**********************************************************************************************
+ *  Cause register bit fields
+ */
 #define EXECCODEBITS 0x0000007C
 #define IPBITS 0x0000FF00
 #define IECBITON 0x00000001
@@ -129,8 +151,6 @@
 #define IEPBITON 0x00000004
 #define TEBITON 0x08000000
 #define ALLOFF 0x0
-
-#define BADADDR 0xFFFFFFFF
 
 /* Device register related addresses*/
 #define INSTALLED_DEV_REG 0x1000002C
@@ -181,9 +201,13 @@
 #define RECEIVE_COMMAND_SHIFT 8
 #define COMMAND_SHIFT 8
 
-/* operations */
+/**********************************************************************************************
+ * Macros
+ */
 #define MIN(A, B) ((A) < (B) ? A : B)
+
 #define MAX(A, B) ((A) < (B) ? B : A)
+
 #define ALIGNED(A) (((unsigned)A & 0x3) == 0)
 
 /* Macro to load the Interval Timer */

@@ -13,6 +13,10 @@ typedef signed int cpu_t;
 
 typedef unsigned int memaddr;
 
+/**********************************************************************************************
+ * BIOS related structs
+ */
+
 /* Device Register */
 typedef struct {
 	unsigned int d_status;
@@ -64,6 +68,10 @@ typedef struct passupvector {
 	unsigned int exception_stackPtr;
 } passupvector_t;
 
+/**********************************************************************************************
+ * pcb related structs
+ */
+
 #define STATEREGNUM 31
 typedef struct state_t {
 	unsigned int s_entryHI;
@@ -82,18 +90,6 @@ typedef struct context_t {
 	  c_pc;                  /* PC address*/
 } context_t;
 
-typedef struct pte_t {
-	unsigned int EntryHi; /* VPN (Virtual Page Number) and ASID*/
-	unsigned int EntryLo; /* PFN (Physical Frame Number) and Valid/Dirty bits */
-} pte_t;
-
-/* 4.4.1 _ The swap pool*/
-typedef struct swapPoolFrame_t {
-	int ASID;                    /* The ASID of the U-proc whose page is occupying the frame*/
-	int pgNo;                    /* The logical page number (VPN) of the occupying page.*/
-	pte_t *matchingPgTableEntry; /* A pointer to the matching Page Table entry in the Page Table belonging to the owner process. (i.e. ASID)*/
-} swapPoolFrame_t;
-
 typedef struct support_t {
 	int sup_asid;                   /* Process Id (asid) */
 	state_t sup_exceptState[2];     /* stored excpt states */
@@ -101,14 +97,10 @@ typedef struct support_t {
 	pte_t sup_privatePgTbl[32];     /* A Pandos Page Table will be an array of 32 Page Table entries _ pg 43 pandos */
 	int sup_stackTlb[500];          /* 2Kb area for the stack area for the process TLB exception handler*/
 	int sup_stackGen[500];          /* 2Kb area for the stack area for the process's Support Level general exception handler*/
+
+	int delaySem; /* delay facility for phase 5*/
 } support_t;
 
-/* Exceptions related constants */
-#define PGFAULTEXCEPT 0
-#define GENERALEXCEPT 1
-
-/* process control block type */
-/* process table entry type */
 typedef struct pcb_t {
 	/* process queue fields */
 	struct pcb_t *p_next; /* ptr to next entry */
@@ -127,6 +119,10 @@ typedef struct pcb_t {
 	support_t *p_supportStruct;
 } pcb_t, *pcb_PTR;
 
+/********************************************************************************************
+ * phase 1 structs
+ */
+
 /* semaphore descriptor type */
 typedef struct semd_t {
 	struct semd_t *s_next; /* next element on the ASL */
@@ -134,6 +130,31 @@ typedef struct semd_t {
 	pcb_PTR s_procQ;       /* tail pointer to a */
 	                       /* process queue */
 } semd_t;
+
+/********************************************************************************************
+ * phase 3 structs
+ */
+
+typedef struct pte_t {
+	unsigned int EntryHi; /* VPN (Virtual Page Number) and ASID*/
+	unsigned int EntryLo; /* PFN (Physical Frame Number) and Valid/Dirty bits */
+} pte_t;
+
+typedef struct swapPoolFrame_t {
+	int ASID;                    /* The ASID of the U-proc whose page is occupying the frame*/
+	int pgNo;                    /* The logical page number (VPN) of the occupying page.*/
+	pte_t *matchingPgTableEntry; /* A pointer to the matching Page Table entry in the Page Table belonging to the owner process. (i.e. ASID)*/
+} swapPoolFrame_t;
+
+/********************************************************************************************
+ * phase 5 structs
+ */
+
+typedef struct delaytd_t {
+	struct delayd_t *d_next;
+	int d_wakeTime;	/* the time of day when the U-proc should be woken */
+	struct support_t *d_supStruct;
+} delayd_t;
 
 #define s_at s_reg[0]
 #define s_v0 s_reg[1]
