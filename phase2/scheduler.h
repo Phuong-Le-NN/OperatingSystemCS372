@@ -1,22 +1,21 @@
 /************************* SCHEDULER.H *****************************
-*
-*  The externals declaration file for SCHEDULER Module
-*
-*  Written by Phuong and Oghap
-*/
+ *
+ *  The externals declaration file for SCHEDULER Module
+ *
+ *  Written by Phuong and Oghap
+ */
 
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
 #include "../h/pcb.h"
 
-extern int         process_count;           /* Number of started processes */
-extern int         softBlock_count;         /* Number of started that are in blocked */
-extern pcb_PTR     readyQ;                  /* Tail ptr to a queue of pcbs that are ready */
-extern pcb_PTR     currentP;                /* Current Process */
-extern int device_sem[DEVINTNUM*DEVPERINT + DEVPERINT + 1];  /* Device Semaphores 49 semaphores in an array */
+extern int process_count;                                     /* Number of started processes */
+extern int softBlock_count;                                   /* Number of started that are in blocked */
+extern pcb_PTR readyQ;                                        /* Tail ptr to a queue of pcbs that are ready */
+extern pcb_PTR currentP;                                      /* Current Process */
+extern int device_sem[DEVINTNUM * DEVPERINT + DEVPERINT + 1]; /* Device Semaphores 49 semaphores in an array */
 
-
-void scheduler ();
+void scheduler();
 
 #endif

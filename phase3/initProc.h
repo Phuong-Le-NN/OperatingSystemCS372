@@ -1,9 +1,9 @@
 /************************** INITPROC.H ******************************
-*
-*  The externals declaration file for INITPROC Module
-*
-*  Written by Phuong and Oghap on Mar 2025
-*/
+ *
+ *  The externals declaration file for INITPROC Module
+ *
+ *  Written by Phuong and Oghap on Mar 2025
+ */
 
 #ifndef INITPROC_H
 #define INITPROC_H
@@ -19,7 +19,7 @@ extern void TLB_exception_handler();
 extern void general_exception_handler();
 
 void test();
-int mutex[DEVINTNUM*DEVPERINT + DEVPERINT];
+int mutex[DEVINTNUM * DEVPERINT + DEVPERINT];
 int masterSemaphore;
 
 #endif

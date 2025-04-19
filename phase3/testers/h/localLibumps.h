@@ -2,9 +2,9 @@
 #define LOCALLIB
 
 /************************** LOCALLIBUMBP.H ******************************
-*
-*  Written by Mikeyg
-*/
+ *
+ *  Written by Mikeyg
+ */
 
 #include "/usr/include/umps3/umps/libumps.h"
 

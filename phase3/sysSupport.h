@@ -1,13 +1,12 @@
 /************************** SYSSUPPORT.H ******************************
-*
-*  The externals declaration file for SYSSUPPORT Module
-*
-*  Written by Phuong and Oghap on Mar 2025
-*/
+ *
+ *  The externals declaration file for SYSSUPPORT Module
+ *
+ *  Written by Phuong and Oghap on Mar 2025
+ */
 
 #ifndef SYSSUPPORT_H
 #define SYSSUPPORT_H
-
 
 #include "/usr/include/umps3/umps/libumps.h"
 
@@ -17,7 +16,7 @@
 #include "../h/const.h"
 
 extern int masterSemaphore;
-extern int mutex[DEVINTNUM*DEVPERINT + DEVPERINT];
+extern int mutex[DEVINTNUM * DEVPERINT + DEVPERINT];
 extern int swapPoolSema4;
 extern swapPoolFrame_t swapPoolTable[SWAP_POOL_SIZE];
 
