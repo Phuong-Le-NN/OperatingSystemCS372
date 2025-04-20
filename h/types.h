@@ -150,10 +150,10 @@ typedef struct swapPoolFrame_t {
  * phase 5 structs
  */
 
-typedef struct delaytd_t {
+typedef struct delayd_t {
 	struct delayd_t *d_next;
 	int d_wakeTime;	/* the time of day when the U-proc should be woken */
-	struct support_t *d_supStruct;
+	support_t *d_supStruct;
 } delayd_t;
 
 #define s_at s_reg[0]

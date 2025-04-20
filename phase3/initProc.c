@@ -106,6 +106,8 @@ int init_Uproc(support_t *initSupportPTR, int ASID) {
  **********************************************************/
 void test() {
 	initSwapStruct();
+	initADL();
+	initDelayDaemon();
 
 	int i;
 	for(i = 0; i < (DEVINTNUM * DEVPERINT + DEVPERINT); i++) {
