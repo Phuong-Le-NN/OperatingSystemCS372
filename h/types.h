@@ -104,6 +104,7 @@ typedef struct support_t {
 	pte_t		sup_privatePgTbl[32];		/* A Pandos Page Table will be an array of 32 Page Table entries _ pg 43 pandos */
 	int			sup_stackTlb[500];		/* 2Kb area for the stack area for the process TLB exception handler*/
 	int			sup_stackGen[500];		/* 2Kb area for the stack area for the process's Support Level general exception handler*/
+	int			delaySem;
 } support_t;
 
 /* Exceptions related constants */
@@ -137,6 +138,12 @@ typedef struct semd_t {
 	pcb_PTR 		s_procQ; 	/* tail pointer to a */
 								/* process queue */
 } semd_t;
+
+typedef struct delaytd_t {
+	struct delayd_t *d_next;
+	int d_wakeTime;	/* the time of day when the U-proc should be woken */
+	struct support_t *d_supStruct;
+} delayd_t;
 
 #define	s_at	s_reg[0]
 #define	s_v0	s_reg[1]
