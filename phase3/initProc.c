@@ -116,14 +116,14 @@ void test() {
 	support_t initSupportPTRArr[UPROC_NUM + 1]; /*1 extra sentinel node*/
 
 	int newUprocStat;
-	for(i = 1; i <= 1; i++) {
+	for(i = 1; i <= UPROC_NUM; i++) {
 		newUprocStat = init_Uproc(&initSupportPTRArr[i - 1], i);
 		if(newUprocStat == -1) {
 			SYSCALL(TERMINATETHREAD, 0, 0, 0);
 		}
 	}
 
-	for(i = 1; i <= 1; i++) {
+	for(i = 1; i <= UPROC_NUM; i++) {
 		SYSCALL(PASSERN, &masterSemaphore, 0, 0); /* P operation */
 	}
 
