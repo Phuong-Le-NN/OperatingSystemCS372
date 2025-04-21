@@ -328,6 +328,8 @@ void syscall_handler(support_t *passedUpSupportStruct) {
 		case 13:
 			READ_FROM_TERMINAL(passedUpSupportStruct);
 			helper_return_control(passedUpSupportStruct);
+		case 18:
+			DELAY(passedUpSupportStruct);
 		default: /*the case where the process tried to do SYS 8- in user mode*/
 			program_trap_handler(passedUpSupportStruct, NULL);
 	}

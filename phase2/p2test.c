@@ -112,24 +112,17 @@ void p5sys(), p8root(), child1(), child2(), p8leaf();
 extern void p5gen();
 extern void p5mm();
 
-void debugTest(int a0, int a1, int a2, int a3) {
-}
-
 /* a procedure to print on terminal 0 */
 void print(char *msg) {
 	char *s = msg;
 	devregtr *base = (devregtr *)(TERM0ADDR);
 	devregtr status;
 
-	debugTest(term_mut, 0xaa, 0xaa, 0xbb);
 	SYSCALL(PASSERN, (int)&term_mut, 0, 0); /* P(term_mut) */
-	debugTest(term_mut, 0xaa, 0xaa, 0xbb);
 	while(*s != EOS) {
 		*(base + 3) = PRINTCHR | (((devregtr)*s) << BYTELEN);
-		debugTest(*s, s, 2, 2);
 		status = SYSCALL(WAITIO, TERMINT, 0, 0);
 		if((status & TERMSTATMASK) != RECVD) {
-			debugTest(2, 2, 2, 2);
 			PANIC();
 		}
 		s++;

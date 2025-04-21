@@ -14,6 +14,7 @@
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "../h/const.h"
+#include "../phase5/delayDaemon.h"
 
 extern void TLB_exception_handler();
 extern void general_exception_handler();

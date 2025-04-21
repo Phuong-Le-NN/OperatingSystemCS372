@@ -181,7 +181,7 @@ void insertProcQ(pcb_PTR *tp, pcb_PTR p) {
  */
 pcb_PTR removeProcQ(pcb_PTR *tp) {
 	/* Special case - pq is empty */
-	if(emptyProcQ(*tp)) {
+	if(*tp == NULL) {
 		return NULL;
 	}
 
@@ -335,23 +335,21 @@ void insertChild(pcb_PTR prnt, pcb_PTR p) {
  *
  */
 pcb_PTR removeChild(pcb_PTR p) {
-	pcb_PTR *tp = &(p->p_child);
-
 	/* Special case - pq is empty */
-	if(emptyProcQ(*tp)) {
+	if(p->p_child == NULL) {
 		return NULL;
 	}
 
-	pcb_PTR rm = (*tp)->p_next_sib;
+	pcb_PTR rm = p->p_child->p_next_sib;
 
 	/* Removing head element from pq */
-	(*tp)->p_next_sib = rm->p_next_sib;
-	rm->p_next_sib->p_prev_sib = (*tp);
+	p->p_child->p_next_sib = rm->p_next_sib;
+	rm->p_next_sib->p_prev_sib = p->p_child;
 
 	/* Special case - if removing the last element in pq,
 	 *  make the tail pointer = NULL*/
-	if(rm == (*tp)) {
-		(*tp) = NULL;
+	if(rm == p->p_child) {
+		p->p_child = NULL;
 	}
 
 	rm->p_prnt = NULL;

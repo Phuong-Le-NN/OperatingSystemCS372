@@ -171,11 +171,11 @@ HIDDEN int check_KU_mode_bit() {
  *
  **********************************************************/
 HIDDEN void helper_terminate_process(pcb_PTR toBeTerminate) {
-	pcb_PTR childToBeTerminate;
+	pcb_PTR childToBeTerminate = removeChild(toBeTerminate);
 	/* recursively, all progeny of this process are terminated as well. */
-	while(!emptyChild(toBeTerminate)) {
-		childToBeTerminate = removeChild(toBeTerminate);
+	while(childToBeTerminate != NULL) {
 		helper_terminate_process(childToBeTerminate);
+		childToBeTerminate = removeChild(toBeTerminate);
 	}
 	/* make the child no longer child of its parent*/
 	outChild(toBeTerminate);

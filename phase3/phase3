@@ -8,75 +8,99 @@
     "devices": {
         "flash0": {
             "enabled": true,
-            "file": "/Users/kim_o1/Documents/CS372/PandosOperatingSystem/phase3/testers/fibEight.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/testers/delayTest.umps"
         },
         "flash1": {
             "enabled": true,
-            "file": "/Users/kim_o1/Documents/CS372/PandosOperatingSystem/phase3/testers/fibEleven.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/testers/terminalTest1.umps"
         },
         "flash2": {
             "enabled": true,
-            "file": "/Users/kim_o1/Documents/CS372/PandosOperatingSystem/phase3/testers/asciiArt.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/testers/terminalTest2.umps"
         },
         "flash3": {
             "enabled": true,
-            "file": "/Users/kim_o1/Documents/CS372/PandosOperatingSystem/phase3/testers/swapStress1.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/testers/terminalTest3.umps"
         },
         "flash4": {
             "enabled": true,
-            "file": "/Users/kim_o1/Documents/CS372/PandosOperatingSystem/phase3/testers/terminalTest7.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/testers/terminalTest4.umps"
         },
         "flash5": {
             "enabled": true,
-            "file": "/Users/kim_o1/Documents/CS372/PandosOperatingSystem/phase3/testers/timeOfDay.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/testers/terminalTest5.umps"
         },
         "flash6": {
             "enabled": true,
-            "file": "/Users/kim_o1/Documents/CS372/PandosOperatingSystem/phase3/testers/strConcat.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/testers/terminalTest6.umps"
         },
         "flash7": {
             "enabled": true,
-            "file": "/Users/kim_o1/Documents/CS372/PandosOperatingSystem/phase3/testers/test_oghap.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/testers/terminalTest7.umps"
+        },
+        "printer0": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/print0.umps"
+        },
+        "printer1": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/print1.umps"
         },
         "printer2": {
             "enabled": true,
-            "file": "ricecake.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/print2.umps"
+        },
+        "printer3": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/print3.umps"
+        },
+        "printer4": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/print4.umps"
+        },
+        "printer5": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/print5.umps"
+        },
+        "printer6": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/print6.umps"
         },
         "printer7": {
             "enabled": true,
-            "file": "test_oghap_results.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/print7.umps"
         },
         "terminal0": {
             "enabled": true,
-            "file": "term0.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/term0.umps"
         },
         "terminal1": {
             "enabled": true,
-            "file": "term1.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/term1.umps"
         },
         "terminal2": {
             "enabled": true,
-            "file": "term2.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/term2.umps"
         },
         "terminal3": {
             "enabled": true,
-            "file": "term3.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/term3.umps"
         },
         "terminal4": {
             "enabled": true,
-            "file": "term4.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/term4.umps"
         },
         "terminal5": {
             "enabled": true,
-            "file": "term5.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/term5.umps"
         },
         "terminal6": {
             "enabled": true,
-            "file": "term6.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/term6.umps"
         },
         "terminal7": {
             "enabled": true,
-            "file": "term7.umps"
+            "file": "/Users/le_p2/Documents/CS372/PandosOperatingSystem/phase3/term7.umps"
         }
     },
     "execution-rom": "/usr/share/umps3/exec.rom.umps",

@@ -19,7 +19,7 @@ INCDIR = $(UMPS3_DIR_PREFIX)/include/umps3/umps
 SUPDIR = $(UMPS3_DIR_PREFIX)/share/umps3
 #LIBDIR = $(UMPS3_DIR_PREFIX)/lib/umps3
 
-TDEFS = h/print.h h/tconst.h $(INCDIR)/libumps.h Makefile
+TDEFS = ../h/print.h ../h/tconst.h $(INCDIR)/libumps.h Makefile delayDaemon.h
 
 CFLAGS = -ffreestanding -ansi -c -mips1 -mabi=32 -mfp32 -mno-gpopt -G 0 -fno-pic -mno-abicalls
 # -Wall
@@ -36,7 +36,6 @@ UDEV = umps3-mkdev
 
 #main target
 all: delayTest.umps diskIOtest.umps pvTestA.umps pvTestB.umps
-
 	
 %.o: %.c $(TDEFS)
 	$(CC) $(CFLAGS) $<

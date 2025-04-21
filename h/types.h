@@ -68,6 +68,21 @@ typedef struct passupvector {
 	unsigned int exception_stackPtr;
 } passupvector_t;
 
+/********************************************************************************************
+ * phase 3 structs
+ */
+
+typedef struct pte_t {
+	unsigned int EntryHi; /* VPN (Virtual Page Number) and ASID*/
+	unsigned int EntryLo; /* PFN (Physical Frame Number) and Valid/Dirty bits */
+} pte_t;
+
+typedef struct swapPoolFrame_t {
+	int ASID;                    /* The ASID of the U-proc whose page is occupying the frame*/
+	int pgNo;                    /* The logical page number (VPN) of the occupying page.*/
+	pte_t *matchingPgTableEntry; /* A pointer to the matching Page Table entry in the Page Table belonging to the owner process. (i.e. ASID)*/
+} swapPoolFrame_t;
+
 /**********************************************************************************************
  * pcb related structs
  */
@@ -101,6 +116,16 @@ typedef struct support_t {
 	int delaySem; /* delay facility for phase 5*/
 } support_t;
 
+/********************************************************************************************
+ * phase 5 structs
+ */
+
+typedef struct delayd_t {
+	struct delayd_t *d_next;
+	int d_wakeTime;	/* the time of day when the U-proc should be woken */
+	support_t *d_supStruct;
+} delayd_t;
+
 typedef struct pcb_t {
 	/* process queue fields */
 	struct pcb_t *p_next; /* ptr to next entry */
@@ -130,31 +155,6 @@ typedef struct semd_t {
 	pcb_PTR s_procQ;       /* tail pointer to a */
 	                       /* process queue */
 } semd_t;
-
-/********************************************************************************************
- * phase 3 structs
- */
-
-typedef struct pte_t {
-	unsigned int EntryHi; /* VPN (Virtual Page Number) and ASID*/
-	unsigned int EntryLo; /* PFN (Physical Frame Number) and Valid/Dirty bits */
-} pte_t;
-
-typedef struct swapPoolFrame_t {
-	int ASID;                    /* The ASID of the U-proc whose page is occupying the frame*/
-	int pgNo;                    /* The logical page number (VPN) of the occupying page.*/
-	pte_t *matchingPgTableEntry; /* A pointer to the matching Page Table entry in the Page Table belonging to the owner process. (i.e. ASID)*/
-} swapPoolFrame_t;
-
-/********************************************************************************************
- * phase 5 structs
- */
-
-typedef struct delayd_t {
-	struct delayd_t *d_next;
-	int d_wakeTime;	/* the time of day when the U-proc should be woken */
-	support_t *d_supStruct;
-} delayd_t;
 
 #define s_at s_reg[0]
 #define s_v0 s_reg[1]

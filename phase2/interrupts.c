@@ -329,12 +329,12 @@ HIDDEN void process_local_timer_interrupts() {
 HIDDEN void pseudo_clock_interrupts() {
 	/* load interval timer with 100 miliseconds*/
 	LDIT(100000);
-	pcb_PTR unblocked_pcb;
 	int *pseudo_clock_sem = &(device_sem[pseudo_clock_idx]);
+	pcb_PTR unblocked_pcb = helper_unblock_process(pseudo_clock_sem);
 	/*unblock all pcb blocked on the Pseudo-clock*/
-	while(headBlocked(pseudo_clock_sem) != NULL) {
-		unblocked_pcb = helper_unblock_process(pseudo_clock_sem);
+	while(unblocked_pcb != NULL) {
 		insertProcQ(&readyQ, unblocked_pcb);
+		unblocked_pcb = helper_unblock_process(pseudo_clock_sem);
 	}
 	/* reset pseudo-clock semaphore to 0*/
 	*(pseudo_clock_sem) = 0;
