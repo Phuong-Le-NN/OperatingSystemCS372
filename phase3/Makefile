@@ -26,7 +26,8 @@ DEFS = ../h/const.h ../h/types.h ../h/pcb.h ../h/asl.h \
 OBJS = ../phase1/asl.o ../phase1/pcb.o \
        ../phase2/initial.o ../phase2/interrupts.o ../phase2/scheduler.o ../phase2/exceptions.o \
        initProc.o vmSupport.o sysSupport.o \
-	   ../phase5/delayDaemon.o
+	   ../phase5/delayDaemon.o \
+	   ../phase4/devSupport.o
 
 CFLAGS = -ffreestanding -ansi -Wall -c -mips1 -mabi=32 -mfp32 -mno-gpopt -G 0 -fno-pic -mno-abicalls
 

@@ -328,6 +328,18 @@ void syscall_handler(support_t *passedUpSupportStruct) {
 		case 13:
 			READ_FROM_TERMINAL(passedUpSupportStruct);
 			helper_return_control(passedUpSupportStruct);
+		case 14:
+			WRITE_TO_DISK(passedUpSupportStruct);
+			helper_return_control(passedUpSupportStruct);
+		case 15:
+			READ_FROM_DISK(passedUpSupportStruct);
+			helper_return_control(passedUpSupportStruct);
+		case 16:
+			WRITE_TO_FLASH(passedUpSupportStruct);
+			helper_return_control(passedUpSupportStruct);
+		case 17:
+			READ_FROM_FLASH(passedUpSupportStruct);
+			helper_return_control(passedUpSupportStruct);
 		case 18:
 			DELAY(passedUpSupportStruct);
 		default: /*the case where the process tried to do SYS 8- in user mode*/
