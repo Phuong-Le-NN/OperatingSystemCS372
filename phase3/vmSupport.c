@@ -19,6 +19,13 @@
  */
 
 #include "vmSupport.h"
+#include "initProc.h"
+#include "sysSupport.h"
+
+#include "../phase2/initial.h"
+
+swapPoolFrame_t swapPoolTable[SWAP_POOL_SIZE];
+int swapPoolSema4;
 
 /**********************************************************
  *  initSwapStruct

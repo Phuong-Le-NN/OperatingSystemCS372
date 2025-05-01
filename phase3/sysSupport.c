@@ -19,6 +19,10 @@
  */
 
 #include "sysSupport.h"
+#include "initProc.h"
+#include "vmSupport.h"
+#include "../phase4/devSupport.h"
+#include "../phase5/delayDaemon.h"
 
 /**********************************************************
  *  helper_check_string_outside_addr_space

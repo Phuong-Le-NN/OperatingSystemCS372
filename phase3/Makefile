@@ -19,8 +19,9 @@ SUPDIR = $(UMPS3_DIR_PREFIX)/share/umps3
 #LIBDIR = $(UMPS3_DIR_PREFIX)/lib/umps3
 
 DEFS = ../h/const.h ../h/types.h ../h/pcb.h ../h/asl.h \
-	../h/initial.h ../h/interrupts.h ../h/scheduler.h ../h/exceptions.h \
-	../h/initProc.h ../h/vmSupport.h ../h/sysSupport.h \
+	../phase2/initial.h ../phase2h/interrupts.h ../phase2/scheduler.h ../phase2/exceptions.h \
+	../phase3/initProc.h ../phase3/vmSupport.h ../phase3/sysSupport.h \
+	../phase4/devSupport.h ../phase5/delayDaemon.h \
 	$(INCDIR)/libumps.h Makefile
 
 OBJS = ../phase1/asl.o ../phase1/pcb.o \
@@ -64,10 +65,11 @@ distclean: clean
 
 TERMS = term0.umps term1.umps term2.umps term3.umps term4.umps term5.umps term6.umps term7.umps
 PRINTS = print0.umps print1.umps print2.umps print3.umps print4.umps print5.umps print6.umps print7.umps
+DISKS = disk0.umps disk1.umps disk2.umps disk3.umps disk4.umps disk5.umps disk6.umps disk7.umps
 
 # Target to create all term files
 # Combined target
-devices: $(TERMS) $(PRINTS)
+devices: $(TERMS) $(PRINTS) $(DISKS)
 # Generic rule for both termX.umps and printX.umps
 %.umps:
 	touch $@

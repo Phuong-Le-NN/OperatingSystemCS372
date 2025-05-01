@@ -6,37 +6,45 @@
     "bootstrap-rom": "/usr/share/umps3/coreboot.rom.umps",
     "clock-rate": 1,
     "devices": {
+        "disk0": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase5/disk0.umps"
+        },
+        "disk1": {
+            "enabled": true,
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase5/disk0.umps"
+        },
         "flash0": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/delayTest.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/diskIOtest.umps"
         },
         "flash1": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/fibEight.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/diskIOtest.umps"
         },
         "flash2": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/printerTest.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress2.umps"
         },
         "flash3": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/strConcat.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress3.umps"
         },
         "flash4": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress4.umps"
         },
         "flash5": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/timeOfDay.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress5.umps"
         },
         "flash6": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/terminalTest6.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress6.umps"
         },
         "flash7": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/terminalTest3.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress7.umps"
         },
         "printer0": {
             "enabled": true,
@@ -105,7 +113,7 @@
     },
     "execution-rom": "/usr/share/umps3/exec.rom.umps",
     "num-processors": 1,
-    "num-ram-frames": 130,
+    "num-ram-frames": 512,
     "symbol-table": {
         "asid": 64,
         "file": "kernel.stab.umps"

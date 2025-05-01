@@ -4,7 +4,7 @@
 #include "h/tconst.h"
 #include "h/print.h"
 
-#define MILLION	1000000
+#define MILLION	1000
 
 void main() {
 	/*char buffer[PAGESIZE]; */

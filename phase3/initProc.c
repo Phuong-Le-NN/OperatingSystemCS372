@@ -19,8 +19,12 @@
  */
 
 #include "initProc.h"
+#include "vmSupport.h"
+#include "sysSupport.h"
+#include "../phase5/delayDaemon.h"
 
 int masterSemaphore = 0;
+int mutex[DEVINTNUM * DEVPERINT + DEVPERINT];
 
 /**********************************************************
  *  init_Uproc_pgTable
@@ -106,7 +110,7 @@ int init_Uproc(support_t *initSupportPTR, int ASID) {
  **********************************************************/
 void test() {
 	initSwapStruct();
-	initADL();
+	/*initADL();*/
 
 	int i;
 	for(i = 0; i < (DEVINTNUM * DEVPERINT + DEVPERINT); i++) {
@@ -116,14 +120,14 @@ void test() {
 	support_t initSupportPTRArr[UPROC_NUM + 1]; /*1 extra sentinel node*/
 
 	int newUprocStat;
-	for(i = 1; i <= UPROC_NUM; i++) {
+	for(i = 1; i <= 1; i++) {
 		newUprocStat = init_Uproc(&initSupportPTRArr[i - 1], i);
 		if(newUprocStat == -1) {
 			SYSCALL(TERMINATETHREAD, 0, 0, 0);
 		}
 	}
 
-	for(i = 1; i <= UPROC_NUM; i++) {
+	for(i = 1; i <= 1; i++) {
 		SYSCALL(PASSERN, &masterSemaphore, 0, 0); /* P operation */
 	}
 
