@@ -1,15 +1,7 @@
-#$Id: Makefile,v 1.2 2004/05/01 14:53:48 morsiani Exp morsiani $
-# Makefile for mips-linux
-#
-# Edited for uMPS v3 by MikeyG on 2020/04/14
-
-# Simplistic search for the umps3 installation prefix.
-# If you have umps3 installed on some weird location, set UMPS3_DIR_PREFIX by hand.
+# This makefile creates a kernel file from three source files:
 ifneq ($(wildcard /usr/bin/umps3),)
 	UMPS3_DIR_PREFIX = /usr
-	LIBDIR = $(UMPS3_DIR_PREFIX)/lib/aarch64-linux-gnu/umps3
-	# LIBDIR = $(UMPS3_DIR_PREFIX)/lib/x86_64-linux-gnu/umps3
-	
+	LIBDIR = $(UMPS3_DIR_PREFIX)/lib/x86_64-linux-gnu/umps3
 else
 	UMPS3_DIR_PREFIX = /usr/local
 	LIBDIR = $(UMPS3_DIR_PREFIX)/lib/umps3
@@ -17,39 +9,35 @@ endif
 
 INCDIR = $(UMPS3_DIR_PREFIX)/include/umps3/umps
 SUPDIR = $(UMPS3_DIR_PREFIX)/share/umps3
-#LIBDIR = $(UMPS3_DIR_PREFIX)/lib/umps3
 
-TDEFS = ../h/print.h ../h/tconst.h $(INCDIR)/libumps.h Makefile delayDaemon.h
+DEFS = ../h/const.h ../h/types.h $(INCDIR)/libumps.h Makefile
 
-CFLAGS = -ffreestanding -ansi -c -mips1 -mabi=32 -mfp32 -mno-gpopt -G 0 -fno-pic -mno-abicalls
-# -Wall
-
+OBJS = diskIOtest.o print.o
+CFLAGS = -ffreestanding -ansi -Wall -c -mips1 -mabi=32 -mfp32 \
+		-mno-gpopt -G 0 -fno-pic -mno-abicalls
 LDAOUTFLAGS = -G 0 -nostdlib -T $(SUPDIR)/umpsaout.ldscript
-LDCOREFLAGS =  -G 0 -nostdlib -T $(SUPDIR)/umpscore.ldscript
+LDCOREFLAGS = -G 0 -nostdlib -T $(SUPDIR)/umpscore.ldscript
 
 CC = mipsel-linux-gnu-gcc
 LD = mipsel-linux-gnu-ld
 AS = mipsel-linux-gnu-as -KPIC
-
 EF = umps3-elf2umps
 UDEV = umps3-mkdev
 
 #main target
-all: delayTest.umps diskIOtest.umps pvTestA.umps pvTestB.umps
-	
-%.o: %.c $(TDEFS)
-	$(CC) $(CFLAGS) $<
-	
-%.t: %.o print.o  $(LIBDIR)/crti.o
-	$(LD) $(LDAOUTFLAGS) $(LIBDIR)/crti.o $< print.o $(LIBDIR)/libumps.o -o $@
-	
-%.t.aout.umps: %.t
-	$(EF) -a $<
+all: kernel.core.umps disk0.umps
 
-%.umps: %.t.aout.umps
-	$(UDEV) -f $@ $<
+# use umps3-mkdev to create the disk0 device
+disk0.umps:
+	$(UDEV) -d disk0.umps
 
+# create the kernel.core.umps kernel executable file
+kernel.core.umps: kernel
+	$(EF) -k kernel
 
-clean:
-	rm -f *.o *.t *.umps
+kernel: $(OBJS)
+	$(LD) $(LDCOREFLAGS) $(LIBDIR)/crtso.o $(OBJS) \
+		$(LIBDIR)/libumps.o -o kernel
 
+%.o: %.c $(DEFS)
+	$(CC) $(CFLAGS) $< 

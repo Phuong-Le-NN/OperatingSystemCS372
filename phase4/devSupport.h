@@ -7,8 +7,8 @@
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "../h/const.h"
-#include "../phase3/initProc.h"
 
+extern int masterSemaphore;
 extern int mutex[DEVINTNUM * DEVPERINT + DEVPERINT];
 
 void WRITE_TO_DISK(support_t *currentSupport);
