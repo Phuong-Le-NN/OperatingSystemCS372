@@ -1,24 +1,7 @@
 #include "devSupport.h"
+#include "../h/const.h"
 
-#define BLOCKSIZE   0xFA0
-
-#define DISK_DMA_BUFFER_BASE_ADDR   0x20020000
-#define FLASK_DMA_BUFFER_BASE_ADDR  0x20020000 + BLOCKSIZE*8
-
-#define READBLK_DSK     3
-#define WRITEBLK_DSK    4
-#define SEEKCYL         2
-
-#define SECTNUM_SHIFT   8
-#define CYLNUM_SHIFT    8
-#define HEADNUM_SHIFT   16
-
-#define READBLK_FLASH   2
-#define WRITEBLK_FLASH  3
-
-#define BLOCKNUM_SHIFT  8
-
-void helper_copy_block(int *src, int *dst){
+HIDDEN void helper_copy_block(int *src, int *dst){
     int i;
     for (i = 0; i < (BLOCKSIZE/4); i++){
         *dst = *src;
@@ -130,7 +113,7 @@ void READ_FROM_FLASH(support_t *currentSupport){
         flash_dev_reg_addr->d_data0 = FLASK_DMA_BUFFER_BASE_ADDR + BLOCKSIZE*devNo;
         setSTATUS(getSTATUS() & (~IECBITON));
             flash_dev_reg_addr->d_command = (saved_exception_state->s_a3 << BLOCKNUM_SHIFT) + READBLK_FLASH;
-            int flash_status = SYSCALL(IOWAIT, &(mutex[flash_sem_idx]), 0, 0);
+            int flash_status = SYSCALL(IOWAIT,FLASHINT, devNo, 0);
         setSTATUS(getSTATUS() | IECBITON);
         helper_copy_block(FLASK_DMA_BUFFER_BASE_ADDR + BLOCKSIZE*devNo, saved_exception_state->s_a1);
     SYSCALL(VERHO, &(mutex[flash_sem_idx]), 0, 0);
@@ -157,7 +140,7 @@ void WRITE_TO_FLASH(support_t *currentSupport){
         flash_dev_reg_addr->d_data0 = FLASK_DMA_BUFFER_BASE_ADDR + BLOCKSIZE*devNo;
         setSTATUS(getSTATUS() & (~IECBITON));
             flash_dev_reg_addr->d_command = (saved_exception_state->s_a3 << BLOCKNUM_SHIFT) + WRITEBLK_FLASH;
-            int flash_status = SYSCALL(IOWAIT, &(mutex[flash_sem_idx]), 0, 0);
+            int flash_status = SYSCALL(IOWAIT, FLASHINT, devNo, 0);
         setSTATUS(getSTATUS() | IECBITON);
     SYSCALL(VERHO, &(mutex[flash_sem_idx]), 0, 0);
 
@@ -166,8 +149,4 @@ void WRITE_TO_FLASH(support_t *currentSupport){
     } else{
         saved_exception_state->s_v0 = 0 - flash_status;
     }
-}
-
-void set_up_backing_store(){
-
 }

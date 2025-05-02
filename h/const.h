@@ -160,7 +160,7 @@
 #define VPN_SHIFT 12
 #define VPN_MASK 0x000FFFFF
 #define SWAP_POOL_SIZE 32
-#define SWAP_POOL_START 0x20020000 + PAGESIZE*16
+#define SWAP_POOL_START 0x20020000 + BLOCKSIZE*16
 #define PAGE_TABLE_SIZE 32
 #define ASID_SHIFT 6
 #define UPROC_NUM 8
@@ -232,5 +232,23 @@
 /* Maximum number of semaphore and pcb that can be allocated*/
 #define MAXPROC 20
 #define MAXSEM MAXPROC
+
+#define BLOCKSIZE   PAGESIZE
+
+#define DISK_DMA_BUFFER_BASE_ADDR   0x20020000
+#define FLASK_DMA_BUFFER_BASE_ADDR  0x20020000 + BLOCKSIZE*8
+
+#define READBLK_DSK     3
+#define WRITEBLK_DSK    4
+#define SEEKCYL         2
+
+#define SECTNUM_SHIFT   8
+#define CYLNUM_SHIFT    8
+#define HEADNUM_SHIFT   16
+
+#define READBLK_FLASH   2
+#define WRITEBLK_FLASH  3
+
+#define BLOCKNUM_SHIFT  8
 
 #endif
