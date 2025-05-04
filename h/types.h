@@ -79,7 +79,7 @@ typedef struct pte_t {
 
 typedef struct swapPoolFrame_t {
 	int ASID;                    /* The ASID of the U-proc whose page is occupying the frame*/
-	int pgNo;                    /* The logical page number (VPN) of the occupying page.*/
+	int VPN;                    /* The logical page number (VPN) of the occupying page.*/
 	pte_t *matchingPgTableEntry; /* A pointer to the matching Page Table entry in the Page Table belonging to the owner process. (i.e. ASID)*/
 } swapPoolFrame_t;
 
