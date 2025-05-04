@@ -102,7 +102,7 @@ void TERMINATE(support_t *passedUpSupportStruct) {
 	for(i = 0; i < SWAP_POOL_SIZE; i++) {
 		if(swapPoolTable[i].ASID == passedUpSupportStruct->sup_asid) {
 			swapPoolTable[i].ASID = -1;
-			swapPoolTable[i].pgNo = -1;
+			swapPoolTable[i].VPN = -1;
 			swapPoolTable[i].matchingPgTableEntry = NULL;
 		}
 	}

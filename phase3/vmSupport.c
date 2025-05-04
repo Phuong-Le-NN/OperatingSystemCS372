@@ -22,6 +22,8 @@
 #include "initProc.h"
 #include "sysSupport.h"
 
+#include "../phase4/devSupport.h"
+
 #include "../phase2/initial.h"
 
 swapPoolFrame_t swapPoolTable[SWAP_POOL_SIZE];
@@ -44,7 +46,7 @@ void initSwapStruct() {
 	int i;
 	for(i = 0; i < SWAP_POOL_SIZE; i++) {
 		swapPoolTable[i].ASID = -1;
-		swapPoolTable[i].pgNo = -1;
+		swapPoolTable[i].VPN = -1;
 		swapPoolTable[i].matchingPgTableEntry = NULL;
 	}
 	swapPoolSema4 = 1;
@@ -168,6 +170,95 @@ void read_write_flash(int pickedSwapPoolFrame, support_t *currentSupport, int bl
 	}
 }
 
+
+HIDDEN void helper_copy_block(int *src, int *dst){
+    int i;
+    for (i = 0; i < (BLOCKSIZE/4); i++){
+        *dst = *src;
+        dst++; /*should increase by 4*/
+        src++;
+    }
+}
+
+void write_to_disk_for_pager(int devNo, int sectNo2D, int src, support_t *currentSupport){
+    int disk_sem_idx = devSemIdx(DISKINT, devNo, FALSE);
+
+    device_t *disk_dev_reg_addr = devAddrBase(DISKINT, devNo);
+
+    int maxcyl = ((disk_dev_reg_addr->d_data1) >> 16) & 0xFFFF;
+    int maxhead = ((disk_dev_reg_addr->d_data1) >> 8) & 0xFF;
+    int maxsect = (disk_dev_reg_addr->d_data1) & 0xFF;
+
+    if (sectNo2D > (maxcyl*maxhead*maxsect)){
+        program_trap_handler(currentSupport, NULL);
+    }
+
+    SYSCALL(PASSERN, &(mutex[disk_sem_idx]), 0, 0);
+        int sectNo = sectNo2D % maxsect;
+	    int headNo = ((int) (sectNo2D / (maxsect * maxcyl))) % maxhead; /*divide and round down*/
+        int cylNo = ((int) (sectNo2D / maxsect)) % maxcyl;
+        setSTATUS(getSTATUS() & (~IECBITON));
+            disk_dev_reg_addr->d_command = (cylNo << CYLNUM_SHIFT) + SEEKCYL; /*seek*/
+            int disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
+        setSTATUS(getSTATUS() | IECBITON);
+        if (disk_status != READY){
+            SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
+            return 0 - disk_status;
+        }
+        disk_dev_reg_addr->d_data0 = src;
+        setSTATUS(getSTATUS() & (~IECBITON));
+            disk_dev_reg_addr->d_command = (headNo << HEADNUM_SHIFT) + (sectNo << SECTNUM_SHIFT) + WRITEBLK_DSK; /*write*/
+            disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
+        setSTATUS(getSTATUS() | IECBITON);
+    SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
+
+    if (disk_status == READY){
+        return disk_status;
+    } else {
+        return 0 - disk_status;
+    }
+}
+
+HIDDEN void read_from_disk_for_pager(int devNo, int sectNo2D, int dst, support_t *currentSupport){
+	int disk_sem_idx = devSemIdx(DISKINT, devNo, FALSE);
+
+    device_t *disk_dev_reg_addr = devAddrBase(DISKINT, devNo);
+
+    int maxcyl = ((disk_dev_reg_addr->d_data1) >> 16) & 0xFFFF;
+    int maxhead = ((disk_dev_reg_addr->d_data1) >> 8) & 0xFF;
+    int maxsect = (disk_dev_reg_addr->d_data1) & 0xFF;
+
+    if (sectNo2D > (maxcyl*maxhead*maxsect)){
+        program_trap_handler(currentSupport, NULL);
+    }
+
+    SYSCALL(PASSERN, &(mutex[disk_sem_idx]), 0, 0);
+        int sectNo = sectNo2D % maxsect;
+        int headNo = ((int) (sectNo2D / (maxsect * maxcyl))) % maxhead;
+        int cylNo = ((int) (sectNo2D / maxsect)) % maxcyl;
+        setSTATUS(getSTATUS() & (~IECBITON));
+            disk_dev_reg_addr->d_command = (cylNo << CYLNUM_SHIFT) + SEEKCYL;
+            int disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
+        setSTATUS(getSTATUS() | IECBITON);
+        if (disk_status != READY){
+            SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
+            return 0 - disk_status;
+        }
+        disk_dev_reg_addr->d_data0 = dst;
+        setSTATUS(getSTATUS() & (~IECBITON));
+            disk_dev_reg_addr->d_command = (headNo << HEADNUM_SHIFT) + (sectNo << SECTNUM_SHIFT) + READBLK_DSK;
+            disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
+        setSTATUS(getSTATUS() | IECBITON);
+    SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
+
+    if (disk_status == READY){
+        return disk_status;
+    } else{
+        return 0 - disk_status;
+    }
+}
+
+
 /**********************************************************
  *  TLB_exception_handler
  *
@@ -221,10 +312,10 @@ void TLB_exception_handler() {
 		/* Update the TLB, if needed. */
 		TLBCLR();
 		int write_out_pg_tbl;
-		if(swapPoolTable[pickedFrame].pgNo == UPROC_STACK_VPN) {
+		if(swapPoolTable[pickedFrame].VPN == UPROC_STACK_VPN) {
 			write_out_pg_tbl = PAGE_TABLE_SIZE - 1;
 		} else {
-			write_out_pg_tbl = (swapPoolTable[pickedFrame].pgNo - STARTVPN);
+			write_out_pg_tbl = (swapPoolTable[pickedFrame].VPN - STARTVPN);
 		}
 		/* enable interrupts */
 		setSTATUS(getSTATUS() | IECBITON);
@@ -233,18 +324,20 @@ void TLB_exception_handler() {
 		if((occupiedPgTable->EntryLo & DBITON) == DBITON) { /* D bit set */
 
 			/* isRead = 0 since we are writing */
-			read_write_flash(pickedFrame, currentSupport, write_out_pg_tbl, FALSE);
+			/* read_write_flash(pickedFrame, currentSupport, write_out_pg_tbl, FALSE); */
+			write_to_disk_for_pager(0, 32*(swapPoolTable[pickedFrame].ASID - 1) + write_out_pg_tbl, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport);
 		}
 	}
 
 	/* Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. */
 	/* isRead = 1 since we are reading */
-	read_write_flash(pickedFrame, currentSupport, pgTableIndex, TRUE);
+	/* read_write_flash(pickedFrame, currentSupport, pgTableIndex, TRUE); */
+	read_from_disk_for_pager(0, 32*(currentSupport->sup_asid - 1) + pgTableIndex, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport);
 
 	/* Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID,
 	and a pointer to the Current Process’s Page Table entry for page p. */
 	swapPoolTable[pickedFrame].ASID = currentSupport->sup_asid;
-	swapPoolTable[pickedFrame].pgNo = missingVPN;
+	swapPoolTable[pickedFrame].VPN = missingVPN;
 	swapPoolTable[pickedFrame].matchingPgTableEntry = &(currentSupport->sup_privatePgTbl[pgTableIndex]);
 
 	setSTATUS(getSTATUS() & (~IECBITON));
