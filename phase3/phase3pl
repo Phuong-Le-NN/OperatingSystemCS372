@@ -12,7 +12,7 @@
         },
         "disk1": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase5/disk0.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase5/disk1.umps"
         },
         "flash0": {
             "enabled": true,
@@ -20,31 +20,31 @@
         },
         "flash1": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/diskIOtest.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/fibEleven.umps"
         },
         "flash2": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress2.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/fibEight.umps"
         },
         "flash3": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress3.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/printerTest.umps"
         },
         "flash4": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress4.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/strConcat.umps"
         },
         "flash5": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress5.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/asciiArt.umps"
         },
         "flash6": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress6.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/timeOfDay.umps"
         },
         "flash7": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/swapStress7.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/terminalTest7.umps"
         },
         "printer0": {
             "enabled": true,

@@ -57,7 +57,7 @@ kernel: $(OBJS)
 
 
 clean:
-	rm -f *.o *.umps kernel ../phase1/*.o ../phase1/*.umps ../phase1/kernel ../phase2/*.o ../phase2/*.umps ../phase2/kernel
+	rm -f *.o *.umps kernel ../phase1/*.o ../phase1/*.umps ../phase1/kernel ../phase2/*.o ../phase2/*.umps ../phase2/kernel ../phase4/*.o ../phase5/*.o
 
 
 distclean: clean

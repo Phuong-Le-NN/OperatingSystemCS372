@@ -29,6 +29,14 @@
 swapPoolFrame_t swapPoolTable[SWAP_POOL_SIZE];
 int swapPoolSema4;
 
+void debugCheckDskDimension(int a0, int a1, int a2, int a3){
+
+}
+
+void debugTLBrefill(int a0, int a1, int a2, int a3){
+
+}
+
 /**********************************************************
  *  initSwapStruct
  *
@@ -66,6 +74,7 @@ void initSwapStruct() {
  **********************************************************/
 void uTLB_RefillHandler() {
 	int missingVPN = (((state_PTR)BIOSDATAPAGE)->s_entryHI >> VPN_SHIFT) & VPN_MASK;
+	debugTLBrefill(((state_PTR)BIOSDATAPAGE)->s_entryHI, 0xaa, 0xaa, 0xaa);
 
 	/* Get the Page Table entry for page number p for the Current Process. This will be located in the Current Process’s Page Table*/
 	int missingVPN_idx_in_pgTable = missingVPN % PAGE_TABLE_SIZE;
@@ -100,7 +109,7 @@ int page_replace() {
 	int pickedFrame;
 	for(pickedFrame = 0; pickedFrame < SWAP_POOL_SIZE; pickedFrame = pickedFrame + 1) {
 		if(swapPoolTable[pickedFrame].ASID == -1) {
-			/* so that frame i doesn't get replace right away next time but only after cirulated */
+			/* so that frame i doesn't get replace right away next time but only after circulated */
 			if(pickedFrame == nextFrame) {
 				nextFrame = (nextFrame + 1) % SWAP_POOL_SIZE;
 			}
@@ -189,6 +198,8 @@ void write_to_disk_for_pager(int devNo, int sectNo2D, int src, support_t *curren
     int maxhead = ((disk_dev_reg_addr->d_data1) >> 8) & 0xFF;
     int maxsect = (disk_dev_reg_addr->d_data1) & 0xFF;
 
+	debugCheckDskDimension(maxcyl, maxhead, maxsect, 0xbb);
+
     if (sectNo2D > (maxcyl*maxhead*maxsect)){
         program_trap_handler(currentSupport, NULL);
     }
@@ -197,6 +208,7 @@ void write_to_disk_for_pager(int devNo, int sectNo2D, int src, support_t *curren
         int sectNo = sectNo2D % maxsect;
 	    int headNo = ((int) (sectNo2D / (maxsect * maxcyl))) % maxhead; /*divide and round down*/
         int cylNo = ((int) (sectNo2D / maxsect)) % maxcyl;
+		debugCheckDskDimension(sectNo, headNo, cylNo, sectNo2D);
         setSTATUS(getSTATUS() & (~IECBITON));
             disk_dev_reg_addr->d_command = (cylNo << CYLNUM_SHIFT) + SEEKCYL; /*seek*/
             int disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
@@ -325,14 +337,14 @@ void TLB_exception_handler() {
 
 			/* isRead = 0 since we are writing */
 			/* read_write_flash(pickedFrame, currentSupport, write_out_pg_tbl, FALSE); */
-			write_to_disk_for_pager(0, 32*(swapPoolTable[pickedFrame].ASID - 1) + write_out_pg_tbl, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport);
+			write_to_disk_for_pager(RESERVED_DISK_NO, 32*(swapPoolTable[pickedFrame].ASID - 1) + write_out_pg_tbl, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport);
 		}
 	}
 
 	/* Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. */
 	/* isRead = 1 since we are reading */
-	/* read_write_flash(pickedFrame, currentSupport, pgTableIndex, TRUE); */
-	read_from_disk_for_pager(0, 32*(currentSupport->sup_asid - 1) + pgTableIndex, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport);
+	/* read_write_flash(pickedFrame, currentSupport, pgTableIndex, TRUE);*/
+	read_from_disk_for_pager(RESERVED_DISK_NO, 32*(currentSupport->sup_asid - 1) + pgTableIndex, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport);
 
 	/* Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID,
 	and a pointer to the Current Process’s Page Table entry for page p. */

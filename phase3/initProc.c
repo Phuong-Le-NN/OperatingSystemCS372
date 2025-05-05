@@ -26,6 +26,10 @@
 int masterSemaphore = 0;
 int mutex[DEVINTNUM * DEVPERINT + DEVPERINT];
 
+void debugSBS(){
+
+}
+
 /**********************************************************
  *  init_Uproc_pgTable
  *
@@ -114,7 +118,7 @@ void helper_copy_block(int *src, int *dst){
     }
 }
 
-int helper_read_flask(int devNo, int blockNo){
+int helper_read_flash(int devNo, int blockNo){
     int flash_sem_idx = devSemIdx(FLASHINT, devNo, FALSE);
 
     device_t *flash_dev_reg_addr = devAddrBase(FLASHINT, devNo);
@@ -124,7 +128,7 @@ int helper_read_flask(int devNo, int blockNo){
         SYSCALL(TERMINATETHREAD, 0, 0, 0);
     }
     
-    flash_dev_reg_addr->d_data0 = FLASK_DMA_BUFFER_BASE_ADDR + BLOCKSIZE*devNo;
+    flash_dev_reg_addr->d_data0 = FLASK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo);
     setSTATUS(getSTATUS() & (~IECBITON));
     	flash_dev_reg_addr->d_command = (blockNo << BLOCKNUM_SHIFT) + READBLK_FLASH;
         int flash_status = SYSCALL(IOWAIT, FLASHINT, devNo, 0);
@@ -138,7 +142,7 @@ int helper_read_flask(int devNo, int blockNo){
 }
 
 int helper_write_disk(int secNo2D){
-    int devNo = 0;
+    int devNo = RESERVED_DISK_NO;
     int disk_sem_idx = devSemIdx(DISKINT, devNo, FALSE);
 
     device_t *disk_dev_reg_addr = devAddrBase(DISKINT, devNo);
@@ -181,25 +185,29 @@ void set_up_backing_store(){
 	int pageNo;
 
 	int flash_sem_idx;
-	int disk_sem_idx = devSemIdx(DISKINT, 0, FALSE);
+	int disk_sem_idx = devSemIdx(DISKINT, RESERVED_DISK_NO, FALSE);
+
+	int flash_status;
+	int disk_status;
 	
+
+	SYSCALL(PASSERN, &(mutex[disk_sem_idx]), 0, 0);
 	for (devNo = 0; devNo < UPROC_NUM; devNo++){
 		for (pageNo = 0; pageNo < PAGE_TABLE_SIZE; pageNo++){
 			flash_sem_idx = devSemIdx(FLASHINT, devNo, FALSE);
 
 			SYSCALL(PASSERN, &(mutex[flash_sem_idx]), 0, 0);
-			SYSCALL(PASSERN, &(mutex[disk_sem_idx]), 0, 0);
 
-				helper_read_flask(devNo, pageNo);
+				flash_status = helper_read_flash(devNo, pageNo);
 				
 				helper_copy_block(FLASK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo), DISK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo));
 				
-				helper_write_disk(32*devNo + pageNo);
+				disk_status = helper_write_disk(32*devNo + pageNo);
 
-			SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
 			SYSCALL(VERHO, &(mutex[flash_sem_idx]), 0, 0);
 		}
 	}
+	SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
 }
 
 /**********************************************************
@@ -224,7 +232,7 @@ void test() {
 	
 	initSwapStruct();
 	set_up_backing_store();
-	/*initADL();*/
+	initADL();
 
 	support_t initSupportPTRArr[UPROC_NUM + 1]; /*1 extra sentinel node*/
 

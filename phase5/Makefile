@@ -25,11 +25,14 @@ EF = umps3-elf2umps
 UDEV = umps3-mkdev
 
 #main target
-all: kernel.core.umps disk0.umps
+all: kernel.core.umps disk0.umps disk1.umps
 
 # use umps3-mkdev to create the disk0 device
 disk0.umps:
 	$(UDEV) -d disk0.umps
+
+disk1.umps:
+	$(UDEV) -d disk1.umps
 
 # create the kernel.core.umps kernel executable file
 kernel.core.umps: kernel

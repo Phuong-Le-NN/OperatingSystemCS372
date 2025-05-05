@@ -129,6 +129,7 @@ void WRITE_TO_FLASH(support_t *currentSupport){
     state_PTR saved_exception_state = &(currentSupport->sup_exceptState[GENERALEXCEPT]);
     int devNo = saved_exception_state->s_a2;
     int flash_sem_idx = devSemIdx(FLASHINT, devNo, FALSE);
+    
     device_t *flash_dev_reg_addr = devAddrBase(FLASHINT, devNo);
 
     if ((saved_exception_state->s_a1 < KUSEG) || (saved_exception_state->s_a3 < 32) || (saved_exception_state->s_a3 >= flash_dev_reg_addr->d_data1)){
