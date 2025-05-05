@@ -156,9 +156,9 @@ int helper_write_disk(int secNo2D){
         SYSCALL(TERMINATETHREAD, 0, 0, 0);
     }
 
-    int sectNo = (secNo2D) % maxsect;
-	int headNo = ((int) ((secNo2D) / (maxsect * maxcyl))) % maxhead; /*divide and round down*/
-    int cylNo = ((int) ((secNo2D) / maxsect)) % maxcyl;
+    int sectNo = (secNo2D % (maxhead * maxsect)) % maxsect;
+	int headNo = (secNo2D % (maxhead * maxsect)) / maxsect; /*divide and round down*/
+    int cylNo = secNo2D / (maxhead * maxsect);
     setSTATUS(getSTATUS() & (~IECBITON));
         disk_dev_reg_addr->d_command = (cylNo << CYLNUM_SHIFT) + SEEKCYL; /*seek*/
         int disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);

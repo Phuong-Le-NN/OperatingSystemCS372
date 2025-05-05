@@ -205,9 +205,9 @@ void write_to_disk_for_pager(int devNo, int sectNo2D, int src, support_t *curren
     }
 
     SYSCALL(PASSERN, &(mutex[disk_sem_idx]), 0, 0);
-        int sectNo = sectNo2D % maxsect;
-	    int headNo = ((int) (sectNo2D / (maxsect * maxcyl))) % maxhead; /*divide and round down*/
-        int cylNo = ((int) (sectNo2D / maxsect)) % maxcyl;
+        int sectNo = (sectNo2D % (maxhead * maxsect)) % maxsect;
+		int headNo = (sectNo2D % (maxhead * maxsect)) / maxsect; /*divide and round down*/
+    	int cylNo = sectNo2D / (maxhead * maxsect);
 		debugCheckDskDimension(sectNo, headNo, cylNo, sectNo2D);
         setSTATUS(getSTATUS() & (~IECBITON));
             disk_dev_reg_addr->d_command = (cylNo << CYLNUM_SHIFT) + SEEKCYL; /*seek*/
@@ -245,9 +245,9 @@ HIDDEN void read_from_disk_for_pager(int devNo, int sectNo2D, int dst, support_t
     }
 
     SYSCALL(PASSERN, &(mutex[disk_sem_idx]), 0, 0);
-        int sectNo = sectNo2D % maxsect;
-        int headNo = ((int) (sectNo2D / (maxsect * maxcyl))) % maxhead;
-        int cylNo = ((int) (sectNo2D / maxsect)) % maxcyl;
+        int sectNo = (sectNo2D % (maxhead * maxsect)) % maxsect;
+		int headNo = (sectNo2D % (maxhead * maxsect)) / maxsect; /*divide and round down*/
+    	int cylNo = sectNo2D / (maxhead*maxsect);
         setSTATUS(getSTATUS() & (~IECBITON));
             disk_dev_reg_addr->d_command = (cylNo << CYLNUM_SHIFT) + SEEKCYL;
             int disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
