@@ -25,8 +25,10 @@
 #include "../h/pcb.h"
 #include "delayDaemon.h"
 
+#define DAEMON_PROC_ASID 0
+#define NUMBER_OF_SENTINEL 2
+
 HIDDEN delayd_t *delaydFree_h;
-HIDDEN delayd_t delaydTable[MAXPROC + 2];
 HIDDEN delayd_t *delayd_h;
 HIDDEN int ADL_mutex;
 
@@ -111,17 +113,18 @@ void DELAY(support_t *currentSupport) {
 	/*Converts s_a1 into microseconds delay*/
 	int wakeTime = currentSupport->sup_exceptState[GENERALEXCEPT].s_a1 * 1000000;
 
+	/*invalid wake time*/
 	if((wakeTime < 0) || (wakeTime > MAXSIGNEDINT)) {
-		SYSCALL(9, 0, 0, 0);
+		SYSCALL(TERMINATEUSERPROC, 0, 0, 0);
 	}
 
 	/*Gain mutual exclusion over shared ADL structure*/
-	SYSCALL(3, &ADL_mutex, 0, 0);
+	SYSCALL(PASSERN, &ADL_mutex, 0, 0);
 	/*Allocates and inserts a delay descriptor into the ADL*/
 	delayd_t *newDelayd = allocDelayd(wakeTime, currentSupport);
 	if(newDelayd == NULL) {
-		SYSCALL(4, &ADL_mutex, 0, 0);
-		SYSCALL(9, 0, 0, 0); /*fail to allocate*/
+		SYSCALL(VERHO, &ADL_mutex, 0, 0);
+		SYSCALL(TERMINATEUSERPROC, 0, 0, 0); /*fail to allocate*/
 	}
 
 	delayd_t *predecessor = traverseADL(wakeTime); /*look for the predecessor*/
@@ -130,14 +133,14 @@ void DELAY(support_t *currentSupport) {
 
 	setSTATUS(getSTATUS() & (~IECBITON));
 	/*RElease ADL mutex before blocking this process*/
-	SYSCALL(4, &ADL_mutex, 0, 0);
+	SYSCALL(VERHO, &ADL_mutex, 0, 0);
 
 	/*Blocks the process on its private delay semaphore - this call scheduler and launch the next in ReadyQ*/
-	SYSCALL(3, &(currentSupport->delaySem), 0, 0);
+	SYSCALL(PASSERN, &(currentSupport->delaySem), 0, 0);
 	setSTATUS(getSTATUS() | IECBITON);
 
 	/*update PC to the instruction to run after this proc is awoken*/
-	currentSupport->sup_exceptState[GENERALEXCEPT].s_pc += 4; 
+	currentSupport->sup_exceptState[GENERALEXCEPT].s_pc += INSSIZE; 
 	LDST(&(currentSupport->sup_exceptState[GENERALEXCEPT]));
 }
 
@@ -155,22 +158,22 @@ HIDDEN void delay_daemon() {
 	int currTOD;
 	delayd_t *to_be_wake;
 	while(TRUE == TRUE) {
-		SYSCALL(7, 0, 0, 0); /*Periodically wakes every 100ms*/
+		SYSCALL(CLOCKWAIT, 0, 0, 0); /*Periodically wakes every 100ms*/
 
-		SYSCALL(3, &ADL_mutex, 0, 0); /*Acquires ADL_mutex and checks ADL*/
+		SYSCALL(PASSERN, &ADL_mutex, 0, 0); /*Acquires ADL_mutex and checks ADL*/
 		STCK(currTOD);
 		/*this loop break when the second node in the ADL no longer need to be wakened up*/
 		while(delayd_h->d_next->d_wakeTime <= currTOD) { 
 			to_be_wake = delayd_h->d_next;
 			/*Unblocks any process whose wakeTime has passed*/
-			SYSCALL(4, &(to_be_wake->d_supStruct->delaySem), 0, 0); 
+			SYSCALL(VERHO, &(to_be_wake->d_supStruct->delaySem), 0, 0); 
 			/*Removes and frees the corresponding delay descriptors*/
 			delayd_h->d_next = to_be_wake->d_next;
 			freeDelayd(to_be_wake);
 
 			STCK(currTOD);
 		}
-		SYSCALL(4, &ADL_mutex, 0, 0);
+		SYSCALL(VERHO, &ADL_mutex, 0, 0);
 	}
 }
 
@@ -184,6 +187,7 @@ HIDDEN void delay_daemon() {
  *         void
  */
 void initADL() {
+	static delayd_t delaydTable[MAXPROC + NUMBER_OF_SENTINEL];
 	delayd_h = NULL;
 	ADL_mutex = 1;
 	/*adding the first from delaydTable to the delaydFree_h list*/
@@ -197,18 +201,20 @@ void initADL() {
 	(delaydTable[i]).d_next = NULL;
 
 	/*allocating and adding the two dummy node into the ADL*/
-	delayd_t *headDummy = allocDelayd(-1, NULL);
+	delayd_t *headDummy = allocDelayd(FIRSTINVALIDTIME, NULL);
 	delayd_t *tailDummy = allocDelayd(MAXSIGNEDINT, NULL);
 
 	headDummy->d_next = tailDummy;
 	delayd_h = headDummy;
 
+	/* state for the deamon */
 	state_t daemonState;
 	daemonState.s_pc = (memaddr)delay_daemon;
 	daemonState.s_t9 = (memaddr)delay_daemon;
+	/* assigning memory right below test stack page */
 	daemonState.s_sp = ((devregarea_t *)RAMBASEADDR)->rambase + ((devregarea_t *)RAMBASEADDR)->ramsize - PAGESIZE;
 	daemonState.s_status = (IEPBITON & KUPBITOFF) | IPBITS;
-	daemonState.s_entryHI = 0 << ASID_SHIFT;
+	daemonState.s_entryHI = DAEMON_PROC_ASID << ASID_SHIFT;
 	/*Starts the Delay Daemon as a kernel process using SYSCALL(1)*/
-	SYSCALL(1, &daemonState, NULL, 0);
+	SYSCALL(CREATETHREAD, &daemonState, NULL, 0);
 }

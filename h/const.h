@@ -10,6 +10,7 @@
 /* Hardware & software constants */
 #define PAGESIZE 4096 /* page size in bytes	*/
 #define WORDLEN 4     /* word size in bytes	*/
+#define INSSIZE 4
 
 /* timer, timescale, TOD-LO and other bus regs */
 #define RAMBASEADDR 0x10000000
@@ -123,6 +124,11 @@
 #define CPUTIMEGET 6
 #define CLOCKWAIT 7
 #define SUPPORTGET 8
+#define TERMINATEUSERPROC 9
+#define TODGET 10
+#define PRINTERWRITE 11
+#define TERMWRITE 12
+#define TERMREAD 13
 
 #define CLOCKINTERVAL 100000UL /* interval to V clock semaphore */
 #define SYSCAUSE (0x8 << 2)
@@ -233,5 +239,6 @@
 #define MAXPROC 20
 #define MAXSEM MAXPROC
 #define MAXSIGNEDINT 0x7FFFFFFF
+#define FIRSTINVALIDTIME -1
 
 #endif
