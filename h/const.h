@@ -232,5 +232,6 @@
 /* Maximum number of semaphore and pcb that can be allocated*/
 #define MAXPROC 20
 #define MAXSEM MAXPROC
+#define MAXSIGNEDINT 0x7FFFFFFF
 
 #endif
