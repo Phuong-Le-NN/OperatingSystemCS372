@@ -252,5 +252,9 @@
 #define BLOCKNUM_SHIFT  8
 
 #define RESERVED_DISK_NO 0
+#define FIRST_BLOCK_NEXT_BSK 32
+
+#define MAXCYL_SHIFT 16
+#define MAXHEAD_SHIFT 8
 
 #endif

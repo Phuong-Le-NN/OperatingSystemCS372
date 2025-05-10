@@ -1,3 +1,33 @@
+/***********************deviceSupport.c***************************
+ *  Description:
+ *  This module provides support for user-level access to I/O
+ *  devices including printers, terminals, disks, and flash memory.
+ *  Helpers:
+ *    - helper_check_string_outside_addr_space:
+ *        Checks if a user string is outside legal memory bounds.
+ *    - helper_copy_block:
+ *        Copies a block of memory from source to destination.
+ *  Functions includedd :
+ *    - WRITE_TO_PRINTER(support_t*):
+ *        Writes a string to the printer device, one character at a time.
+ *        Returns success count or negative error code.
+ *    - WRITE_TO_TERMINAL(support_t*):
+ *        Writes a string to the terminal’s transmit register.
+ *        Returns characters written or error code.
+ *    - READ_FROM_TERMINAL(support_t*):
+ *        Reads characters into a buffer from the terminal until newline.
+ *        Returns character count or error code.
+ *    - WRITE_TO_DISK(support_t*):
+ *        Writes one block from a user buffer to disk at a given sector.
+ *    - READ_FROM_DISK(support_t*):
+ *        Reads one block from disk to a user buffer via DMA and block commands.
+ *    - WRITE_TO_FLASH(support_t*):
+ *        Writes a block to flash memory at a specified block number.
+ *    - READ_FROM_FLASH(support_t*):
+ *        Reads a block from flash memory into a user buffer.
+ ***************************************************************/
+
+
 #include "/usr/include/umps3/umps/libumps.h"
 
 #include "../h/pcb.h"
@@ -30,6 +60,23 @@ HIDDEN int helper_check_string_outside_addr_space(int strAdd) {
 	return FALSE;
 }
 
+/**********************************************************
+ *  helper_copy_block
+ *
+ *  Copies a block of data from a source address to a destination address.
+ *  The block is copied element by element in a loop, assuming the data is 
+ *  4-byte aligned (i.e., the size of each element is 4 bytes).
+ *
+ *  Parameters:
+ *  src
+ *    Pointer to the source memory location from which data is copied.
+ *    
+ *  dst
+ *    Pointer to the destination memory location where data is copied to.
+ * 
+ *  Returns
+ *  
+ **********************************************************/
 
 HIDDEN void helper_copy_block(int *src, int *dst){
     int i;
@@ -206,6 +253,20 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
 	SYSCALL(VERHO, &(mutex[mutexSemIdx]), 0, 0);
 }
 
+/**********************************************************
+ *  WRITE_TO_DISK
+ *
+ *  Writes a block of data to the disk. It checks if the address 
+ *  is within a valid range, prepares the disk for writing, and 
+ *  performs the disk write operation.
+ *
+ *  Parameters:
+ *         support_t *currentSupport – pointer to the support struct
+ *
+ *  Returns:
+ *         None
+ *
+ **********************************************************/
 void WRITE_TO_DISK(support_t *currentSupport){
     state_PTR saved_gen_exc_state = &(currentSupport->sup_exceptState[GENERALEXCEPT]);
 
@@ -214,8 +275,8 @@ void WRITE_TO_DISK(support_t *currentSupport){
 
     device_t *disk_dev_reg_addr = devAddrBase(DISKINT, devNo);
 
-    int maxcyl = ((disk_dev_reg_addr->d_data1) >> 16) & 0xFFFF;
-    int maxhead = ((disk_dev_reg_addr->d_data1) >> 8) & 0xFF;
+    int maxcyl = ((disk_dev_reg_addr->d_data1) >> MAXCYL_SHIFT) & 0xFFFF;
+    int maxhead = ((disk_dev_reg_addr->d_data1) >> MAXHEAD_SHIFT) & 0xFF;
     int maxsect = (disk_dev_reg_addr->d_data1) & 0xFF;
 
     /*when setting up backing store as disk, depending on where on disk storing an image, it should be illegal to write there too*/
@@ -251,6 +312,20 @@ void WRITE_TO_DISK(support_t *currentSupport){
     }
 }
 
+/**********************************************************
+ *  READ_FROM_DISK
+ *
+ *  Reads a block of data from the disk. It checks if the address 
+ *  is within a valid range, prepares the disk for reading, and 
+ *  performs the disk read operation.
+ *
+ *  Parameters:
+ *         support_t *currentSupport – pointer to the support struct
+ *
+ *  Returns:
+ *         None
+ *
+ **********************************************************/
 void READ_FROM_DISK(support_t *currentSupport){
     state_PTR saved_gen_exc_state = &(currentSupport->sup_exceptState[GENERALEXCEPT]);
 
@@ -294,7 +369,20 @@ void READ_FROM_DISK(support_t *currentSupport){
         saved_gen_exc_state->s_v0 = 0 - disk_status;
     }
 }
-
+/**********************************************************
+ *  READ_FROM_FLASH
+ *
+ *  Reads a block of data from the flash memory. It checks if the address 
+ *  is within a valid range, prepares the flash for reading, and 
+ *  performs the flash read operation.
+ *
+ *  Parameters:
+ *         support_t *currentSupport – pointer to the support struct
+ *
+ *  Returns:
+ *         None
+ *
+ **********************************************************/
 void READ_FROM_FLASH(support_t *currentSupport){
     state_PTR saved_exception_state = &(currentSupport->sup_exceptState[GENERALEXCEPT]);
     int devNo = saved_exception_state->s_a2;
@@ -303,7 +391,7 @@ void READ_FROM_FLASH(support_t *currentSupport){
     device_t *flash_dev_reg_addr = devAddrBase(FLASHINT, devNo);
 
     /* should be illegal to read from backing store area in flash and outside logical address space*/
-    if ((saved_exception_state->s_a1 < KUSEG) || (saved_exception_state->s_a3 < 32) || (saved_exception_state->s_a3 >= flash_dev_reg_addr->d_data1)){ 
+    if ((saved_exception_state->s_a1 < KUSEG) || (saved_exception_state->s_a3 < FIRST_BLOCK_NEXT_BSK) || (saved_exception_state->s_a3 >= flash_dev_reg_addr->d_data1)){ 
         program_trap_handler(currentSupport, NULL);
     }
 
@@ -323,6 +411,20 @@ void READ_FROM_FLASH(support_t *currentSupport){
     }
 }
 
+/**********************************************************
+ *  WRITE_TO_FLASH
+ *
+ *  Writes a block of data to the flash memory. It checks if the address 
+ *  is within a valid range, prepares the flash for writing, and 
+ *  performs the flash write operation.
+ *
+ *  Parameters:
+ *         support_t *currentSupport – pointer to the support struct
+ *
+ *  Returns:
+ *         None
+ *
+ **********************************************************/
 void WRITE_TO_FLASH(support_t *currentSupport){
     state_PTR saved_exception_state = &(currentSupport->sup_exceptState[GENERALEXCEPT]);
     int devNo = saved_exception_state->s_a2;
@@ -330,7 +432,7 @@ void WRITE_TO_FLASH(support_t *currentSupport){
     
     device_t *flash_dev_reg_addr = devAddrBase(FLASHINT, devNo);
 
-    if ((saved_exception_state->s_a1 < KUSEG) || (saved_exception_state->s_a3 < 32) || (saved_exception_state->s_a3 >= flash_dev_reg_addr->d_data1)){
+    if ((saved_exception_state->s_a1 < KUSEG) || (saved_exception_state->s_a3 < FIRST_BLOCK_NEXT_BSK) || (saved_exception_state->s_a3 >= flash_dev_reg_addr->d_data1)){
         program_trap_handler(currentSupport, NULL);
     }
     
