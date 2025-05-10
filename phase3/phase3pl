@@ -12,7 +12,7 @@
         },
         "flash1": {
             "enabled": true,
-            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/fibEight.umps"
+            "file": "/Users/le_p2/Documents/CS372/OperatingSystemCS372/phase3/testers/asciiArt.umps"
         },
         "flash2": {
             "enabled": true,
