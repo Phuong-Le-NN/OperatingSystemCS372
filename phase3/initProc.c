@@ -91,6 +91,118 @@ int init_Uproc(support_t *initSupportPTR, int ASID) {
 }
 
 /**********************************************************
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+*/
+
+void helper_copy_block(int *src, int *dst){
+    int i;
+    for (i = 0; i < (BLOCKSIZE/4); i++){
+        *dst = *src;
+        dst++; /*should increase by 4*/
+        src++;
+    }
+}
+
+int helper_read_flash(int devNo, int blockNo){
+    int flash_sem_idx = devSemIdx(FLASHINT, devNo, FALSE);
+
+    device_t *flash_dev_reg_addr = devAddrBase(FLASHINT, devNo);
+
+	/*delete this condition out after finishing -- this should never be called*/
+    if (blockNo > 32){
+        SYSCALL(TERMINATETHREAD, 0, 0, 0);
+    }
+    
+    flash_dev_reg_addr->d_data0 = FLASK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo);
+    setSTATUS(getSTATUS() & (~IECBITON));
+    	flash_dev_reg_addr->d_command = (blockNo << BLOCKNUM_SHIFT) + READBLK_FLASH;
+        int flash_status = SYSCALL(IOWAIT, FLASHINT, devNo, 0);
+    setSTATUS(getSTATUS() | IECBITON);
+
+    if (flash_status == READY){
+        return flash_status;
+    } else{
+        return 0 - flash_status;
+    }
+}
+
+int helper_write_disk(int secNo2D){
+    int devNo = RESERVED_DISK_NO;
+    int disk_sem_idx = devSemIdx(DISKINT, devNo, FALSE);
+
+    device_t *disk_dev_reg_addr = devAddrBase(DISKINT, devNo);
+
+    int maxcyl = ((disk_dev_reg_addr->d_data1) >> 16) & 0xFFFF;
+    int maxhead = ((disk_dev_reg_addr->d_data1) >> 8) & 0xFF;
+    int maxsect = (disk_dev_reg_addr->d_data1) & 0xFF;
+
+	/*delete this out after finishing -- should never happen*/
+    if (secNo2D > (maxcyl*maxhead*maxsect)){
+        SYSCALL(TERMINATETHREAD, 0, 0, 0);
+    }
+
+    int sectNo = (secNo2D % (maxhead * maxsect)) % maxsect;
+	int headNo = (secNo2D % (maxhead * maxsect)) / maxsect; /*divide and round down*/
+    int cylNo = secNo2D / (maxhead * maxsect);
+    setSTATUS(getSTATUS() & (~IECBITON));
+        disk_dev_reg_addr->d_command = (cylNo << CYLNUM_SHIFT) + SEEKCYL; /*seek*/
+        int disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
+    setSTATUS(getSTATUS() | IECBITON);
+    if (disk_status != READY){
+        SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
+        return 0 - disk_status;
+    }
+    disk_dev_reg_addr->d_data0 = DISK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo); /*carefull not to do anything with device between writing to data0 and command*/
+    setSTATUS(getSTATUS() & (~IECBITON));
+        disk_dev_reg_addr->d_command = (headNo << HEADNUM_SHIFT) + (sectNo << SECTNUM_SHIFT) + WRITEBLK_DSK; /*write*/
+        disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
+    setSTATUS(getSTATUS() | IECBITON);
+
+    if (disk_status == READY){
+        return disk_status;
+    } else {
+        return 0 - disk_status;
+    }
+}
+
+void set_up_backing_store(){
+	int devNo;
+	int pageNo;
+
+	int flash_sem_idx;
+	int disk_sem_idx = devSemIdx(DISKINT, RESERVED_DISK_NO, FALSE);
+
+	int flash_status;
+	int disk_status;
+	
+
+	SYSCALL(PASSERN, &(mutex[disk_sem_idx]), 0, 0);
+	for (devNo = 0; devNo < UPROC_NUM; devNo++){
+		for (pageNo = 0; pageNo < PAGE_TABLE_SIZE; pageNo++){
+			flash_sem_idx = devSemIdx(FLASHINT, devNo, FALSE);
+
+			SYSCALL(PASSERN, &(mutex[flash_sem_idx]), 0, 0);
+
+				flash_status = helper_read_flash(devNo, pageNo);
+				
+				helper_copy_block(FLASK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo), DISK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo));
+				
+				disk_status = helper_write_disk(32*devNo + pageNo);
+
+			SYSCALL(VERHO, &(mutex[flash_sem_idx]), 0, 0);
+		}
+	}
+	SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
+}
+
+/**********************************************************
  *  test
  *
  *  Function for initializing the system test.
@@ -105,13 +217,15 @@ int init_Uproc(support_t *initSupportPTR, int ASID) {
  *
  **********************************************************/
 void test() {
-	initSwapStruct();
-	initADL();
 
 	int i;
 	for(i = 0; i < (DEVINTNUM * DEVPERINT + DEVPERINT); i++) {
 		mutex[i] = 1;
 	}
+
+	initSwapStruct();
+	set_up_backing_store();
+	initADL();
 
 	support_t initSupportPTRArr[UPROC_NUM + 1]; /*1 extra sentinel node*/
 

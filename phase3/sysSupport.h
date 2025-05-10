@@ -15,7 +15,6 @@
 #include "../h/types.h"
 #include "../h/const.h"
 #include "../phase5/delayDaemon.h"
-#include "../phase4/devSupport.h"
 
 extern int masterSemaphore;
 extern int mutex[DEVINTNUM * DEVPERINT + DEVPERINT];
