@@ -14,6 +14,7 @@
 #include "../h/asl.h"
 #include "../h/types.h"
 #include "../h/const.h"
+#include "devSupport.c"
 #include "../phase5/delayDaemon.h"
 
 extern int masterSemaphore;
