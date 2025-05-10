@@ -106,6 +106,7 @@ int init_Uproc(support_t *initSupportPTR, int ASID) {
  **********************************************************/
 void test() {
 	initSwapStruct();
+	/*initializing the facility for sys18 - delay*/
 	initADL();
 
 	int i;
