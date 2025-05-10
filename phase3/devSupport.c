@@ -239,7 +239,8 @@ void READ_FROM_TERMINAL(support_t *passedUpSupportStruct) {
 		recvStatus = recvStatusField & STATUS_CHAR_MASK;
 		stringAdd[i] = recvChar; /* write the char into the string buffer array */
 		i++;
-		if(recvStatus != CHAR_RECIEVED) { /* operation ends with a status other than Character Received */
+		if(recvStatus != CHAR_RECIEVED) { 
+            /* operation ends with a status other than Character Received */
 			savedExcState->s_v0 = -recvStatus;
 			break;
 		}
@@ -275,6 +276,7 @@ void WRITE_TO_DISK(support_t *currentSupport){
 
     device_t *disk_dev_reg_addr = devAddrBase(DISKINT, devNo);
 
+    /*get disk capacity*/
     int maxcyl = ((disk_dev_reg_addr->d_data1) >> MAXCYL_SHIFT) & 0xFFFF;
     int maxhead = ((disk_dev_reg_addr->d_data1) >> MAXHEAD_SHIFT) & 0xFF;
     int maxsect = (disk_dev_reg_addr->d_data1) & 0xFF;
@@ -284,10 +286,13 @@ void WRITE_TO_DISK(support_t *currentSupport){
         program_trap_handler(currentSupport, NULL);
     }
 
+    /* start the operation with mutual exclusion */
     SYSCALL(PASSERN, &(mutex[disk_sem_idx]), 0, 0);
+        /*calcutate the sect, head, cyl for the command*/
         int sectNo = (saved_gen_exc_state->s_a3) % maxsect;
 	    int headNo = ((int) ((saved_gen_exc_state->s_a3) / (maxsect * maxcyl))) % maxhead; /*divide and round down*/
         int cylNo = ((int) ((saved_gen_exc_state->s_a3) / maxsect)) % maxcyl;
+        /*seek to get head to the right position*/
         setSTATUS(getSTATUS() & (~IECBITON));
             disk_dev_reg_addr->d_command = (cylNo << CYLNUM_SHIFT) + SEEKCYL; /*seek*/
             int disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
@@ -297,8 +302,11 @@ void WRITE_TO_DISK(support_t *currentSupport){
             SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
             return;
         }
+        /*bring content into buffer and start the command to write from buffer*/
         helper_copy_block(saved_gen_exc_state->s_a1, DISK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo));
-        disk_dev_reg_addr->d_data0 = DISK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo); /*carefull not to do anything with device between writing to data0 and command*/
+        disk_dev_reg_addr->d_data0 = DISK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo); 
+        /*carefull not to do anything with device between writing to data0 and command*/
+        /*start operation with command and syscall atomically*/
         setSTATUS(getSTATUS() & (~IECBITON));
             disk_dev_reg_addr->d_command = (headNo << HEADNUM_SHIFT) + (sectNo << SECTNUM_SHIFT) + WRITEBLK_DSK; /*write*/
             disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
@@ -334,18 +342,21 @@ void READ_FROM_DISK(support_t *currentSupport){
 
     device_t *disk_dev_reg_addr = devAddrBase(DISKINT, devNo);
 
+    /*get disk capacity*/
     int maxcyl = ((disk_dev_reg_addr->d_data1) >> 16) & 0xFFFF;
     int maxhead = ((disk_dev_reg_addr->d_data1) >> 8) & 0xFF;
     int maxsect = (disk_dev_reg_addr->d_data1) & 0xFF;
 
-    if ((saved_gen_exc_state->s_a1 < KUSEG) || (saved_gen_exc_state->s_a3 > (maxcyl*maxhead*maxsect))){         /*when setting up backing store as disk, depending on where on disk storing an image, it should be illegal to write there too*/
+    /*when setting up backing store as disk, depending on where on disk storing an image, it should be illegal to write there too*/
+    if ((saved_gen_exc_state->s_a1 < KUSEG) || (saved_gen_exc_state->s_a3 > (maxcyl*maxhead*maxsect))){
         program_trap_handler(currentSupport, NULL);
     }
-
+    /* start the operation with mutual exclusion */
     SYSCALL(PASSERN, &(mutex[disk_sem_idx]), 0, 0);
         int sectNo = saved_gen_exc_state->s_a3 % maxsect;
         int headNo = ((int) (saved_gen_exc_state->s_a3 / (maxsect * maxcyl))) % maxhead;
         int cylNo = ((int) (saved_gen_exc_state->s_a3 / maxsect)) % maxcyl;
+        /*seek to get head to the right head position*/
         setSTATUS(getSTATUS() & (~IECBITON));
             disk_dev_reg_addr->d_command = (cylNo << CYLNUM_SHIFT) + SEEKCYL;
             int disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
@@ -355,11 +366,14 @@ void READ_FROM_DISK(support_t *currentSupport){
             SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
             return;
         }
+        /*read into buffer*/
         disk_dev_reg_addr->d_data0 = DISK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo);
+        /*start operation with command and syscall atomically*/
         setSTATUS(getSTATUS() & (~IECBITON));
             disk_dev_reg_addr->d_command = (headNo << HEADNUM_SHIFT) + (sectNo << SECTNUM_SHIFT) + READBLK_DSK;
             disk_status = SYSCALL(IOWAIT, DISKINT, devNo, 0);
         setSTATUS(getSTATUS() | IECBITON);
+        /*bring content into buffer after read to buffer*/
         helper_copy_block(DISK_DMA_BUFFER_BASE_ADDR + (BLOCKSIZE*devNo), saved_gen_exc_state->s_a1);
     SYSCALL(VERHO, &(mutex[disk_sem_idx]), 0, 0);
 
@@ -390,17 +404,19 @@ void READ_FROM_FLASH(support_t *currentSupport){
 
     device_t *flash_dev_reg_addr = devAddrBase(FLASHINT, devNo);
 
-    /* should be illegal to read from backing store area in flash and outside logical address space*/
+    /* should be illegal to read from backing store area in flash and outside logical address space and flash capacity*/
     if ((saved_exception_state->s_a1 < KUSEG) || (saved_exception_state->s_a3 < FIRST_BLOCK_NEXT_BSK) || (saved_exception_state->s_a3 >= flash_dev_reg_addr->d_data1)){ 
         program_trap_handler(currentSupport, NULL);
     }
-
+    /* start reading into buffer with mutex */
     SYSCALL(PASSERN, &(mutex[flash_sem_idx]), 0, 0);
+    /*start operation with command and syscall atomically*/
         flash_dev_reg_addr->d_data0 = FLASK_DMA_BUFFER_BASE_ADDR + BLOCKSIZE*devNo;
         setSTATUS(getSTATUS() & (~IECBITON));
             flash_dev_reg_addr->d_command = (saved_exception_state->s_a3 << BLOCKNUM_SHIFT) + READBLK_FLASH;
             int flash_status = SYSCALL(IOWAIT,FLASHINT, devNo, 0);
         setSTATUS(getSTATUS() | IECBITON);
+        /* copy from buffer to desired memory location*/
         helper_copy_block(FLASK_DMA_BUFFER_BASE_ADDR + BLOCKSIZE*devNo, saved_exception_state->s_a1);
     SYSCALL(VERHO, &(mutex[flash_sem_idx]), 0, 0);
 
@@ -432,12 +448,16 @@ void WRITE_TO_FLASH(support_t *currentSupport){
     
     device_t *flash_dev_reg_addr = devAddrBase(FLASHINT, devNo);
 
+    /* should be illegal to read from backing store area in flash and outside logical address space and flash capacity*/
     if ((saved_exception_state->s_a1 < KUSEG) || (saved_exception_state->s_a3 < FIRST_BLOCK_NEXT_BSK) || (saved_exception_state->s_a3 >= flash_dev_reg_addr->d_data1)){
         program_trap_handler(currentSupport, NULL);
     }
     
+    /* start writing from buffer with mutex */
     SYSCALL(PASSERN, &(mutex[flash_sem_idx]), 0, 0);
+        /* copy into buffer from desired memory location*/
         helper_copy_block(saved_exception_state->s_a1, FLASK_DMA_BUFFER_BASE_ADDR + BLOCKSIZE*devNo);
+        /*start operation with command and syscall atomically*/
         flash_dev_reg_addr->d_data0 = FLASK_DMA_BUFFER_BASE_ADDR + BLOCKSIZE*devNo;
         setSTATUS(getSTATUS() & (~IECBITON));
             flash_dev_reg_addr->d_command = (saved_exception_state->s_a3 << BLOCKNUM_SHIFT) + WRITEBLK_FLASH;
