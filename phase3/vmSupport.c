@@ -315,15 +315,15 @@ void TLB_exception_handler() {
 		if((occupiedPgTable->EntryLo & DBITON) == DBITON) { /* D bit set */
 
 			/* isRead = 0 since we are writing */
-			/* read_write_flash(pickedFrame, currentSupport, write_out_pg_tbl, FALSE); */
-			write_to_disk_for_pager(RESERVED_DISK_NO, 32*(swapPoolTable[pickedFrame].ASID - 1) + write_out_pg_tbl, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport);
+			read_write_flash(pickedFrame, currentSupport, write_out_pg_tbl, FALSE);
+			/* write_to_disk_for_pager(RESERVED_DISK_NO, 32*(swapPoolTable[pickedFrame].ASID - 1) + write_out_pg_tbl, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport); */
 		}
 	}
 
 	/* Read the contents of the Current Process’s backingstore/flash device logical page p into frame i. */
 	/* isRead = 1 since we are reading */
-	/* read_write_flash(pickedFrame, currentSupport, pgTableIndex, TRUE); */
-	read_from_disk_for_pager(RESERVED_DISK_NO, 32*(currentSupport->sup_asid - 1) + pgTableIndex, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport);
+	read_write_flash(pickedFrame, currentSupport, pgTableIndex, TRUE);
+	/* read_from_disk_for_pager(RESERVED_DISK_NO, 32*(currentSupport->sup_asid - 1) + pgTableIndex, SWAP_POOL_START + (pickedFrame * PAGESIZE), currentSupport); */
 
 	/* Update the Swap Pool table’s entry i to reflect frame i’s new contents: page p belonging to the Current Process’s ASID,
 	and a pointer to the Current Process’s Page Table entry for page p. */
